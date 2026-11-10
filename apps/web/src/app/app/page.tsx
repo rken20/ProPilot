@@ -1,4 +1,4 @@
-import { Building2, CircleCheck, UserPlus } from "lucide-react";
+import { Building2, CalendarDays, CircleCheck, UserPlus } from "lucide-react";
 import { can } from "@proppilot/shared";
 import { getUser, requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -10,7 +10,6 @@ const NOTICES: Record<string, string> = {
   "password-updated": "Your password has been updated.",
 };
 
-
 export default async function DashboardPage({ searchParams }: PageProps<"/app">) {
   const sp = await searchParams;
   const notice = typeof sp.notice === "string" ? NOTICES[sp.notice] : undefined;
@@ -18,10 +17,11 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
   const supabase = await createClient();
   const canManageTeam = can(biz.role, "team.invite");
 
-  const [propsRes, membersRes, invitesRes] = await Promise.all([
+  const canSeeLeads = can(biz.role, "lead.viewAll") || can(biz.role, "lead.viewAssigned");
+  const [propsRes, membersRes, invitesRes, leadsRes] = await Promise.all([
     supabase
       .from("properties")
-      .select("id, name, location, price_minor, currency, status, financing, created_at, updated_at")
+      .select("id, name, location, price_minor, currency, status, financing, is_public, created_at, updated_at")
       .eq("business_id", biz.businessId)
       .neq("status", "archived")
       .order("updated_at", { ascending: false }),
@@ -39,7 +39,19 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
           .order("created_at", { ascending: false })
           .limit(10)
       : Promise.resolve({ data: [] as Array<{ id: string; email: string; role: string; created_at: string; accepted_at: string | null }> }),
+    canSeeLeads
+      ? supabase
+          .from("viewing_requests")
+          .select("id, property_id, buyer_name, status, created_at")
+          .eq("business_id", biz.businessId)
+          .order("created_at", { ascending: false })
+          .limit(50)
+      : Promise.resolve({ data: [] as Array<{ id: string; property_id: string; buyer_name: string; status: string; created_at: string }> }),
   ]);
+  const leads = leadsRes.data ?? [];
+  const newLeads = leads.filter((l) => l.status === "new").length;
+  const openLeads = leads.filter((l) => ["new", "contacted", "scheduled"].includes(l.status)).length;
+  const publicCount = (propsRes.data ?? []).filter((p) => p.is_public).length;
 
   const properties = propsRes.data ?? [];
   const members = membersRes.data ?? [];
@@ -67,6 +79,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
   const steps: SetupStep[] = [
     { label: "Add your first property", done: properties.length > 0, href: "/app/properties/new" },
     { label: "Add price and financing details", done: hasFinancing, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
+    { label: "Show a listing to PropPilot buyers", done: publicCount > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
     { label: "Invite your team", done: members.length > 1 || invites.length > 0, href: canManageTeam ? "/app/team" : undefined },
     { label: "Connect your Facebook Page", done: false, soon: true },
   ];
@@ -92,11 +105,14 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
   for (const i of invites) {
     activity.push({ at: i.created_at, icon: UserPlus, tone: "bg-amber-50 text-amber-700", title: "Invitation sent", detail: `${i.email}, ${i.role}`, href: "/app/team" });
   }
+  const nameOfProp = (id: string) => properties.find((p) => p.id === id)?.name ?? "a listing";
+  for (const l of leads.slice(0, 10)) {
+    activity.push({ at: l.created_at, icon: CalendarDays, tone: "bg-orange-50 text-hot", title: `${l.buyer_name} requested a viewing`, detail: nameOfProp(l.property_id), href: "/app/leads" });
+  }
   activity.sort((a, b) => b.at.localeCompare(a.at));
   const recent = activity.slice(0, 5);
 
   const firstName = String(user?.user_metadata?.full_name ?? "").split(" ")[0];
-
 
   return (
     <DashboardView
@@ -112,6 +128,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       reservedCount={reserved}
       inventoryValue={inventoryValue}
       steps={steps}
+      leads={canSeeLeads ? { newCount: newLeads, openCount: openLeads } : null}
+      publicCount={publicCount}
+      assistantLive={publicCount > 0 && Boolean(process.env.ANTHROPIC_API_KEY)}
       recent={recent}
     />
   );

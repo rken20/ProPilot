@@ -37,6 +37,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
     bankFinancing: financing.bankFinancing ? "on" : "",
     pagIbig: financing.pagIbig ? "on" : "",
     inHouse: financing.inHouse ? "on" : "",
+    isPublic: p.is_public ? "on" : "",
   };
 
   // Owners/admins edit any listing; agents only listings assigned to them (RLS enforces the same).

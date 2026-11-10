@@ -12,7 +12,7 @@ import {
 import { Alert, cx } from "@/components/ui";
 import { formatPeso } from "@/lib/money";
 import { timeAgo } from "@/lib/time";
-import { STATUS_LABEL } from "./properties/property-form";
+import { STATUS_LABEL } from "@/lib/property-labels";
 
 export type Activity = { at: string; icon: LucideIcon; tone: string; title: string; detail: string; href?: string };
 export type ListingRow = { id: string; name: string; location: string; price_minor: number; currency: string; status: string };
@@ -32,6 +32,9 @@ export type DashboardData = {
   inventoryValue: number;
   steps: SetupStep[];
   recent: Activity[];
+  leads: { newCount: number; openCount: number } | null;
+  publicCount: number;
+  assistantLive: boolean;
   now?: Date;
 };
 
@@ -50,6 +53,9 @@ export function DashboardView({
   inventoryValue,
   steps,
   recent,
+  leads,
+  publicCount,
+  assistantLive,
   now,
 }: DashboardData) {
   const doneCount = steps.filter((s) => s.done).length;
@@ -83,8 +89,14 @@ export function DashboardView({
           note={properties.length ? `${availableCount} available, ${reservedCount} reserved` : "No listings yet"} />
         <Stat icon={Wallet} tint="bg-emerald-50 text-good" label="Available inventory" value={inventoryValue ? formatPeso(inventoryValue) : "₱0"}
           note={availableCount ? `Across ${availableCount} available listing${availableCount === 1 ? "" : "s"}` : "Total price of available listings"} />
-        <Stat icon={MessageCircle} tint="bg-violet-50 text-violet-600" label="Buyer inquiries" value="—" note="Starts when Facebook is connected" muted />
-        <Stat icon={Flame} tint="bg-orange-50 text-hot" label="Hot leads" value="—" note="Starts when Facebook is connected" muted />
+        {leads ? (
+          <Stat icon={Flame} tint="bg-orange-50 text-hot" label="New viewing requests" value={String(leads.newCount)}
+            note={leads.openCount ? `${leads.openCount} open in Buyer leads` : publicCount ? "Waiting for buyers" : "Show a listing to buyers to start"}
+            href="/app/leads" />
+        ) : (
+          <Stat icon={Flame} tint="bg-orange-50 text-hot" label="Listings shown to buyers" value={String(publicCount)} note="Visible on PropPilot" />
+        )}
+        <Stat icon={MessageCircle} tint="bg-violet-50 text-violet-600" label="Messenger inquiries" value="—" note="Starts when Facebook is connected" muted />
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_1fr]">
@@ -93,12 +105,13 @@ export function DashboardView({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">Your AI assistant</h2>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium">
-              <span className="size-2 rounded-full bg-amber-400" aria-hidden /> Not live yet
+              <span className={cx("size-2 rounded-full", assistantLive ? "bg-emerald-400" : "bg-amber-400")} aria-hidden />
+              {assistantLive ? "Live for PropPilot buyers" : "Not live yet"}
             </span>
           </div>
           <p className="mt-2 max-w-md text-sm leading-relaxed text-white/70">
-            Once your Facebook Page is connected, it answers Messenger inquiries from your listings day and night, and
-            sends you the buyers who are ready to view.
+            It already answers PropPilot buyers on listings you choose to show. Once your Facebook Page is connected,
+            it will answer Messenger inquiries too, day and night.
           </p>
 
           <div className="mt-6">
@@ -227,9 +240,10 @@ export function DashboardView({
   );
 }
 
-function Stat({ icon: Icon, tint, label, value, note, muted }: { icon: LucideIcon; tint: string; label: string; value: string; note: string; muted?: boolean }) {
+function Stat({ icon: Icon, tint, label, value, note, muted, href }: { icon: LucideIcon; tint: string; label: string; value: string; note: string; muted?: boolean; href?: string }) {
+  const Wrapper = href ? Link : "div";
   return (
-    <div className="rounded-2xl border border-line bg-white p-4 sm:p-5">
+    <Wrapper href={href ?? ""} className={cx("block rounded-2xl border border-line bg-white p-4 sm:p-5", href && "transition-colors hover:border-brand-600")}>
       <div className="flex items-center gap-2.5 sm:gap-3">
         <span className={cx("grid size-9 shrink-0 place-items-center rounded-xl sm:size-10", tint)}>
           <Icon className="size-5" aria-hidden />
@@ -238,7 +252,7 @@ function Stat({ icon: Icon, tint, label, value, note, muted }: { icon: LucideIco
       </div>
       <p className={cx("mt-3 text-[22px] font-bold sm:mt-4 sm:text-[28px] leading-none tracking-tight tabular-nums", muted && "text-slate-300")}>{value}</p>
       <p className="mt-2 text-xs text-muted">{note}</p>
-    </div>
+    </Wrapper>
   );
 }
 

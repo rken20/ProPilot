@@ -39,6 +39,7 @@ pnpm --filter @proppilot/mobile start             # scan the QR code with Expo G
 | `NEXT_PUBLIC_SUPABASE_URL` | web | Public. Safe in the browser. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | web | Public. Row-level security protects data. |
 | `SUPABASE_SERVICE_ROLE_KEY` | web (server only) | **Secret.** Bypasses RLS. Never prefix with `NEXT_PUBLIC_`. |
+| `ANTHROPIC_API_KEY` | web (server only) | **Secret.** Buyer listing assistant. Optional; chat is disabled without it. |
 
 Later phases add PayMongo, Meta and Anthropic keys (listed, commented out, in `.env.example`).
 Never commit `.env.local`; it's in `.gitignore`.

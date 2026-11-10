@@ -4,7 +4,7 @@ import { Alert, Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { requireBusiness } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
-import { STATUS_LABEL, TYPE_LABEL } from "./property-form";
+import { STATUS_LABEL, TYPE_LABEL } from "@/lib/property-labels";
 
 export default async function PropertiesPage({ searchParams }: PageProps<"/app/properties">) {
   const sp = await searchParams;
@@ -14,7 +14,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
 
   let query = supabase
     .from("properties")
-    .select("id, name, type, location, price_minor, currency, status, updated_at")
+    .select("id, name, type, location, price_minor, currency, status, is_public, updated_at")
     .eq("business_id", biz.businessId)
     .order("updated_at", { ascending: false });
   query = showArchived ? query.eq("status", "archived") : query.neq("status", "archived");
@@ -72,7 +72,10 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
                     <Link href={`/app/properties/${p.id}`} className="font-medium text-zinc-900 hover:text-brand-700">
                       {p.name}
                     </Link>
-                    <p className="text-xs text-zinc-500">{p.location}</p>
+                    <p className="text-xs text-zinc-500">
+                      {p.location}
+                      {p.is_public ? <span className="ml-2 font-medium text-brand-600">Visible to buyers</span> : null}
+                    </p>
                   </td>
                   <td className="hidden px-4 py-3 text-zinc-600 sm:table-cell">{TYPE_LABEL[p.type as keyof typeof TYPE_LABEL]}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{formatPeso(p.price_minor, p.currency)}</td>

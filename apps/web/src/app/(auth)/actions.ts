@@ -11,17 +11,18 @@ export async function signUp(_prev: FormState, form: FormData): Promise<FormStat
     fullName: str(form, "fullName"),
     email: str(form, "email"),
     password: str(form, "password"),
+    accountType: str(form, "accountType") === "buyer" ? "buyer" : "agent",
   });
   const data = { fullName: str(form, "fullName"), email: str(form, "email") };
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error), data };
 
-  const next = safeNext(str(form, "next"), "/onboarding");
+  const next = safeNext(str(form, "next"), parsed.data.accountType === "buyer" ? "/buyer" : "/onboarding");
   const supabase = await createClient();
   const { data: result, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: { full_name: parsed.data.fullName },
+      data: { full_name: parsed.data.fullName, account_type: parsed.data.accountType },
       emailRedirectTo: `${await getOrigin()}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });
@@ -48,7 +49,7 @@ export async function signIn(_prev: FormState, form: FormData): Promise<FormStat
       : "Email or password is incorrect.";
     return { error: message, data };
   }
-  redirect(safeNext(str(form, "next")));
+  redirect(safeNext(str(form, "next"), "/start"));
 }
 
 export async function requestPasswordReset(_prev: FormState, form: FormData): Promise<FormState> {

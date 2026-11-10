@@ -5,22 +5,7 @@ import { PROPERTY_STATUSES, PROPERTY_TYPES } from "@proppilot/shared";
 import { Alert, Field, Input, Label, Select, Textarea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/lib/form";
-
-export const TYPE_LABEL: Record<(typeof PROPERTY_TYPES)[number], string> = {
-  condominium: "Condominium",
-  house_and_lot: "House and lot",
-  townhouse: "Townhouse",
-  lot: "Lot only",
-  commercial: "Commercial",
-  other: "Other",
-};
-
-export const STATUS_LABEL: Record<(typeof PROPERTY_STATUSES)[number], string> = {
-  available: "Available",
-  reserved: "Reserved",
-  sold: "Sold",
-  archived: "Archived",
-};
+import { STATUS_LABEL, TYPE_LABEL } from "@/lib/property-labels";
 
 export type PropertyFormValues = Record<string, string>;
 
@@ -108,6 +93,17 @@ export function PropertyForm({
             </Field>
           </div>
         </section>
+
+        <Label className="flex items-start gap-3 rounded-xl border border-line bg-surface p-4 font-normal">
+          <input type="checkbox" name="isPublic" defaultChecked={v.isPublic === "on"} className="mt-0.5 size-4 accent-brand-600" />
+          <span>
+            <span className="block font-semibold text-ink">Show to PropPilot buyers</span>
+            <span className="block text-sm text-muted">
+              Buyers signed in to PropPilot can find this listing, ask the AI about it and request viewings. Sold and
+              archived listings are always hidden.
+            </span>
+          </span>
+        </Label>
 
         <Field label="Description" htmlFor="description" error={e.description} hint="Features, inclusions, nearby places. The assistant uses only what's written here.">
           <Textarea id="description" name="description" defaultValue={v.description} rows={5} />

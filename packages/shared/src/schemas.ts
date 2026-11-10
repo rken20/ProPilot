@@ -10,10 +10,14 @@ export const passwordSchema = z
   .min(10, "Use at least 10 characters")
   .max(128, "Use at most 128 characters");
 
+export const ACCOUNT_TYPES = ["agent", "buyer"] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
 export const signUpSchema = z.object({
   fullName: z.string().trim().min(2, "Enter your full name").max(120),
   email: emailSchema,
   password: passwordSchema,
+  accountType: z.enum(ACCOUNT_TYPES).default("agent"),
 });
 export type SignUpInput = z.infer<typeof signUpSchema>;
 
@@ -82,3 +86,20 @@ export const propertySchema = z.object({
     .optional(),
 });
 export type PropertyInput = z.infer<typeof propertySchema>;
+
+/** A buyer's request to view a listing. */
+export const viewingRequestSchema = z.object({
+  propertyId: z.string().uuid(),
+  buyerName: z.string().trim().min(2, "Enter your name").max(120),
+  buyerPhone: z
+    .string()
+    .trim()
+    .regex(/^[+0-9][0-9\s-]{6,28}$/, "Enter a mobile number, e.g. 0917 123 4567"),
+  preferredDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date")
+    .optional(),
+  budgetNote: z.string().trim().max(200).optional(),
+  message: z.string().trim().max(1000).optional(),
+});
+export type ViewingRequestInput = z.infer<typeof viewingRequestSchema>;

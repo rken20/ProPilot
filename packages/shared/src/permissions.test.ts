@@ -90,3 +90,21 @@ describe("schemas", () => {
     expect(propertySchema.safeParse({ ...base, price: { amountMinor: 4500.5 } }).success).toBe(false);
   });
 });
+
+import { viewingRequestSchema } from "./schemas";
+
+describe("viewingRequestSchema", () => {
+  const base = { propertyId: "6f1c2b9e-1d2c-4c8a-9a51-6b2f8a1e3c44", buyerName: "Ana Cruz" };
+  it("accepts PH mobile formats", () => {
+    for (const phone of ["09171234567", "0917 123 4567", "+63 917 123 4567"]) {
+      expect(viewingRequestSchema.safeParse({ ...base, buyerPhone: phone }).success).toBe(true);
+    }
+  });
+  it("rejects junk phone numbers and bad dates", () => {
+    expect(viewingRequestSchema.safeParse({ ...base, buyerPhone: "call me" }).success).toBe(false);
+    expect(viewingRequestSchema.safeParse({ ...base, buyerPhone: "09171234567", preferredDate: "next week" }).success).toBe(false);
+  });
+  it("defaults sign-up to the agent account type", () => {
+    expect(signUpSchema.parse({ fullName: "Ana Cruz", email: "a@b.co", password: "long-enough-pass" }).accountType).toBe("agent");
+  });
+});

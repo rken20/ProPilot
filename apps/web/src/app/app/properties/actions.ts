@@ -41,9 +41,9 @@ function validate(form: FormData) {
     if (fe["price.amountMinor"]) fe.price = "Enter the price in pesos, e.g. 4500000";
     if (fe["reservationFee.amountMinor"]) fe.reservationFee = "Enter a peso amount, e.g. 25000";
     if (fe["financing.downpaymentPercent"]) fe.downpaymentPercent = "Enter a percentage from 0 to 100";
-    return { ok: false as const, state: { fieldErrors: fe, data: { ...data, ...flagData(checks) } } };
+    return { ok: false as const, state: { fieldErrors: fe, data: { ...data, ...flagData(checks), isPublic: form.get("isPublic") === "on" ? "on" : "" } } };
   }
-  return { ok: true as const, value: parsed.data };
+  return { ok: true as const, value: parsed.data, isPublic: form.get("isPublic") === "on" };
 }
 
 function flagData(checks: Record<string, boolean>) {
@@ -76,7 +76,7 @@ export async function createProperty(_prev: FormState, form: FormData): Promise<
   // business_id comes from the server-side session, never from the form.
   const { data, error } = await supabase
     .from("properties")
-    .insert({ ...toRow(result.value), business_id: biz.businessId, created_by: user.id })
+    .insert({ ...toRow(result.value), is_public: result.isPublic, business_id: biz.businessId, created_by: user.id })
     .select("id")
     .single();
   if (error) return { error: "Couldn't save the property. Please try again.", data: readForm(form).data };
@@ -95,7 +95,7 @@ export async function updateProperty(id: string, _prev: FormState, form: FormDat
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("properties")
-    .update({ ...toRow(result.value), updated_at: new Date().toISOString() })
+    .update({ ...toRow(result.value), is_public: result.isPublic, updated_at: new Date().toISOString() })
     .eq("id", id)
     .eq("business_id", biz.businessId)
     .select("id");

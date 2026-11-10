@@ -2,7 +2,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import type { BusinessRole } from "@proppilot/shared";
+import type { AccountType, BusinessRole } from "@proppilot/shared";
 import { createClient } from "@/lib/supabase/server";
 
 export const BUSINESS_COOKIE = "pp_business";
@@ -26,6 +26,26 @@ export async function requireUser() {
   const user = await getUser();
   if (!user) redirect("/login");
   return user;
+}
+
+/** The signed-in user's profile (name, phone, buyer or agent). */
+export const getProfile = cache(async () => {
+  const user = await getUser();
+  if (!user) return null;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("full_name, phone, email, account_type")
+    .eq("id", user.id)
+    .maybeSingle();
+  return data as { full_name: string; phone: string | null; email: string | null; account_type: AccountType } | null;
+});
+
+/** Where a signed-in person belongs: buyers browse, agents work in their business. */
+export async function homePathFor(): Promise<string> {
+  const profile = await getProfile();
+  if (profile?.account_type === "buyer") return "/buyer";
+  return (await getMemberships()).length ? "/app" : "/onboarding";
 }
 
 /** Businesses the current user is an active member of. RLS returns only theirs. */
@@ -54,7 +74,10 @@ export const getMemberships = cache(async (): Promise<Membership[]> => {
 export const requireBusiness = cache(async (): Promise<Membership> => {
   await requireUser();
   const memberships = await getMemberships();
-  if (memberships.length === 0) redirect("/onboarding");
+  if (memberships.length === 0) {
+    const profile = await getProfile();
+    redirect(profile?.account_type === "buyer" ? "/buyer" : "/onboarding");
+  }
   const chosen = (await cookies()).get(BUSINESS_COOKIE)?.value;
   return memberships.find((m) => m.businessId === chosen) ?? memberships[0]!;
 });

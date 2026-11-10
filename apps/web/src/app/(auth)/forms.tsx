@@ -7,11 +7,12 @@ import { SubmitButton } from "@/components/submit-button";
 import { initialFormState } from "@/lib/form";
 import { requestPasswordReset, signIn, signUp, updatePassword } from "./actions";
 
-export function SignUpForm({ next }: { next?: string }) {
+export function SignUpForm({ next, accountType }: { next?: string; accountType: "agent" | "buyer" }) {
   const [state, action] = useActionState(signUp, initialFormState);
   if (state.ok) return <Alert tone="success">{state.message}</Alert>;
   return (
     <form action={action} className="space-y-4">
+      <input type="hidden" name="accountType" value={accountType} />
       {next ? <input type="hidden" name="next" value={next} /> : null}
       {state.error ? <Alert>{state.error}</Alert> : null}
       <Field label="Full name" htmlFor="fullName" error={state.fieldErrors?.fullName}>

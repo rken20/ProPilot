@@ -12,7 +12,9 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const items: NavItem[] = [
     { href: "/app", label: "Dashboard", icon: "dashboard" },
     { href: "/app/properties", label: "Properties", icon: "properties" },
-    { href: "/app/leads", label: "Buyer leads", icon: "leads", soon: true },
+    ...(can(current.role, "lead.viewAll") || can(current.role, "lead.viewAssigned")
+      ? [{ href: "/app/leads", label: "Buyer leads", icon: "leads" as const }]
+      : []),
     { href: "/app/inbox", label: "Messenger", icon: "inbox", soon: true },
     { href: "/app/reports", label: "Reports", icon: "reports", soon: true },
     ...(can(current.role, "team.view") ? [{ href: "/app/team", label: "Team", icon: "team" as const }] : []),
