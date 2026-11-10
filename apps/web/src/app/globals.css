@@ -1,19 +1,35 @@
 @import "tailwindcss";
 
-/* ProPilot brand: deep teal for trust, warm amber for "hot" signals. Light UI only for the beta. */
+/*
+ * ProPilot palette: a navy frame with one confident blue for actions.
+ * "brand-*" names are kept so every screen picks up the new palette.
+ */
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: "Plus Jakarta Sans Variable", system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --color-brand-50: #effaf8;
-  --color-brand-100: #d6f2ec;
-  --color-brand-600: #0f766e;
-  --color-brand-700: #115e59;
-  --color-brand-900: #10302e;
+
+  --color-brand-50: #eef3fe;
+  --color-brand-100: #d9e4fc;
+  --color-brand-600: #1f5bd8;
+  --color-brand-700: #1848b0;
+  --color-brand-900: #0f1e3d;
+
+  --color-ink: #0e1726;
+  --color-muted: #5b6577;
+  --color-line: #e3e8f0;
+  --color-surface: #f5f7fb;
+  --color-good: #12805c;
   --color-hot: #c2410c;
 }
 
 body {
-  background: #f7f8f7;
-  color: #1c2321;
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01";
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
 }
