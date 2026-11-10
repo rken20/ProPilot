@@ -1,0 +1,13 @@
+{
+  "name": "@propilot/db-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.3.0",
+    "vitest": "^3.2.0"
+  }
+}
