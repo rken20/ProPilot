@@ -15,7 +15,7 @@ import { timeAgo } from "@/lib/time";
 import { STATUS_LABEL } from "@/lib/property-labels";
 
 export type Activity = { at: string; icon: LucideIcon; tone: string; title: string; detail: string; href?: string };
-export type ListingRow = { id: string; name: string; location: string; price_minor: number; currency: string; status: string };
+export type ListingRow = { id: string; name: string; location: string; price_minor: number; currency: string; status: string; coverUrl?: string | null };
 export type SetupStep = { label: string; done: boolean; href?: string; soon?: boolean };
 
 export type DashboardData = {
@@ -204,9 +204,14 @@ export function DashboardView({
               {properties.slice(0, 4).map((p) => (
                 <li key={p.id}>
                   <Link href={`/app/properties/${p.id}`} className="flex items-center gap-4 py-3 hover:bg-surface">
-                    <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
-                      <Building2 className="size-5" aria-hidden />
-                    </span>
+                    {p.coverUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- pre-sized thumbnail
+                      <img src={p.coverUrl} alt="" className="size-11 shrink-0 rounded-lg object-cover" />
+                    ) : (
+                      <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
+                        <Building2 className="size-5" aria-hidden />
+                      </span>
+                    )}
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold">{p.name}</span>
                       <span className="block truncate text-sm text-muted">{p.location}</span>

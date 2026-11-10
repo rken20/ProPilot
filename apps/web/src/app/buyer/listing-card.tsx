@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Building2, Heart, MapPin } from "lucide-react";
+import { Building2, Camera, Heart, MapPin } from "lucide-react";
 import { cx } from "@/components/ui";
 import { formatPeso } from "@/lib/money";
 import { financingLabels, type Listing } from "@/lib/listings";
+import { mediaUrl } from "@/lib/media";
 import { TYPE_LABEL } from "@/lib/property-labels";
 import { toggleFavorite } from "./actions";
 
@@ -40,10 +41,23 @@ export function FavoriteButton({ id, saved, className }: { id: string; saved: bo
 
 export function ListingCard({ listing, saved }: { listing: Listing; saved: boolean }) {
   const fin = financingLabels(listing.financing);
+  const cover = mediaUrl(listing.cover_thumb_path ?? listing.cover_path);
   return (
     <article className="group relative overflow-hidden rounded-2xl border border-line bg-white">
       <Link href={`/buyer/listings/${listing.id}`} className="block">
-        <ListingArt type={listing.type} className="aspect-[16/10]" />
+        <div className="relative">
+          {cover ? (
+            // eslint-disable-next-line @next/next/no-img-element -- pre-sized thumbnail from storage
+            <img src={cover} alt="" loading="lazy" className="aspect-[16/10] w-full bg-surface object-cover" />
+          ) : (
+            <ListingArt type={listing.type} className="aspect-[16/10]" />
+          )}
+          {listing.photo_count && listing.photo_count > 1 ? (
+            <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white">
+              <Camera className="size-3.5" aria-hidden /> {listing.photo_count}
+            </span>
+          ) : null}
+        </div>
         <div className="p-4">
           <p className="text-xl font-bold tracking-tight tabular-nums">{formatPeso(listing.price_minor, listing.currency)}</p>
           <h3 className="mt-1 truncate font-semibold group-hover:text-brand-700">{listing.name}</h3>

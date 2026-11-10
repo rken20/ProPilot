@@ -3,61 +3,21 @@
  * Postgres (PGlite), with a minimal stand-in for Supabase's `auth` schema, then
  * acts as different signed-in users and checks what each one can see and do.
  */
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-import { PGlite } from "@electric-sql/pglite";
+import type { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
-
-const MIGRATIONS = join(import.meta.dirname, "../../../supabase/migrations");
-
-// Minimal Supabase auth stand-in: users table, auth.uid() from a session setting,
-// and the `authenticated` role that real client requests run as.
-const AUTH_STUB = `
-  create schema auth;
-  create table auth.users (
-    id uuid primary key,
-    email text,
-    raw_user_meta_data jsonb default '{}'::jsonb
-  );
-  create function auth.uid() returns uuid language sql stable as $$
-    select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
-  $$;
-  create role authenticated nologin;
-  grant usage on schema auth to authenticated;
-`;
-
-const GRANTS = `
-  grant usage on schema public to authenticated;
-  grant select, insert, update, delete on all tables in schema public to authenticated;
-  grant usage on all sequences in schema public to authenticated;
-  grant execute on all functions in schema public to authenticated;
-`;
-
-const ANA = "00000000-0000-0000-0000-00000000000a"; // owner of Business A
-const BEN = "00000000-0000-0000-0000-00000000000b"; // owner of Business B
-const CARL = "00000000-0000-0000-0000-00000000000c"; // agent in Business A
+import { ANA, BEN, CARL, as as asUser, freshDb } from "./harness";
 
 let db: PGlite;
 let bizA: string;
 let bizB: string;
 
 /** Run `fn` as a signed-in user, subject to RLS. */
-async function as<T>(userId: string, fn: () => Promise<T>): Promise<T> {
-  await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub', '${userId}', false);`);
-  try {
-    return await fn();
-  } finally {
-    await db.exec(`reset role; select set_config('request.jwt.claim.sub', '', false);`);
-  }
+function as<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+  return asUser(db, userId, fn);
 }
 
 beforeAll(async () => {
-  db = new PGlite();
-  await db.exec(AUTH_STUB);
-  for (const file of readdirSync(MIGRATIONS).sort()) {
-    await db.exec(readFileSync(join(MIGRATIONS, file), "utf8"));
-  }
-  await db.exec(GRANTS);
+  db = await freshDb();
   await db.exec(`
     insert into auth.users (id, email, raw_user_meta_data) values
       ('${ANA}', 'ana@example.test', '{"full_name":"Ana (test)"}'),

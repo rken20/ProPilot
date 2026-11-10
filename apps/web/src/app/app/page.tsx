@@ -2,6 +2,8 @@ import { Building2, CalendarDays, CircleCheck, UserPlus } from "lucide-react";
 import { can } from "@propilot/shared";
 import { getUser, requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getCoverThumbs } from "@/lib/listings";
+import { mediaUrl } from "@/lib/media";
 import { greeting, longDate } from "@/lib/time";
 import { DashboardView, type Activity, type SetupStep } from "./dashboard-view";
 
@@ -76,9 +78,11 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
     const f = (p.financing ?? {}) as Record<string, unknown>;
     return Boolean(f.bankFinancing || f.pagIbig || f.inHouse || f.downpaymentPercent !== undefined);
   });
+  const covers = await getCoverThumbs(properties.map((p) => p.id));
   const steps: SetupStep[] = [
     { label: "Add your first property", done: properties.length > 0, href: "/app/properties/new" },
     { label: "Add price and financing details", done: hasFinancing, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
+    { label: "Add photos to a listing", done: covers.size > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
     { label: "Show a listing to ProPilot buyers", done: publicCount > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
     { label: "Invite your team", done: members.length > 1 || invites.length > 0, href: canManageTeam ? "/app/team" : undefined },
     { label: "Connect your Facebook Page", done: false, soon: true },
@@ -123,7 +127,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       notice={notice}
       canCreateProperty={can(biz.role, "property.create")}
       canManageTeam={canManageTeam}
-      properties={properties.map((p) => ({ ...p, price_minor: Number(p.price_minor) }))}
+      properties={properties.map((p) => ({ ...p, price_minor: Number(p.price_minor), coverUrl: mediaUrl(covers.get(p.id)) }))}
       availableCount={available.length}
       reservedCount={reserved}
       inventoryValue={inventoryValue}

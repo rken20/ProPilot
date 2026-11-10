@@ -2,19 +2,26 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { getProfile } from "@/lib/auth";
-import { financingLabels, getFavoriteIds, getListing } from "@/lib/listings";
+import { financingLabels, getFavoriteIds, getListing, getListingPhotos } from "@/lib/listings";
+import { mediaUrl } from "@/lib/media";
 import { formatPeso } from "@/lib/money";
 import { TYPE_LABEL } from "@/lib/property-labels";
 import { requestViewing } from "../../actions";
 import { FavoriteButton, ListingArt } from "../../listing-card";
+import { Gallery } from "./gallery";
 import { ListingChat } from "./listing-chat";
 import { LoanEstimator } from "./loan-estimator";
 import { ViewingForm } from "./viewing-form";
 
 export default async function ListingPage({ params }: PageProps<"/buyer/listings/[id]">) {
   const { id } = await params;
-  const [listing, favorites, profile] = await Promise.all([getListing(id), getFavoriteIds(), getProfile()]);
+  const [listing, favorites, profile, rawPhotos] = await Promise.all([getListing(id), getFavoriteIds(), getProfile(), getListingPhotos(id)]);
   if (!listing) notFound();
+  const photos = rawPhotos.map((p) => ({
+    id: p.id,
+    full: mediaUrl(p.storage_path) ?? "",
+    thumb: mediaUrl(p.thumb_path ?? p.storage_path) ?? "",
+  }));
 
   const fin = financingLabels(listing.financing);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
@@ -37,7 +44,11 @@ export default async function ListingPage({ params }: PageProps<"/buyer/listings
       <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-6">
           <div className="relative overflow-hidden rounded-2xl">
-            <ListingArt type={listing.type} className="aspect-[16/8]" />
+            {photos.length ? (
+              <Gallery photos={photos} title={listing.name} />
+            ) : (
+              <ListingArt type={listing.type} className="aspect-[16/8]" />
+            )}
             <FavoriteButton id={listing.id} saved={favorites.has(listing.id)} className="absolute right-4 top-4" />
             {listing.status === "reserved" ? (
               <span className="absolute left-4 top-4 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Reserved</span>

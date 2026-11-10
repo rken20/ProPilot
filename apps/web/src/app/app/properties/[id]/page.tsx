@@ -8,6 +8,7 @@ import { centavosToPesosInput } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { archiveProperty, updateProperty } from "../actions";
 import { PropertyForm } from "../property-form";
+import { PhotoManager, type Photo } from "./photo-manager";
 
 export default async function PropertyPage({ params, searchParams }: PageProps<"/app/properties/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
@@ -22,6 +23,14 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
     .eq("business_id", biz.businessId)
     .maybeSingle();
   if (!p) notFound();
+
+  const { data: photos } = await supabase
+    .from("property_media")
+    .select("id, storage_path, thumb_path")
+    .eq("property_id", p.id)
+    .eq("kind", "photo")
+    .order("sort_order")
+    .order("created_at");
 
   const financing = (p.financing ?? {}) as Record<string, unknown>;
   const initial = {
@@ -52,9 +61,17 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       <PageHeader title={p.name} description={p.location} />
       {sp.notice === "created" ? (
         <div className="mb-4">
-          <Alert tone="success">Property saved.</Alert>
+          <Alert tone="success">Property saved. Add photos so buyers can see it.</Alert>
         </div>
       ) : null}
+      <div className="mb-6">
+        <PhotoManager
+          businessId={biz.businessId}
+          propertyId={p.id}
+          photos={(photos ?? []) as Photo[]}
+          canEdit={can(biz.role, "property.create")}
+        />
+      </div>
       <Card>
         <PropertyForm action={updateProperty.bind(null, p.id)} initial={initial} submitLabel="Save changes" readOnly={!canEdit} />
       </Card>

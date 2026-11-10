@@ -4,6 +4,9 @@ import { Alert, Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { requireBusiness } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
+import { getCoverThumbs } from "@/lib/listings";
+import { mediaUrl } from "@/lib/media";
+import { Building2 } from "lucide-react";
 import { STATUS_LABEL, TYPE_LABEL } from "@/lib/property-labels";
 
 export default async function PropertiesPage({ searchParams }: PageProps<"/app/properties">) {
@@ -19,6 +22,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
     .order("updated_at", { ascending: false });
   query = showArchived ? query.eq("status", "archived") : query.neq("status", "archived");
   const { data: rows, error } = await query;
+  const covers = await getCoverThumbs((rows ?? []).map((r) => r.id));
 
   return (
     <>
@@ -69,13 +73,26 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
               {rows?.map((p) => (
                 <tr key={p.id} className="hover:bg-zinc-50">
                   <td className="px-4 py-3">
-                    <Link href={`/app/properties/${p.id}`} className="font-medium text-zinc-900 hover:text-brand-700">
-                      {p.name}
-                    </Link>
-                    <p className="text-xs text-zinc-500">
-                      {p.location}
-                      {p.is_public ? <span className="ml-2 font-medium text-brand-600">Visible to buyers</span> : null}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      {covers.get(p.id) ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- pre-sized thumbnail
+                        <img src={mediaUrl(covers.get(p.id)) ?? ""} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
+                      ) : (
+                        <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
+                          <Building2 className="size-5" aria-hidden />
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <Link href={`/app/properties/${p.id}`} className="font-medium text-zinc-900 hover:text-brand-700">
+                          {p.name}
+                        </Link>
+                        <p className="text-xs text-zinc-500">
+                          {p.location}
+                          {p.is_public ? <span className="ml-2 font-medium text-brand-600">Visible to buyers</span> : null}
+                          {covers.get(p.id) ? null : <span className="ml-2 text-amber-700">No photos</span>}
+                        </p>
+                      </div>
+                    </div>
                   </td>
                   <td className="hidden px-4 py-3 text-zinc-600 sm:table-cell">{TYPE_LABEL[p.type as keyof typeof TYPE_LABEL]}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{formatPeso(p.price_minor, p.currency)}</td>
