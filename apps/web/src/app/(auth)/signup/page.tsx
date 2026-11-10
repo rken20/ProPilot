@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Building2, House } from "lucide-react";
-import { GoogleButton, OrDivider } from "@/components/google-button";
+import { GoogleButton } from "@/components/google-button";
 import { safeNext } from "@/lib/form";
 import { SignUpForm } from "../forms";
 
@@ -57,7 +57,6 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
         )}
       </p>
       <GoogleButton as={as} next={next} />
-      <OrDivider />
       <SignUpForm next={next} accountType={as} />
     </>
   );

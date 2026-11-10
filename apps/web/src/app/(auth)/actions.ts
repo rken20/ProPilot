@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { emailSchema, passwordSchema, signInSchema, signUpSchema } from "@propilot/shared";
 import { getOrigin } from "@/lib/auth";
+import { isGoogleEnabled } from "@/lib/auth-providers";
 import { fieldErrorsFrom, safeNext, str, type FormState } from "@/lib/form";
 import { createClient } from "@/lib/supabase/server";
 
@@ -102,6 +103,7 @@ export async function signInWithGoogle(form: FormData) {
   if (as === "buyer" || as === "agent") {
     jar.set(SIGNUP_AS_COOKIE, as, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: 600 });
   }
+  if (!(await isGoogleEnabled())) redirect("/login?notice=google-unavailable");
   const supabase = await createClient();
   const callback = new URL(`${await getOrigin()}/auth/callback`);
   if (next) callback.searchParams.set("next", safeNext(next));
