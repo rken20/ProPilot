@@ -1,9 +1,11 @@
 import { safeNext } from "@/lib/form";
+import { GoogleButton, OrDivider } from "@/components/google-button";
 import { SignInForm } from "../forms";
 
 const NOTICES: Record<string, string> = {
   "link-expired": "That link has expired or was already used. Log in, or request a new one.",
   "signed-out": "You've been signed out.",
+  "google-unavailable": "Google sign-in isn't available right now. Log in with your email instead.",
 };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
@@ -14,6 +16,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <>
       <h1 className="mb-1 text-2xl font-semibold tracking-tight">Log in</h1>
       <p className="mb-6 text-sm text-zinc-600">Welcome back to ProPilot AI.</p>
+      <GoogleButton next={next} />
+      <OrDivider />
       <SignInForm next={next} notice={notice} />
     </>
   );

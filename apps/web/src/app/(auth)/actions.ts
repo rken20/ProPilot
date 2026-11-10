@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { emailSchema, passwordSchema, signInSchema, signUpSchema } from "@propilot/shared";
 import { getOrigin } from "@/lib/auth";
@@ -89,4 +90,25 @@ function friendlyAuthError(message: string): string {
     return "Choose a stronger password: at least 10 characters.";
   }
   return "Couldn't create your account. Please check your details and try again.";
+}
+
+const SIGNUP_AS_COOKIE = "pp_signup_as";
+
+/** Start Google sign-in. Remembers the buyer/agent choice for the callback. */
+export async function signInWithGoogle(form: FormData) {
+  const as = str(form, "as");
+  const next = str(form, "next");
+  const jar = await cookies();
+  if (as === "buyer" || as === "agent") {
+    jar.set(SIGNUP_AS_COOKIE, as, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: 600 });
+  }
+  const supabase = await createClient();
+  const callback = new URL(`${await getOrigin()}/auth/callback`);
+  if (next) callback.searchParams.set("next", safeNext(next));
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: callback.toString() },
+  });
+  if (error || !data.url) redirect("/login?notice=google-unavailable");
+  redirect(data.url);
 }

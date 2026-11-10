@@ -33,19 +33,29 @@ export const getProfile = cache(async () => {
   const user = await getUser();
   if (!user) return null;
   const supabase = await createClient();
-  const { data } = await supabase
+  const full = await supabase
     .from("profiles")
-    .select("full_name, phone, email, account_type")
+    .select("full_name, phone, email, account_type, account_type_chosen")
     .eq("id", user.id)
     .maybeSingle();
-  return data as { full_name: string; phone: string | null; email: string | null; account_type: AccountType } | null;
+  let data = full.data as Profile | null;
+  if (full.error) {
+    // Database not yet updated with account_type_chosen: treat everyone as having chosen.
+    const basic = await supabase.from("profiles").select("full_name, phone, email, account_type").eq("id", user.id).maybeSingle();
+    data = basic.data ? ({ ...basic.data, account_type_chosen: true } as Profile) : null;
+  }
+  return data;
 });
+
+type Profile = { full_name: string; phone: string | null; email: string | null; account_type: AccountType; account_type_chosen: boolean };
 
 /** Where a signed-in person belongs: buyers browse, agents work in their business. */
 export async function homePathFor(): Promise<string> {
   const profile = await getProfile();
-  if (profile?.account_type === "buyer") return "/buyer";
-  return (await getMemberships()).length ? "/app" : "/onboarding";
+  const hasBusiness = (await getMemberships()).length > 0;
+  if (hasBusiness) return "/app";
+  if (profile && !profile.account_type_chosen) return "/welcome";
+  return profile?.account_type === "buyer" ? "/buyer" : "/onboarding";
 }
 
 /** Businesses the current user is an active member of. RLS returns only theirs. */
@@ -76,6 +86,7 @@ export const requireBusiness = cache(async (): Promise<Membership> => {
   const memberships = await getMemberships();
   if (memberships.length === 0) {
     const profile = await getProfile();
+    if (profile && !profile.account_type_chosen) redirect("/welcome");
     redirect(profile?.account_type === "buyer" ? "/buyer" : "/onboarding");
   }
   const chosen = (await cookies()).get(BUSINESS_COOKIE)?.value;

@@ -7,7 +7,9 @@ export default async function OnboardingPage() {
   const user = await requireUser();
   const memberships = await getMemberships();
   if (memberships.length > 0) redirect("/app");
-  if ((await getProfile())?.account_type === "buyer") redirect("/buyer");
+  const profile = await getProfile();
+  if (profile && !profile.account_type_chosen) redirect("/welcome");
+  if (profile?.account_type === "buyer") redirect("/buyer");
 
   const firstName = String(user.user_metadata?.full_name ?? "").split(" ")[0];
   return (
