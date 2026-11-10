@@ -73,6 +73,7 @@ export function ForgotPasswordForm() {
   if (state.ok) return <Alert tone="success">{state.message}</Alert>;
   return (
     <form action={action} className="space-y-4">
+      {state.error ? <Alert>{state.error}</Alert> : null}
       <Field label="Email" htmlFor="email" error={state.fieldErrors?.email}>
         <Input id="email" name="email" type="email" autoComplete="email" defaultValue={state.data?.email} required />
       </Field>
