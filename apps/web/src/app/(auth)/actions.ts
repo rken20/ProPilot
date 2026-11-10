@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { emailSchema, passwordSchema, signInSchema, signUpSchema } from "@propilot/shared";
+import { emailSchema, passwordSchema, signInSchema, signUpSchema } from "@proppilot/shared";
 import { getOrigin } from "@/lib/auth";
 import { fieldErrorsFrom, safeNext, str, type FormState } from "@/lib/form";
 import { createClient } from "@/lib/supabase/server";

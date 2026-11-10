@@ -1,5 +1,5 @@
 import { Building2, CircleCheck, UserPlus } from "lucide-react";
-import { can } from "@propilot/shared";
+import { can } from "@proppilot/shared";
 import { getUser, requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { greeting, longDate } from "@/lib/time";

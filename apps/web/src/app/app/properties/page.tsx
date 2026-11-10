@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { can } from "@propilot/shared";
+import { can } from "@proppilot/shared";
 import { Alert, Badge, Card, PageHeader, buttonClass } from "@/components/ui";
 import { requireBusiness } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";

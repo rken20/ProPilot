@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * ProPilot palette: a navy frame with one confident blue for actions.
+ * PropPilot palette: a navy frame with one confident blue for actions.
  * "brand-*" names are kept so every screen picks up the new palette.
  */
 @theme inline {

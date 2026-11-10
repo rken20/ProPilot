@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createBusinessSchema } from "@propilot/shared";
+import { createBusinessSchema } from "@proppilot/shared";
 import { BUSINESS_COOKIE, requireUser } from "@/lib/auth";
 import { fieldErrorsFrom, str, type FormState } from "@/lib/form";
 import { createClient } from "@/lib/supabase/server";

@@ -5,7 +5,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
     <div className="grid min-h-screen lg:grid-cols-2">
       <aside className="hidden flex-col justify-between bg-brand-900 p-12 text-brand-50 lg:flex">
         <Link href="/" className="text-lg font-semibold tracking-tight">
-          ProPilot AI
+          PropPilot AI
         </Link>
         <div className="max-w-md space-y-4">
           <p className="text-3xl font-semibold leading-tight">Every inquiry answered. Every hot lead on your phone.</p>

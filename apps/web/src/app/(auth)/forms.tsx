@@ -58,7 +58,7 @@ export function SignInForm({ next, notice }: { next?: string; notice?: string })
         Log in
       </SubmitButton>
       <p className="text-center text-sm text-zinc-600">
-        New to ProPilot?{" "}
+        New to PropPilot?{" "}
         <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-medium text-brand-700">
           Create an account
         </Link>

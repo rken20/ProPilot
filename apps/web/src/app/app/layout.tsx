@@ -1,4 +1,4 @@
-import { can } from "@propilot/shared";
+import { can } from "@proppilot/shared";
 import { getMemberships, getUser, requireBusiness } from "@/lib/auth";
 import { switchBusiness } from "./actions";
 import type { NavItem } from "./nav";

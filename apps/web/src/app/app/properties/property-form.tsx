@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { PROPERTY_STATUSES, PROPERTY_TYPES } from "@propilot/shared";
+import { PROPERTY_STATUSES, PROPERTY_TYPES } from "@proppilot/shared";
 import { Alert, Field, Input, Label, Select, Textarea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/lib/form";

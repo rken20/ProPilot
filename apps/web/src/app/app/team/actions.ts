@@ -2,7 +2,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { BUSINESS_ROLES, can, canAssignRole, inviteMemberSchema, type BusinessRole } from "@propilot/shared";
+import { BUSINESS_ROLES, can, canAssignRole, inviteMemberSchema, type BusinessRole } from "@proppilot/shared";
 import { getOrigin, requireBusiness, requireUser } from "@/lib/auth";
 import { fieldErrorsFrom, str, type FormState } from "@/lib/form";
 import { createClient } from "@/lib/supabase/server";

@@ -15,7 +15,7 @@ export default async function Home() {
         Every hot lead on your phone.
       </h1>
       <p className="max-w-xl text-lg text-zinc-600">
-        ProPilot AI answers Messenger questions from your own listings, qualifies buyers, and hands you the ones ready
+        PropPilot AI answers Messenger questions from your own listings, qualifies buyers, and hands you the ones ready
         for a viewing.
       </p>
       {env.isConfigured() ? (

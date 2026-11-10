@@ -2,7 +2,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import type { BusinessRole } from "@propilot/shared";
+import type { BusinessRole } from "@proppilot/shared";
 import { createClient } from "@/lib/supabase/server";
 
 export const BUSINESS_COOKIE = "pp_business";
