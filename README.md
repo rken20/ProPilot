@@ -28,7 +28,7 @@ pnpm --filter @propilot/mobile start             # scan the QR code with Expo Go
 ### Supabase
 
 1. Create a project at supabase.com (region: **Southeast Asia (Singapore)**).
-2. Copy **Project URL** and **anon public key** (Project Settings → API) into `apps/web/.env.local`.
+2. Copy **Project URL** and the **publishable key** (`sb_publishable_…`, or the legacy anon key) into `apps/web/.env.local` as `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 3. Apply the schema: install the Supabase CLI, then `supabase link --project-ref <ref>` and `supabase db push`.
    Or paste each file from `supabase/migrations/` into the SQL Editor in order.
 

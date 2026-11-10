@@ -174,9 +174,97 @@ describe("roles inside one business", () => {
     expect(ana.rows.length).toBeGreaterThan(0);
   });
 
+  it("stops an agent from changing roles", async () => {
+    const res = await as(CARL, () =>
+      db.query(`update public.business_members set role = 'admin' where business_id = $1 and user_id = $2`, [bizA, CARL]),
+    );
+    expect(res.affectedRows).toBe(0);
+  });
+
+  it("never lets the owner be demoted or removed", async () => {
+    await expect(
+      as(ANA, () =>
+        db.query(`update public.business_members set role = 'agent' where business_id = $1 and user_id = $2`, [bizA, ANA]),
+      ),
+    ).rejects.toThrow(/owner cannot/);
+    await expect(
+      as(ANA, () => db.query(`delete from public.business_members where business_id = $1 and user_id = $2`, [bizA, ANA])),
+    ).rejects.toThrow(/owner cannot/);
+  });
+
   it("stops a user from making themselves superadmin", async () => {
     await expect(
       as(ANA, () => db.query(`update public.profiles set is_superadmin = true where id = $1`, [ANA])),
     ).rejects.toThrow(/row-level security/);
+  });
+});
+
+describe("invitations", () => {
+  const DANA = "00000000-0000-0000-0000-00000000000d";
+  const hash = (t: string) => `encode(sha256(convert_to('${t}', 'UTF8')), 'hex')`;
+
+  beforeAll(async () => {
+    await db.exec(`insert into auth.users (id, email) values ('${DANA}', 'dana@example.test')`);
+  });
+
+  it("copies the sign-in email onto the profile", async () => {
+    const { rows } = await db.query<{ email: string }>(`select email from public.profiles where id = $1`, [DANA]);
+    expect(rows[0]?.email).toBe("dana@example.test");
+  });
+
+  it("lets an owner invite, and only the invited email can accept", async () => {
+    await as(ANA, () =>
+      db.query(
+        `insert into public.invitations (business_id, email, role, token_hash, invited_by)
+         values ($1, 'dana@example.test', 'marketing', ${hash("tok-dana")}, $2)`,
+        [bizA, ANA],
+      ),
+    );
+    // Ben has a different email: rejected.
+    await expect(as(BEN, () => db.query(`select public.accept_invitation('tok-dana')`))).rejects.toThrow(
+      /different email/,
+    );
+    // Dana accepts and becomes a marketing member of Business A only.
+    await as(DANA, () => db.query(`select public.accept_invitation('tok-dana')`));
+    const { rows } = await as(DANA, () => db.query<{ id: string }>(`select id from public.businesses`));
+    expect(rows.map((r) => r.id)).toEqual([bizA]);
+    const role = await db.query<{ role: string }>(
+      `select role from public.business_members where business_id = $1 and user_id = $2`,
+      [bizA, DANA],
+    );
+    expect(role.rows[0]?.role).toBe("marketing");
+  });
+
+  it("rejects a reused or unknown token", async () => {
+    await expect(as(DANA, () => db.query(`select public.accept_invitation('tok-dana')`))).rejects.toThrow(/already used/);
+    await expect(as(DANA, () => db.query(`select public.accept_invitation('nope')`))).rejects.toThrow(/not found/);
+  });
+
+  it("hides invitations from other businesses and from agents", async () => {
+    const ben = await as(BEN, () => db.query(`select * from public.invitations`));
+    const carl = await as(CARL, () => db.query(`select * from public.invitations`));
+    expect(ben.rows).toHaveLength(0);
+    expect(carl.rows).toHaveLength(0);
+  });
+
+  it("stops an admin from inviting another admin", async () => {
+    const EVE = "00000000-0000-0000-0000-00000000000e";
+    await db.exec(`insert into auth.users (id, email) values ('${EVE}', 'eve@example.test')`);
+    await db.query(`insert into public.business_members (business_id, user_id, role) values ($1, $2, 'admin')`, [bizA, EVE]);
+    await expect(
+      as(EVE, () =>
+        db.query(
+          `insert into public.invitations (business_id, email, role, token_hash, invited_by)
+           values ($1, 'x@example.test', 'admin', ${hash("tok-x")}, $2)`,
+          [bizA, EVE],
+        ),
+      ),
+    ).rejects.toThrow(/admins can only invite/);
+    // And can't demote another admin's peers or the owner.
+    await expect(
+      as(EVE, () =>
+        db.query(`update public.business_members set status = 'deactivated' where business_id = $1 and user_id = $2`, [bizA, ANA]),
+      ),
+    ).rejects.toThrow(/owner cannot/);
   });
 });
