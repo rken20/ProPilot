@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { can } from "@proppilot/shared";
+import { can } from "@propilot/shared";
 import { Card, PageHeader } from "@/components/ui";
 import { requireBusiness } from "@/lib/auth";
 import { createProperty } from "../actions";

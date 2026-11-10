@@ -5,7 +5,7 @@ import { SignUpForm } from "../forms";
 
 const COPY = {
   buyer: { title: "Find your next home", sub: "Browse listings, ask questions any time, and book viewings." },
-  agent: { title: "Set up PropPilot for your listings", sub: "Free during the beta. No card needed." },
+  agent: { title: "Set up ProPilot for your listings", sub: "Free during the beta. No card needed." },
 } as const;
 
 export default async function SignUpPage({ searchParams }: PageProps<"/signup">) {
@@ -19,7 +19,7 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
     return (
       <>
         <h1 className="mb-1 text-2xl font-bold tracking-tight">Create your account</h1>
-        <p className="mb-6 text-sm text-muted">How will you use PropPilot?</p>
+        <p className="mb-6 text-sm text-muted">How will you use ProPilot?</p>
         <div className="space-y-3">
           <Choice
             href={`/signup?as=buyer${keep}`}

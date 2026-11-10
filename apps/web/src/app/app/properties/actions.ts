@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { can, propertySchema } from "@proppilot/shared";
+import { can, propertySchema } from "@propilot/shared";
 import { requireBusiness, requireUser } from "@/lib/auth";
 import { fieldErrorsFrom, str, type FormState } from "@/lib/form";
 import { pesosToCentavos } from "@/lib/money";

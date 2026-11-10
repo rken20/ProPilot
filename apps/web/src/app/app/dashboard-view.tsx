@@ -94,7 +94,7 @@ export function DashboardView({
             note={leads.openCount ? `${leads.openCount} open in Buyer leads` : publicCount ? "Waiting for buyers" : "Show a listing to buyers to start"}
             href="/app/leads" />
         ) : (
-          <Stat icon={Flame} tint="bg-orange-50 text-hot" label="Listings shown to buyers" value={String(publicCount)} note="Visible on PropPilot" />
+          <Stat icon={Flame} tint="bg-orange-50 text-hot" label="Listings shown to buyers" value={String(publicCount)} note="Visible on ProPilot" />
         )}
         <Stat icon={MessageCircle} tint="bg-violet-50 text-violet-600" label="Messenger inquiries" value="—" note="Starts when Facebook is connected" muted />
       </section>
@@ -106,11 +106,11 @@ export function DashboardView({
             <h2 className="text-lg font-semibold">Your AI assistant</h2>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium">
               <span className={cx("size-2 rounded-full", assistantLive ? "bg-emerald-400" : "bg-amber-400")} aria-hidden />
-              {assistantLive ? "Live for PropPilot buyers" : "Not live yet"}
+              {assistantLive ? "Live for ProPilot buyers" : "Not live yet"}
             </span>
           </div>
           <p className="mt-2 max-w-md text-sm leading-relaxed text-white/70">
-            It already answers PropPilot buyers on listings you choose to show. Once your Facebook Page is connected,
+            It already answers ProPilot buyers on listings you choose to show. Once your Facebook Page is connected,
             it will answer Messenger inquiries too, day and night.
           </p>
 

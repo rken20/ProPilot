@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { can } from "@proppilot/shared";
+import { can } from "@propilot/shared";
 import { requireBusiness } from "@/lib/auth";
 import { str } from "@/lib/form";
 import { createClient } from "@/lib/supabase/server";

@@ -1,4 +1,4 @@
-# PropPilot AI
+# ProPilot AI
 
 AI assistant for real estate agents: answers Facebook Messenger inquiries from the agent's own listings, qualifies buyers, and routes hot leads to the agent's phone.
 
@@ -21,8 +21,8 @@ Requirements: Node.js 22 LTS, pnpm 10, Git.
 ```bash
 pnpm install
 cp apps/web/.env.example apps/web/.env.local   # then fill in the values
-pnpm --filter @proppilot/web dev                  # http://localhost:3000
-pnpm --filter @proppilot/mobile start             # scan the QR code with Expo Go
+pnpm --filter @propilot/web dev                  # http://localhost:3000
+pnpm --filter @propilot/mobile start             # scan the QR code with Expo Go
 ```
 
 ### Supabase

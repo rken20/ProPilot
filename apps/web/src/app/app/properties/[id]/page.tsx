@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { can } from "@proppilot/shared";
+import { can } from "@propilot/shared";
 import { Alert, Card, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { getUser, requireBusiness } from "@/lib/auth";

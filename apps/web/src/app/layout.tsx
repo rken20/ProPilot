@@ -4,7 +4,7 @@ import "@fontsource-variable/plus-jakarta-sans";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PropPilot AI",
+  title: "ProPilot AI",
   description: "AI assistant for real estate agents",
 };
 

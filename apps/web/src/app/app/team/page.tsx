@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { BUSINESS_ROLES, can, canAssignRole, type BusinessRole } from "@proppilot/shared";
+import { BUSINESS_ROLES, can, canAssignRole, type BusinessRole } from "@propilot/shared";
 import { Badge, Card, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { getUser, requireBusiness } from "@/lib/auth";

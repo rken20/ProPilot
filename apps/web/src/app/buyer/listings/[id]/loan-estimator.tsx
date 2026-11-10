@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { amortize } from "@proppilot/shared";
+import { amortize } from "@propilot/shared";
 import { formatPeso } from "@/lib/money";
 
 export function LoanEstimator({ priceMinor, defaultDownpayment }: { priceMinor: number; defaultDownpayment?: number }) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { PROPERTY_STATUSES, PROPERTY_TYPES } from "@proppilot/shared";
+import { PROPERTY_STATUSES, PROPERTY_TYPES } from "@propilot/shared";
 import { Alert, Field, Input, Label, Select, Textarea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/lib/form";
@@ -97,9 +97,9 @@ export function PropertyForm({
         <Label className="flex items-start gap-3 rounded-xl border border-line bg-surface p-4 font-normal">
           <input type="checkbox" name="isPublic" defaultChecked={v.isPublic === "on"} className="mt-0.5 size-4 accent-brand-600" />
           <span>
-            <span className="block font-semibold text-ink">Show to PropPilot buyers</span>
+            <span className="block font-semibold text-ink">Show to ProPilot buyers</span>
             <span className="block text-sm text-muted">
-              Buyers signed in to PropPilot can find this listing, ask the AI about it and request viewings. Sold and
+              Buyers signed in to ProPilot can find this listing, ask the AI about it and request viewings. Sold and
               archived listings are always hidden.
             </span>
           </span>

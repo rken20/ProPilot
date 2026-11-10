@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { PROPERTY_TYPES } from "@proppilot/shared";
+import { PROPERTY_TYPES } from "@propilot/shared";
 import { Alert, buttonClass } from "@/components/ui";
 import { getFavoriteIds, searchListings } from "@/lib/listings";
 import { pesosToCentavos } from "@/lib/money";

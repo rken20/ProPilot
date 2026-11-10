@@ -1,4 +1,4 @@
--- PropPilot AI · Buyers: account type, public listings, favorites, viewing requests.
+-- ProPilot AI · Buyers: account type, public listings, favorites, viewing requests.
 
 -- ---------------------------------------------------------------------------
 -- Account type: chosen at sign-up. Agents work inside a business; buyers browse.

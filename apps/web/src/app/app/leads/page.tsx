@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarDays, Phone } from "lucide-react";
-import { can } from "@proppilot/shared";
+import { can } from "@propilot/shared";
 import { PageHeader, cx } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { requireBusiness } from "@/lib/auth";
@@ -51,7 +51,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
 
   return (
     <>
-      <PageHeader title="Buyer leads" description="Viewing requests from buyers on PropPilot. Call or text them to confirm." />
+      <PageHeader title="Buyer leads" description="Viewing requests from buyers on ProPilot. Call or text them to confirm." />
 
       <nav className="mb-4 flex gap-1" aria-label="Filter leads">
         {FILTERS.map(([k, label]) => (
@@ -74,7 +74,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
           <CalendarDays className="mx-auto size-8 text-muted" aria-hidden />
           <p className="mt-3 font-semibold">{filter === "open" ? "No open leads" : "Nothing here"}</p>
           <p className="mt-1 text-sm text-muted">
-            Turn on <span className="font-medium text-ink">Show to PropPilot buyers</span> on a property so buyers can find it
+            Turn on <span className="font-medium text-ink">Show to ProPilot buyers</span> on a property so buyers can find it
             and request viewings.
           </p>
         </div>

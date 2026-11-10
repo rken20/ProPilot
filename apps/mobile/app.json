@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "PropPilot AI",
-    "slug": "proppilot",
+    "name": "ProPilot AI",
+    "slug": "propilot",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "proppilot",
+    "scheme": "propilot",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ph.proppilot.app"
+      "bundleIdentifier": "ph.propilot.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +19,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "ph.proppilot.app"
+      "package": "ph.propilot.app"
     },
     "web": {
       "bundler": "metro",

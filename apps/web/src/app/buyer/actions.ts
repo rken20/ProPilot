@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { viewingRequestSchema } from "@proppilot/shared";
+import { viewingRequestSchema } from "@propilot/shared";
 import { requireUser } from "@/lib/auth";
 import { fieldErrorsFrom, str, type FormState } from "@/lib/form";
 import { createClient } from "@/lib/supabase/server";

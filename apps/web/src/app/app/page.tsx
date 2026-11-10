@@ -1,5 +1,5 @@
 import { Building2, CalendarDays, CircleCheck, UserPlus } from "lucide-react";
-import { can } from "@proppilot/shared";
+import { can } from "@propilot/shared";
 import { getUser, requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { greeting, longDate } from "@/lib/time";
@@ -79,7 +79,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
   const steps: SetupStep[] = [
     { label: "Add your first property", done: properties.length > 0, href: "/app/properties/new" },
     { label: "Add price and financing details", done: hasFinancing, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
-    { label: "Show a listing to PropPilot buyers", done: publicCount > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
+    { label: "Show a listing to ProPilot buyers", done: publicCount > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
     { label: "Invite your team", done: members.length > 1 || invites.length > 0, href: canManageTeam ? "/app/team" : undefined },
     { label: "Connect your Facebook Page", done: false, soon: true },
   ];

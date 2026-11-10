@@ -1,5 +1,5 @@
 import "server-only";
-import type { PROPERTY_TYPES } from "@proppilot/shared";
+import type { PROPERTY_TYPES } from "@propilot/shared";
 import { createClient } from "@/lib/supabase/server";
 
 /** A listing as buyers see it: public, unsold, and only buyer-safe fields. */

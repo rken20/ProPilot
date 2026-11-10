@@ -13,7 +13,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <>
       <h1 className="mb-1 text-2xl font-semibold tracking-tight">Log in</h1>
-      <p className="mb-6 text-sm text-zinc-600">Welcome back to PropPilot AI.</p>
+      <p className="mb-6 text-sm text-zinc-600">Welcome back to ProPilot AI.</p>
       <SignInForm next={next} notice={notice} />
     </>
   );

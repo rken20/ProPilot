@@ -1,4 +1,4 @@
-import type { PROPERTY_STATUSES, PROPERTY_TYPES } from "@proppilot/shared";
+import type { PROPERTY_STATUSES, PROPERTY_TYPES } from "@propilot/shared";
 
 /** Display labels. Kept out of client components so server pages can import the real values. */
 export const TYPE_LABEL: Record<(typeof PROPERTY_TYPES)[number], string> = {
