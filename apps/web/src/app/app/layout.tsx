@@ -2,6 +2,7 @@ import { can } from "@propilot/shared";
 import { getMemberships, getUser, requireBusiness } from "@/lib/auth";
 import { switchBusiness } from "./actions";
 import type { NavItem } from "./nav";
+import { AgentAssistant } from "./agent-assistant";
 import { AppShell } from "./shell";
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
@@ -29,6 +30,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   return (
     <AppShell current={current} memberships={memberships} fullName={fullName} items={items} switchBusiness={switchBusiness}>
       {children}
+      {process.env.ANTHROPIC_API_KEY ? <AgentAssistant /> : null}
     </AppShell>
   );
 }
