@@ -137,6 +137,20 @@ body {
   }
 }
 
+@keyframes pp-settle {
+  from {
+    transform: scale(1.05);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* A hero photo settles into its frame once on load. */
+.pp-settle {
+  animation: pp-settle 1.8s var(--ease-out) both;
+}
+
 /* A progress bar fills once. */
 .pp-grow {
   transform-origin: left;

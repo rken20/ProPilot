@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/logo";
 import { buttonClass } from "@/components/ui";
+import { Photo } from "@/components/photo";
 import { getUser, homePathFor } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { HeroChat } from "./_home/hero-chat";
@@ -121,7 +122,15 @@ export default async function Home() {
         </section>
 
         {/* Close and footer on the dark frame colour. */}
-        <section className="bg-brand-900 text-white">
+        <section className="relative isolate overflow-hidden bg-brand-900 text-white">
+          <Photo
+            name="manila-skyline"
+            widths={[1000, 1600, 2400]}
+            sizes="100vw"
+            className="absolute inset-0 -z-10 size-full object-cover object-[50%_45%]"
+          />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-brand-900/90 via-brand-900/60 to-brand-900/20" aria-hidden="true" />
+          <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-brand-900 to-transparent" aria-hidden="true" />
           <div className={`${wrap} flex min-h-[70svh] flex-col justify-center py-20`}>
             <h2 className="font-display max-w-3xl text-4xl leading-tight font-medium sm:text-6xl">
               Put your first listing up this week, while ProPilot is free.
@@ -152,18 +161,23 @@ function ListingFrame() {
   return (
     <div className="pp-enter mx-auto w-full max-w-[520px] [animation-delay:160ms] lg:mx-0 lg:justify-self-end">
       <div className="overflow-hidden rounded-[1.75rem] border border-line bg-white shadow-[var(--shadow-lift)]">
-        <div className="flex items-center justify-between border-b border-line px-5 py-3 text-xs text-muted">
-          <span className="font-semibold text-ink">Listing</span>
-          <span>Mandaluyong</span>
-        </div>
-        <div className="bg-sand px-6 pb-6 pt-6">
-          <p className="text-sm font-medium text-muted">2-bedroom corner unit, 64 m²</p>
-          <p className="font-display mt-1 text-[2.6rem] leading-none font-medium tabular-nums text-ink">₱4,800,000</p>
-          <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
-            <span className="rounded-full bg-white px-3 py-1 text-ink">Ready for occupancy</span>
-            <span className="rounded-full bg-white px-3 py-1 text-ink">Pag-IBIG accepted</span>
-            <span className="rounded-full bg-white px-3 py-1 text-ink">1 parking slot</span>
+        <div className="relative aspect-[16/9] overflow-hidden bg-sand">
+          <Photo
+            name="condo-living"
+            widths={[640, 1040, 1400]}
+            sizes="(min-width: 1024px) 520px, 100vw"
+            priority
+            className="pp-settle absolute inset-0 size-full object-cover"
+          />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent px-6 pb-5 pt-16 text-white">
+            <p className="text-sm font-medium text-white/85">2-bedroom corner unit, 64 m²</p>
+            <p className="font-display mt-1 text-[2.4rem] leading-none font-medium tabular-nums">₱4,800,000</p>
           </div>
+        </div>
+        <div className="flex flex-wrap gap-2 border-b border-line px-5 py-3.5 text-xs font-medium">
+          <span className="rounded-full bg-sand px-3 py-1 text-ink">Ready for occupancy</span>
+          <span className="rounded-full bg-sand px-3 py-1 text-ink">Pag-IBIG accepted</span>
+          <span className="rounded-full bg-sand px-3 py-1 text-ink">1 parking slot</span>
         </div>
         <div className="px-5 pb-5 pt-4">
           <HeroChat />
@@ -220,7 +234,7 @@ function LeadFragment() {
         <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">New</span>
       </div>
       <p className="mt-1.5 text-muted">Wants to view on Saturday, 10:00 AM</p>
-      <p className="mt-0.5 text-muted">2-bedroom corner unit, Mandaluyong</p>
+      <p className="mt-0.5 text-muted">2-bedroom corner unit, 64 m²</p>
     </div>
   );
 }

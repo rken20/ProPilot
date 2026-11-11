@@ -1,10 +1,19 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { Photo } from "@/components/photo";
 
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <aside className="hidden flex-col justify-between bg-brand-900 p-12 text-white lg:flex">
+      <aside className="relative isolate hidden flex-col justify-between overflow-hidden bg-brand-900 p-12 text-white lg:flex">
+        <Photo
+          name="townhouse-dining"
+          widths={[720, 1200]}
+          sizes="50vw"
+          priority
+          className="pp-settle absolute inset-0 -z-10 size-full object-cover"
+        />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-brand-900/55 via-brand-900/70 to-brand-900/95" aria-hidden="true" />
         <Link href="/">
           <Logo tone="dark" />
         </Link>
