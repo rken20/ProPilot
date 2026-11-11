@@ -9,6 +9,7 @@ import {
   Flame,
   LayoutDashboard,
   MessageCircle,
+  Plug,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const ICONS = {
   reports: ChartColumn,
   team: Users,
   billing: CreditCard,
+  integrations: Plug,
 } satisfies Record<string, LucideIcon>;
 
 export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; soon?: boolean };

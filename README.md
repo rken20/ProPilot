@@ -40,6 +40,10 @@ pnpm --filter @propilot/mobile start             # scan the QR code with Expo Go
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | web | Public. Row-level security protects data. |
 | `SUPABASE_SERVICE_ROLE_KEY` | web (server only) | **Secret.** Bypasses RLS. Never prefix with `NEXT_PUBLIC_`. |
 | `ANTHROPIC_API_KEY` | web (server only) | **Secret.** Buyer listing assistant. Optional; chat is disabled without it. |
+| `RESEND_API_KEY` or `SMTP_*` | web (server only) | **Secret.** Email alerts to agents on new viewing requests. Optional. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | web (server only) | **Secret.** Connect Google (Sheets + Calendar). |
+| `GOOGLE_REDIRECT_ORIGIN` | web (server only) | Stable app address registered in Google Cloud as `<origin>/api/google/callback`. |
+| `TOKEN_ENCRYPTION_KEY` | web (server only) | **Secret.** 32 random bytes, base64. Encrypts Google refresh tokens. |
 
 Later phases add PayMongo, Meta and Anthropic keys (listed, commented out, in `.env.example`).
 Never commit `.env.local`; it's in `.gitignore`.

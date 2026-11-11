@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, Phone } from "lucide-react";
+import { CalendarCheck, CalendarDays, CalendarPlus, Download, Phone } from "lucide-react";
 import { can } from "@propilot/shared";
-import { PageHeader, cx } from "@/components/ui";
+import { PageHeader, buttonClass, cx } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/time";
+import { googleCalendarUrl, isoToManilaInput, manilaDateTime, prettyDate } from "@/lib/leads";
 import { updateLead } from "./actions";
 
 const STATUS = {
@@ -34,7 +35,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
   const supabase = await createClient();
   let query = supabase
     .from("viewing_requests")
-    .select("id, property_id, buyer_name, buyer_phone, preferred_date, budget_note, message, status, agent_note, created_at")
+    .select("id, property_id, buyer_name, buyer_phone, preferred_date, budget_note, message, status, agent_note, scheduled_at, calendar_event_id, created_at")
     .eq("business_id", biz.businessId)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -44,14 +45,35 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
 
   const propIds = [...new Set((leads ?? []).map((l) => l.property_id))];
   const { data: props } = propIds.length
-    ? await supabase.from("properties").select("id, name").in("id", propIds)
+    ? await supabase.from("properties").select("id, name, location").in("id", propIds)
     : { data: [] };
+  const propById = new Map((props ?? []).map((p) => [p.id, p as { id: string; name: string; location: string }]));
   const propName = new Map((props ?? []).map((p) => [p.id, p.name]));
+  const { data: integ } = await supabase
+    .from("business_integrations")
+    .select("spreadsheet_url, sheets_synced_at")
+    .eq("business_id", biz.businessId)
+    .maybeSingle();
   const canUpdate = can(biz.role, "lead.update");
 
   return (
     <>
-      <PageHeader title="Buyer leads" description="Viewing requests from buyers on ProPilot. Call or text them to confirm." />
+      <PageHeader
+        title="Buyer leads"
+        description="Viewing requests from buyers on ProPilot. Call or text them to confirm."
+        action={
+          <div className="flex flex-wrap gap-2">
+            {integ?.spreadsheet_url ? (
+              <a href={integ.spreadsheet_url} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary")}>
+                Open Google Sheet
+              </a>
+            ) : null}
+            <a href="/app/leads/export" className={buttonClass("secondary")}>
+              <Download className="size-4" aria-hidden /> Export CSV
+            </a>
+          </div>
+        }
+      />
 
       <nav className="mb-4 flex gap-1" aria-label="Filter leads">
         {FILTERS.map(([k, label]) => (
@@ -106,13 +128,27 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
                   </a>
                   <span className="flex items-center gap-1.5 text-muted">
                     <CalendarDays className="size-4" aria-hidden />
-                    {l.preferred_date
-                      ? new Date(l.preferred_date + "T00:00:00").toLocaleDateString("en-PH", { weekday: "short", month: "short", day: "numeric" })
-                      : "No preferred date"}
+                    {l.preferred_date ? `Prefers ${prettyDate(l.preferred_date)}` : "No preferred date"}
                   </span>
+                  {l.scheduled_at ? (
+                    <span className="flex items-center gap-1.5 font-medium text-good">
+                      <CalendarCheck className="size-4" aria-hidden /> Viewing {manilaDateTime(l.scheduled_at)}
+                      {l.calendar_event_id ? <span className="font-normal text-muted">(in Google Calendar)</span> : null}
+                    </span>
+                  ) : null}
                   {l.budget_note ? <span className="text-muted">Budget: {l.budget_note}</span> : null}
                 </div>
                 {l.message ? <p className="mt-3 rounded-lg bg-surface px-3 py-2 text-sm">{l.message}</p> : null}
+                {propById.get(l.property_id) && !l.calendar_event_id ? (
+                  <a
+                    href={googleCalendarUrl(l, propById.get(l.property_id)!)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
+                  >
+                    <CalendarPlus className="size-4" aria-hidden /> Add to Google Calendar
+                  </a>
+                ) : null}
 
                 {canUpdate ? (
                   <form action={updateLead.bind(null, l.id)} className="mt-4 flex flex-wrap items-end gap-2 border-t border-line pt-4">
@@ -129,6 +165,15 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
                           </option>
                         ))}
                       </select>
+                    </label>
+                    <label className="text-xs font-medium text-muted">
+                      Viewing time (PH)
+                      <input
+                        type="datetime-local"
+                        name="scheduledAt"
+                        defaultValue={isoToManilaInput(l.scheduled_at)}
+                        className="mt-1 block rounded-lg border border-line bg-white px-2.5 py-2 text-sm text-ink"
+                      />
                     </label>
                     <label className="min-w-48 flex-1 text-xs font-medium text-muted">
                       Private note
