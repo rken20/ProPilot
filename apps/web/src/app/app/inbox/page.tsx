@@ -74,6 +74,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/app/inbox"
       thread={thread}
       listingName={listingName}
       pageNames={Object.fromEntries(pageName)}
+      helperOn={Boolean(process.env.ANTHROPIC_API_KEY)}
     />
   );
 }

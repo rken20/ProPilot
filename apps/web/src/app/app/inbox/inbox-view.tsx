@@ -6,6 +6,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { withinReplyWindow } from "@/lib/messenger-window";
 import { timeAgo } from "@/lib/time";
 import { setConversationMode, setLeadStatus } from "./actions";
+import { ChatSummary } from "./chat-summary";
 import { Composer } from "./composer";
 
 export type Conversation = {
@@ -48,6 +49,7 @@ export function InboxView({
   thread,
   listingName,
   pageNames,
+  helperOn = false,
 }: {
   liveNames: string[];
   canConnect: boolean;
@@ -57,6 +59,7 @@ export function InboxView({
   thread: Message[];
   listingName: string | null;
   pageNames: Record<string, string>;
+  helperOn?: boolean;
 }) {
   const lastByConv = new Map(Object.entries(lastMap));
   const pageName = new Map(Object.entries(pageNames));
@@ -136,7 +139,9 @@ export function InboxView({
             <Card className="text-center">
               <MessageCircle className="mx-auto size-8 text-zinc-400" aria-hidden />
               <p className="mt-3 font-medium">No messages yet</p>
-              <p className="mt-1 text-sm text-muted">When a buyer messages you in ProPilot or on your Facebook Page, the chat shows up here.</p>
+              <p className="mt-1 text-sm text-muted">
+                When a buyer messages you in ProPilot or on your Facebook Page, the chat shows up here.
+              </p>
             </Card>
           )}
         </section>
@@ -151,7 +156,9 @@ export function InboxView({
                 <div className="min-w-0">
                   <h2 className="truncate font-display text-2xl font-medium">{nameOf(selected)}</h2>
                   <p className="text-sm text-muted">
-                    {selected.channel === "app" ? "ProPilot chat" : `Messenger, ${(selected.page_row_id && pageName.get(selected.page_row_id)) || "your Page"}`}
+                    {selected.channel === "app"
+                      ? "ProPilot chat"
+                      : `Messenger, ${(selected.page_row_id && pageName.get(selected.page_row_id)) || "your Page"}`}
                   </p>
                 </div>
                 {selected.mode === "ai" ? (
@@ -168,6 +175,8 @@ export function InboxView({
                   </form>
                 )}
               </div>
+
+              {helperOn ? <ChatSummary key={selected.id} conversationId={selected.id} /> : null}
 
               {selected.needs_attention && selected.attention_reason ? (
                 <p className="pp-fade border-b border-line bg-[#f8ebe4] px-5 py-2.5 text-sm text-hot">{selected.attention_reason}</p>
@@ -205,7 +214,14 @@ export function InboxView({
               </ol>
 
               <div className="border-t border-line px-5 py-4">
-                <Composer conversationId={selected.id} open={selected.channel === "app" || withinReplyWindow(selected.last_inbound_at)} aiOn={selected.mode === "ai"} />
+                <Composer
+                  key={selected.id}
+                  conversationId={selected.id}
+                  open={selected.channel === "app" || withinReplyWindow(selected.last_inbound_at)}
+                  aiOn={selected.mode === "ai"}
+                  channel={selected.channel}
+                  helper={helperOn}
+                />
               </div>
             </div>
 
