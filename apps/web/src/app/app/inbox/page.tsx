@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
 import { can } from "@propilot/shared";
-import { Card, PageHeader } from "@/components/ui";
 import { requireBusiness } from "@/lib/auth";
 import { businessPages } from "@/lib/facebook-pages";
-import { metaConfig } from "@/lib/meta";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { InboxView, type Conversation, type Message } from "./inbox-view";
@@ -13,24 +11,13 @@ export default async function InboxPage({ searchParams }: PageProps<"/app/inbox"
   const biz = await requireBusiness();
   if (!can(biz.role, "conversation.reply")) redirect("/app");
 
-  if (!metaConfig()) {
-    return (
-      <>
-        <PageHeader title="Messenger" />
-        <Card>
-          <p className="text-sm text-muted">Messenger isn&apos;t switched on for ProPilot yet.</p>
-        </Card>
-      </>
-    );
-  }
-
   const supabase = await createClient();
   const [pages, { data: convRows }] = await Promise.all([
     businessPages(biz.businessId),
     supabase
       .from("messenger_conversations")
       .select(
-        "id, psid, display_name, mode, needs_attention, attention_reason, lead_name, lead_phone, lead_date, lead_notes, lead_status, property_id, last_inbound_at, last_message_at, last_read_at, page_row_id",
+        "id, channel, psid, display_name, mode, needs_attention, attention_reason, lead_name, lead_phone, lead_date, lead_notes, lead_status, property_id, last_inbound_at, last_message_at, last_read_at, page_row_id",
       )
       .eq("business_id", biz.businessId)
       .order("last_message_at", { ascending: false })

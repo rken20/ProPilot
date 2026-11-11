@@ -99,12 +99,12 @@ describe("leadsReport", () => {
         vr({ status: "new" }),
         vr({ status: "closed", first_response_at: "2026-11-10T11:00:00+08:00" }),
       ],
-      [conv({ lead_status: "scheduled" }), conv({})],
+      [conv({ lead_status: "scheduled" }), conv({}), conv({ channel: "app" })],
       parseRange({ range: "7" }, NOW),
     );
-    expect(r).toMatchObject({ inquiries: 5, fromProPilot: 3, fromMessenger: 2, viewingRequests: 4, reachedViewing: 2, closed: 1, conversion: 50 });
+    expect(r).toMatchObject({ inquiries: 6, fromProPilot: 4, fromMessenger: 2, viewingRequests: 4, reachedViewing: 2, closed: 1, conversion: 50 });
     expect(r.medianFirstResponseMs).toBe(40 * 60_000);
-    expect(r.series.find((b) => b.propilot)).toMatchObject({ propilot: 3, messenger: 2 });
+    expect(r.series.find((b) => b.propilot)).toMatchObject({ propilot: 4, messenger: 2 });
     expect(r.stages.map((s) => s.value)).toEqual([1, 0, 2, 0, 1]);
   });
 });

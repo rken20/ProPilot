@@ -19,7 +19,7 @@ async function ownConversation(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("messenger_conversations")
-    .select("id, business_id, page_row_id, psid, last_inbound_at, mode")
+    .select("id, business_id, channel, page_row_id, psid, last_inbound_at, mode")
     .eq("id", id)
     .eq("business_id", biz.businessId)
     .maybeSingle();
@@ -34,16 +34,20 @@ export async function sendAgentMessage(conversationId: string, _prev: SendState,
   const { biz, conv } = found;
   const text = str(form, "text").slice(0, MAX_MESSENGER_TEXT);
   if (!text) return { error: "Write a message first." };
-  if (!withinReplyWindow(conv.last_inbound_at as string | null)) {
+  if (conv.channel === "messenger" && !withinReplyWindow(conv.last_inbound_at as string | null)) {
     return { error: "Messenger only allows replies within 24 hours of their last message. Call or text them instead." };
   }
-  const cfg = metaConfig();
   const admin = createAdminClient();
-  const page = await pageWithToken(biz.businessId, conv.page_row_id as string);
-  if (!cfg || !admin || !page) return { error: "This Page isn't connected anymore. Reconnect it in Integrations." };
+  if (!admin) return { error: "Replying isn't available right now." };
 
   try {
-    const mid = await sendMessage(fetch, cfg, page.pageId, page.token, conv.psid as string, text);
+    let mid: string | undefined;
+    if (conv.channel === "messenger") {
+      const cfg = metaConfig();
+      const page = await pageWithToken(biz.businessId, conv.page_row_id as string);
+      if (!cfg || !page) return { error: "This Page isn't connected anymore. Reconnect it in Integrations." };
+      mid = await sendMessage(fetch, cfg, page.pageId, page.token, conv.psid as string, text);
+    }
     const now = new Date().toISOString();
     await admin.from("messenger_messages").insert({
       conversation_id: conv.id,

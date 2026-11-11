@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { sendEmail, esc } from "./email";
 import { pageWithToken } from "./facebook-pages";
 import { DEFAULT_MODEL } from "./listing-assistant";
-import { messengerReply, type MessengerListing, type Turn } from "./messenger-assistant";
+import { messengerReply, type Channel, type MessengerListing, type Turn } from "./messenger-assistant";
 import {
   GraphError,
   messengerName,
@@ -116,49 +116,13 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
     .maybeSingle();
   if (latest && ev.mid && latest.mid !== ev.mid) return;
 
-  // Re-read the mode: someone may have taken over in the meantime.
-  const { data: fresh } = await admin.from("messenger_conversations").select("mode").eq("id", conv.id).single();
-  if (fresh?.mode !== "ai") return;
-
-  const since = new Date(Date.now() - 86_400_000).toISOString();
-  const [{ count: convCount }, { count: bizCount }] = await Promise.all([
-    admin.from("messenger_messages").select("id", { count: "exact", head: true }).eq("conversation_id", conv.id).eq("sender", "ai").gte("created_at", since),
-    admin.from("messenger_messages").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("sender", "ai").gte("created_at", since),
-  ]);
-  if ((convCount ?? 0) >= AI_REPLIES_PER_CONVERSATION_DAY || (bizCount ?? 0) >= AI_REPLIES_PER_BUSINESS_DAY) {
-    await admin.from("messenger_conversations").update({ mode: "human" }).eq("id", conv.id);
-    await flag(admin, conv.id as string, "The AI reached today's reply limit for this conversation, so it's waiting for a person.");
-    return;
-  }
-
-  const [{ data: history }, { data: props }] = await Promise.all([
-    admin.from("messenger_messages").select("sender, body").eq("conversation_id", conv.id).order("created_at", { ascending: false }).limit(16),
-    admin
-      .from("properties")
-      .select("id, name, type, location, status, price_minor, reservation_fee_minor, description, financing")
-      .eq("business_id", businessId)
-      .in("status", ["available", "reserved"])
-      .order("updated_at", { ascending: false })
-      .limit(40),
-  ]);
-  const turns: Turn[] = (history ?? []).reverse().map((m) => ({ from: m.sender as Turn["from"], text: m.body as string }));
-
   await typingOn(fetch, cfg, page.pageId, page.token, ev.psid);
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
-  const result = await messengerReply(new Anthropic({ apiKey }), process.env.ANTHROPIC_MODEL || DEFAULT_MODEL, {
-    pageName: page.name,
-    listings: (props ?? []) as MessengerListing[],
-    history: turns,
-    today,
-  });
-
-  // A takeover may have happened while the AI was writing; don't talk over a person.
-  const { data: again } = await admin.from("messenger_conversations").select("mode").eq("id", conv.id).single();
-  if (again?.mode !== "ai") return;
+  const turn = await aiTurn(admin, { id: conv.id as string, business_id: businessId, property_id: null }, { name: page.name, channel: "messenger", apiKey });
+  if (!turn) return;
 
   try {
-    const mid = await sendMessage(fetch, cfg, page.pageId, page.token, ev.psid, result.reply);
-    await admin.from("messenger_messages").insert({ conversation_id: conv.id, business_id: businessId, sender: "ai", body: result.reply, mid: mid ?? null });
+    const mid = await sendMessage(fetch, cfg, page.pageId, page.token, ev.psid, turn.result.reply);
+    await admin.from("messenger_messages").insert({ conversation_id: conv.id, business_id: businessId, sender: "ai", body: turn.result.reply, mid: mid ?? null });
   } catch (e) {
     log("send", e);
     if (e instanceof GraphError && e.tokenInvalid) {
@@ -166,7 +130,71 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
     }
     return;
   }
+  await applyTurn(admin, conv.id as string, businessId, turn, { channelLabel: "Messenger", sourceName: page.name, appOrigin });
+}
 
+type Admin = NonNullable<ReturnType<typeof createAdminClient>>;
+type ConvRef = { id: string; business_id: string; property_id: string | null };
+export type Turn2 = { result: Awaited<ReturnType<typeof messengerReply>>; props: MessengerListing[] };
+
+/**
+ * One AI turn for a conversation in AI mode: checks the daily caps, reads the
+ * history and listings, writes the reply. Returns null when it shouldn't reply
+ * (someone took over, or a cap was reached). Sending is the caller's job.
+ */
+export async function aiTurn(admin: Admin, conv: ConvRef, opts: { name: string; channel: Channel; apiKey: string }): Promise<Turn2 | null> {
+  // Re-read the mode: someone may have taken over in the meantime.
+  const { data: fresh } = await admin.from("messenger_conversations").select("mode").eq("id", conv.id).single();
+  if (fresh?.mode !== "ai") return null;
+
+  const since = new Date(Date.now() - 86_400_000).toISOString();
+  const [{ count: convCount }, { count: bizCount }] = await Promise.all([
+    admin.from("messenger_messages").select("id", { count: "exact", head: true }).eq("conversation_id", conv.id).eq("sender", "ai").gte("created_at", since),
+    admin.from("messenger_messages").select("id", { count: "exact", head: true }).eq("business_id", conv.business_id).eq("sender", "ai").gte("created_at", since),
+  ]);
+  if ((convCount ?? 0) >= AI_REPLIES_PER_CONVERSATION_DAY || (bizCount ?? 0) >= AI_REPLIES_PER_BUSINESS_DAY) {
+    await admin.from("messenger_conversations").update({ mode: "human" }).eq("id", conv.id);
+    await flag(admin, conv.id, "The AI reached today's reply limit for this conversation, so it's waiting for a person.");
+    return null;
+  }
+
+  const [{ data: history }, { data: props }] = await Promise.all([
+    admin.from("messenger_messages").select("sender, body").eq("conversation_id", conv.id).order("created_at", { ascending: false }).limit(16),
+    admin
+      .from("properties")
+      .select("id, name, type, location, status, price_minor, reservation_fee_minor, description, financing")
+      .eq("business_id", conv.business_id)
+      .in("status", ["available", "reserved"])
+      .order("updated_at", { ascending: false })
+      .limit(40),
+  ]);
+  const turns: Turn[] = (history ?? []).reverse().map((m) => ({ from: m.sender as Turn["from"], text: m.body as string }));
+  const listings = (props ?? []) as MessengerListing[];
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const result = await messengerReply(new Anthropic({ apiKey: opts.apiKey }), process.env.ANTHROPIC_MODEL || DEFAULT_MODEL, {
+    pageName: opts.name,
+    listings,
+    history: turns,
+    today,
+    channel: opts.channel,
+    focusListingId: conv.property_id,
+  });
+
+  // A takeover may have happened while the AI was writing; don't talk over a person.
+  const { data: again } = await admin.from("messenger_conversations").select("mode").eq("id", conv.id).single();
+  if (again?.mode !== "ai") return null;
+  return { result, props: listings };
+}
+
+/** After the reply is delivered: record a viewing request or handover, and email the team about it. */
+export async function applyTurn(
+  admin: Admin,
+  conversationId: string,
+  businessId: string,
+  turn: Turn2,
+  opts: { channelLabel: string; sourceName: string; appOrigin: string },
+) {
+  const { result, props } = turn;
   const updates: Record<string, unknown> = { last_message_at: new Date().toISOString() };
   if (result.viewing) {
     Object.assign(updates, {
@@ -174,19 +202,21 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
       lead_phone: result.viewing.phone,
       lead_date: result.viewing.preferredDate ?? null,
       lead_notes: result.viewing.notes ?? null,
-      property_id: result.viewing.listingId ?? null,
+      ...(result.viewing.listingId ? { property_id: result.viewing.listingId } : {}),
       lead_status: "new",
       needs_attention: true,
-      attention_reason: "New viewing request from Messenger.",
+      attention_reason: `New viewing request from ${opts.channelLabel}.`,
     });
   }
   if (result.handover) Object.assign(updates, { mode: "human", needs_attention: true, attention_reason: result.handover });
-  await admin.from("messenger_conversations").update(updates).eq("id", conv.id);
+  await admin.from("messenger_conversations").update(updates).eq("id", conversationId);
 
   if (result.viewing || result.handover) {
-    const listing = (props ?? []).find((p) => p.id === result.viewing?.listingId);
+    const listing = props.find((p) => p.id === result.viewing?.listingId);
     await alertTeam(admin, businessId, {
-      subject: result.viewing ? `New viewing request on Messenger${listing ? `: ${listing.name}` : ""}` : `A Messenger chat needs you: ${page.name}`,
+      subject: result.viewing
+        ? `New viewing request on ${opts.channelLabel}${listing ? `: ${listing.name}` : ""}`
+        : `A ${opts.channelLabel} chat needs you: ${opts.sourceName}`,
       lines: result.viewing
         ? [
             ["Name", result.viewing.name],
@@ -195,12 +225,12 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
             ["Preferred date", result.viewing.preferredDate ?? "Not given"],
           ]
         : [["Why", result.handover!]],
-      url: `${appOrigin}/app/inbox?c=${conv.id}`,
+      url: `${opts.appOrigin}/app/inbox?c=${conversationId}`,
     });
   }
 }
 
-async function flag(admin: NonNullable<ReturnType<typeof createAdminClient>>, conversationId: string, reason: string) {
+export async function flag(admin: NonNullable<ReturnType<typeof createAdminClient>>, conversationId: string, reason: string) {
   await admin.from("messenger_conversations").update({ needs_attention: true, attention_reason: reason }).eq("id", conversationId);
 }
 

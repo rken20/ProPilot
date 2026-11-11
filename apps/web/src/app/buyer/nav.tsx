@@ -8,6 +8,7 @@ const ITEMS = [
   { href: "/buyer", label: "Browse" },
   { href: "/buyer/saved", label: "Saved" },
   { href: "/buyer/viewings", label: "My viewings" },
+  { href: "/buyer/messages", label: "Messages" },
 ];
 
 export function BuyerNav() {

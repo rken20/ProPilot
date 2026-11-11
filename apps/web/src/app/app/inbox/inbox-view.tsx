@@ -10,7 +10,8 @@ import { Composer } from "./composer";
 
 export type Conversation = {
   id: string;
-  psid: string;
+  channel: "messenger" | "app";
+  psid: string | null;
   display_name: string | null;
   mode: "ai" | "human";
   needs_attention: boolean;
@@ -24,7 +25,7 @@ export type Conversation = {
   last_inbound_at: string | null;
   last_message_at: string;
   last_read_at: string | null;
-  page_row_id: string;
+  page_row_id: string | null;
 };
 export type Message = {
   id: string;
@@ -34,7 +35,8 @@ export type Message = {
   created_at: string;
 };
 
-const nameOf = (c: Conversation) => c.display_name || c.lead_name || `Messenger user ${c.psid.slice(-4)}`;
+const nameOf = (c: Conversation) => c.display_name || c.lead_name || (c.psid ? `Messenger user ${c.psid.slice(-4)}` : "ProPilot buyer");
+const channelLabel = (c: Conversation) => (c.channel === "app" ? "ProPilot chat" : "Messenger");
 
 /** The Messenger inbox: conversation list, the open thread, and its viewing request. */
 export function InboxView({
@@ -67,18 +69,18 @@ export function InboxView({
   return (
     <>
       <PageHeader
-        title="Messenger"
+        title="Messages"
         description={
           live.length
-            ? `The AI answers messages to ${live.map((p) => p.name).join(" and ")} until someone takes over.`
-            : "Turn on AI replies for a Page in Integrations to start."
+            ? `Chats from ProPilot buyers and from ${live.map((p) => p.name).join(" and ")} on Messenger. The AI answers until someone takes over.`
+            : "Chats from ProPilot buyers. The AI answers until someone takes over."
         }
       />
       <RefreshSoon every={8000} times={150} />
 
-      {!live.length ? (
+      {!live.length && canConnect ? (
         <Card className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted">No Page has AI replies switched on yet.</p>
+          <p className="text-sm text-muted">Facebook Messenger chats show here too once you turn on AI replies for a Page.</p>
           {canConnect ? (
             <Link href="/app/integrations" className={buttonClass("primary")}>
               Open Integrations
@@ -121,6 +123,7 @@ export function InboxView({
                         </span>
                         <span className="mt-1.5 flex flex-wrap gap-1.5">
                           <Badge tone={c.mode === "ai" ? "brand" : "neutral"}>{c.mode === "ai" ? "AI replying" : "Team replying"}</Badge>
+                          <Badge>{channelLabel(c)}</Badge>
                           {c.lead_status !== "none" ? <Badge tone="hot">Viewing: {c.lead_status}</Badge> : null}
                         </span>
                       </span>
@@ -133,7 +136,7 @@ export function InboxView({
             <Card className="text-center">
               <MessageCircle className="mx-auto size-8 text-zinc-400" aria-hidden />
               <p className="mt-3 font-medium">No messages yet</p>
-              <p className="mt-1 text-sm text-muted">When someone messages your Page, the conversation shows up here.</p>
+              <p className="mt-1 text-sm text-muted">When a buyer messages you in ProPilot or on your Facebook Page, the chat shows up here.</p>
             </Card>
           )}
         </section>
@@ -147,7 +150,9 @@ export function InboxView({
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
                 <div className="min-w-0">
                   <h2 className="truncate font-display text-2xl font-medium">{nameOf(selected)}</h2>
-                  <p className="text-sm text-muted">On {pageName.get(selected.page_row_id) ?? "your Page"}</p>
+                  <p className="text-sm text-muted">
+                    {selected.channel === "app" ? "ProPilot chat" : `Messenger, ${(selected.page_row_id && pageName.get(selected.page_row_id)) || "your Page"}`}
+                  </p>
                 </div>
                 {selected.mode === "ai" ? (
                   <form action={setConversationMode.bind(null, selected.id, "human")}>
@@ -200,7 +205,7 @@ export function InboxView({
               </ol>
 
               <div className="border-t border-line px-5 py-4">
-                <Composer conversationId={selected.id} open={withinReplyWindow(selected.last_inbound_at)} aiOn={selected.mode === "ai"} />
+                <Composer conversationId={selected.id} open={selected.channel === "app" || withinReplyWindow(selected.last_inbound_at)} aiOn={selected.mode === "ai"} />
               </div>
             </div>
 

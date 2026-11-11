@@ -97,7 +97,7 @@ export function ReportsView({
         <p className="mt-2 text-xs text-muted">Counts are for the selected period. Days listed runs from when the listing was added to when it sold, or today.</p>
       </Section>
 
-      <Section i={3} title="Messenger AI" csv={messengerOn ? csv("messenger") : undefined}>
+      <Section i={3} title="AI chat" csv={messengerOn ? csv("messenger") : undefined}>
         {messengerOn ? (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Tile label="Conversations" value={<CountUp value={messenger.conversations} />} note={`${messenger.viewingRequests} became viewing requests`} />
@@ -114,7 +114,7 @@ export function ReportsView({
             />
           </div>
         ) : (
-          <Empty text="Turn on AI replies for a Facebook Page in Integrations to see Messenger results here." />
+          <Empty text="When buyers message you in ProPilot or on Messenger, the AI chat results show here." />
         )}
       </Section>
 
@@ -130,7 +130,7 @@ export function ReportsView({
                   <Th>First response</Th>
                   <Th>Viewings</Th>
                   <Th>Closed</Th>
-                  <Th>Messenger replies</Th>
+                  <Th>Chat replies</Th>
                 </tr>
               </thead>
               <tbody>

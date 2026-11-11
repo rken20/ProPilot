@@ -45,7 +45,7 @@ export function listingsCsv(rows: ListingPerf[], range: Range): string {
 
 export function messengerCsv(r: MessengerReport, range: Range): string {
   return toCsv([
-    ["Report", "Messenger AI performance"],
+    ["Report", "AI chat performance (ProPilot chat and Messenger)"],
     ["Period", range.label],
     [],
     ["Conversations started", String(r.conversations)],
@@ -53,7 +53,7 @@ export function messengerCsv(r: MessengerReport, range: Range): string {
     ["Handed to the team", String(r.handedOver)],
     ["AI replies sent", String(r.aiReplies)],
     ["After-hours messages answered by the AI", String(r.afterHoursAnswered)],
-    ["Viewing requests from Messenger", String(r.viewingRequests)],
+    ["Viewing requests from chats", String(r.viewingRequests)],
     ["Median AI reply time (seconds)", seconds(r.medianAiReplyMs)],
     ["Median team reply time (minutes)", minutes(r.medianTeamReplyMs)],
   ]);
@@ -64,7 +64,7 @@ export function teamCsv(rows: TeamRow[], range: Range): string {
     ["Report", "Team performance"],
     ["Period", range.label],
     [],
-    ["Name", "Role", "Listings assigned", "Leads on their listings", "Leads responded to", "Median first response", "Viewings", "Closed", "Messenger chats taken over", "Messenger replies"],
+    ["Name", "Role", "Listings assigned", "Leads on their listings", "Leads responded to", "Median first response", "Viewings", "Closed", "Chats taken over", "Chat replies"],
     ...rows.map((t) => [
       t.name,
       t.role,

@@ -40,7 +40,7 @@ export async function loadReportData(businessId: string, r: Range): Promise<Repo
       .limit(10000),
     admin
       .from("messenger_conversations")
-      .select("id, created_at, mode, taken_over_by, lead_status, property_id")
+      .select("id, channel, created_at, mode, taken_over_by, lead_status, property_id")
       .eq("business_id", businessId)
       .gte("created_at", from)
       .lt("created_at", to)

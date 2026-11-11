@@ -135,6 +135,7 @@ export type ViewingRow = {
 };
 export type ConversationRow = {
   id: string;
+  channel?: "messenger" | "app";
   created_at: string;
   mode: "ai" | "human";
   taken_over_by: string | null;
@@ -173,14 +174,15 @@ export type LeadsReport = {
 /** `vr` and `convs` are the ones created in the range. */
 export function leadsReport(vr: ViewingRow[], convs: ConversationRow[], r: Range): LeadsReport {
   const msgrLeads = convs.filter((c) => c.lead_status !== "none");
+  const isApp = (c: ConversationRow) => c.channel === "app";
   const count = (s: string) => vr.filter((v) => v.status === s).length + msgrLeads.filter((c) => c.lead_status === s).length;
   const viewingRequests = vr.length + msgrLeads.length;
   const reachedViewing = count("scheduled") + count("completed");
   const closed = count("closed");
   return {
     inquiries: vr.length + convs.length,
-    fromProPilot: vr.length,
-    fromMessenger: convs.length,
+    fromProPilot: vr.length + convs.filter(isApp).length,
+    fromMessenger: convs.filter((c) => !isApp(c)).length,
     viewingRequests,
     reachedViewing,
     closed,
@@ -195,8 +197,10 @@ export function leadsReport(vr: ViewingRow[], convs: ConversationRow[], r: Range
     ],
     series: buckets(r).map((b) => ({
       label: b.label,
-      propilot: vr.filter((v) => inRange(v.created_at, { from: b.start, to: b.end })).length,
-      messenger: convs.filter((c) => inRange(c.created_at, { from: b.start, to: b.end })).length,
+      propilot:
+        vr.filter((v) => inRange(v.created_at, { from: b.start, to: b.end })).length +
+        convs.filter((c) => isApp(c) && inRange(c.created_at, { from: b.start, to: b.end })).length,
+      messenger: convs.filter((c) => !isApp(c) && inRange(c.created_at, { from: b.start, to: b.end })).length,
     })),
   };
 }

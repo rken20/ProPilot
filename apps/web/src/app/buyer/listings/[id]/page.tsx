@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, MessageCircle } from "lucide-react";
+import { SubmitButton } from "@/components/submit-button";
+import { startChat } from "../../messages/actions";
 import { getProfile } from "@/lib/auth";
 import { financingLabels, getFavoriteIds, getListing, getListingPhotos } from "@/lib/listings";
 import { mediaUrl } from "@/lib/media";
@@ -89,6 +91,15 @@ export default async function ListingPage({ params }: PageProps<"/buyer/listings
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[var(--shadow-card)]">
+            <h2 className="font-semibold">Talk to {listing.business_name}</h2>
+            <p className="mb-4 mt-1 text-sm text-muted">Chat in ProPilot. Their AI assistant answers right away, and an agent can join anytime.</p>
+            <form action={startChat.bind(null, listing.id)}>
+              <SubmitButton variant="secondary" className="w-full" pendingText="Opening chat…">
+                <MessageCircle className="size-4" aria-hidden /> Message the agent
+              </SubmitButton>
+            </form>
+          </section>
           <section className="rounded-2xl border border-line bg-white p-5 shadow-[var(--shadow-card)]">
             <h2 className="font-semibold">Request a viewing</h2>
             <p className="mb-4 mt-1 text-sm text-muted">Sent straight to {listing.business_name}.</p>
