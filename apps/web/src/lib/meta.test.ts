@@ -23,7 +23,14 @@ describe("metaConfig", () => {
     expect(metaConfig({ META_APP_ID: "abc", META_APP_SECRET: "x" })).toBeNull();
     const c = metaConfig({ META_APP_ID: "123", META_APP_SECRET: "x", META_GRAPH_VERSION: "latest", META_EXTRA_SCOPES: "business_management, bad scope!" });
     expect(c?.version).toBe("v25.0");
-    expect(c?.scopes).toEqual(["pages_show_list", "pages_read_engagement", "pages_manage_posts", "business_management"]);
+    expect(c?.scopes).toEqual([
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_manage_posts",
+      "pages_manage_metadata",
+      "pages_messaging",
+      "business_management",
+    ]);
   });
 });
 

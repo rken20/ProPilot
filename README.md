@@ -47,9 +47,10 @@ pnpm --filter @propilot/mobile start             # scan the QR code with Expo Go
 | `TOKEN_ENCRYPTION_KEY` | web (server only) | **Secret.** 32 random bytes, base64. Encrypts Google refresh tokens and Facebook Page tokens. |
 | `META_APP_ID`, `META_APP_SECRET` | web (server only) | **Secret (the secret).** Connect Facebook Pages: import posts, post listings. |
 | `META_REDIRECT_ORIGIN` | web (server only) | Stable app address registered in the Meta app as `<origin>/api/meta/callback`. |
+| `META_WEBHOOK_VERIFY_TOKEN` | web (server only) | **Secret.** Random string (16+ characters) Meta sends when it checks `/api/meta/webhook` for Messenger. |
 | `PRIVACY_CONTACT_EMAIL` | web (server only) | Shown on `/privacy` for privacy requests. Meta and Google check that page. |
 
-Later phases add PayMongo and the Messenger webhook (listed, commented out, in `.env.example`).
+Later phases add PayMongo (listed, commented out, in `.env.example`).
 Never commit `.env.local`; it's in `.gitignore`.
 
 ## Checks

@@ -47,6 +47,11 @@ export default function PrivacyPage() {
                 Page, and your app-specific Facebook user ID. We don&apos;t keep your personal Facebook login token.
               </li>
               <li>
+                Messenger conversations with a business&apos;s Facebook Page, if that business switched on AI replies: the
+                messages, your Messenger name if Facebook shares it, and any viewing details you give (name, mobile number,
+                preferred date).
+              </li>
+              <li>
                 Listings found on other property sites: the listing&apos;s facts (title, price, location, type, size) and
                 a link to the original page. We don&apos;t store their photos or the seller&apos;s contact details.
               </li>
@@ -61,6 +66,11 @@ export default function PrivacyPage() {
               <li>
                 On Facebook, only when you ask: to read your Page&apos;s posts so you can turn one into a listing, and to
                 publish a listing to your Page when someone on your team presses Post.
+              </li>
+              <li>
+                On Messenger: to answer questions about the business&apos;s listings with an automated assistant, which says
+                it&apos;s automated, and to pass the conversation to a person on the business&apos;s team when you ask or when it
+                can&apos;t help. The team can read the conversation and reply.
               </li>
               <li>To keep the service secure, for example limiting how often a feature can be used.</li>
             </ul>
@@ -81,6 +91,7 @@ export default function PrivacyPage() {
             <ul className="list-disc space-y-2 pl-5">
               <li>Your account and listings: until you delete them or ask us to delete your account.</li>
               <li>Listings from other sites: 30 days after last seen, unless a buyer saved them. Search results: 7 days.</li>
+              <li>Messenger conversations: deleted 12 months after the last message.</li>
               <li>Google and Facebook tokens: until you disconnect, or remove ProPilot in your Google or Facebook settings.</li>
             </ul>
           </Section>

@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // /privacy and the data deletion callback must be reachable without signing in (Meta checks them).
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/auth", "/privacy", "/api/meta/data-deletion"];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/forgot-password", "/auth", "/privacy", "/api/meta/data-deletion", "/api/meta/webhook"];
 
 /**
  * Refreshes the Supabase session cookie on every request and sends signed-out

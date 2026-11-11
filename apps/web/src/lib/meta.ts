@@ -9,8 +9,15 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 type Fetch = typeof fetch;
 
 export const DEFAULT_GRAPH_VERSION = "v25.0";
-/** Read the Pages a person manages, read those Pages' posts, publish to them. */
-export const DEFAULT_SCOPES = ["pages_show_list", "pages_read_engagement", "pages_manage_posts"];
+/** Read the Pages a person manages, read and publish their posts, and answer their Messenger inbox. */
+export const DEFAULT_SCOPES = [
+  "pages_show_list",
+  "pages_read_engagement",
+  "pages_manage_posts",
+  // Messenger: receive messages (webhook subscription) and reply as the Page.
+  "pages_manage_metadata",
+  "pages_messaging",
+];
 
 export type MetaConfig = {
   appId: string;
@@ -251,4 +258,116 @@ export function parseSignedRequest(signed: string, appSecret: string): { user_id
   } catch {
     return null;
   }
+}
+
+// ------------------------------------------------------------------ Messenger
+
+/** Facebook's own Page inbox app: echoes with this app_id are a person replying in Meta Business Suite. */
+export const PAGE_INBOX_APP_ID = "26390203743090";
+export const MESSENGER_FIELDS = ["messages", "messaging_postbacks", "message_echoes"];
+/** Messenger's limit is 2,000 characters a message. */
+export const MAX_MESSENGER_TEXT = 2000;
+
+/** Check X-Hub-Signature-256 on a webhook delivery against the raw body. */
+export function verifyWebhookSignature(rawBody: string, header: string | null, appSecret: string): boolean {
+  const m = /^sha256=([0-9a-f]{64})$/i.exec(header ?? "");
+  if (!m) return false;
+  const expected = createHmac("sha256", appSecret).update(rawBody, "utf8").digest();
+  const got = Buffer.from(m[1]!, "hex");
+  return got.length === expected.length && timingSafeEqual(got, expected);
+}
+
+/** Start (or stop) Messenger webhooks for a Page. */
+export async function subscribePage(f: Fetch, cfg: MetaConfig, pageId: string, pageToken: string): Promise<void> {
+  await post(f, cfg, `${pageId}/subscribed_apps`, pageToken, { subscribed_fields: MESSENGER_FIELDS.join(",") });
+}
+export async function unsubscribePage(f: Fetch, cfg: MetaConfig, pageId: string, pageToken: string): Promise<void> {
+  const q = new URLSearchParams({ access_token: pageToken, appsecret_proof: appSecretProof(pageToken, cfg.appSecret) });
+  await call(f, `${graph(cfg, `${pageId}/subscribed_apps`)}?${q}`, { method: "DELETE" });
+}
+
+/** Reply to someone who messaged the Page (inside Messenger's 24-hour window). Returns the message id. */
+export async function sendMessage(
+  f: Fetch,
+  cfg: MetaConfig,
+  pageId: string,
+  pageToken: string,
+  psid: string,
+  text: string,
+): Promise<string | undefined> {
+  const r = await post<{ message_id?: string }>(f, cfg, `${pageId}/messages`, pageToken, {
+    recipient: JSON.stringify({ id: psid }),
+    messaging_type: "RESPONSE",
+    message: JSON.stringify({ text: text.slice(0, MAX_MESSENGER_TEXT) }),
+  });
+  return r.message_id;
+}
+
+/** Show "typing…" in Messenger while the assistant writes. Best effort. */
+export async function typingOn(f: Fetch, cfg: MetaConfig, pageId: string, pageToken: string, psid: string): Promise<void> {
+  try {
+    await post(f, cfg, `${pageId}/messages`, pageToken, { recipient: JSON.stringify({ id: psid }), sender_action: "typing_on" });
+  } catch {
+    /* cosmetic */
+  }
+}
+
+/** The name someone shows on Messenger, if Facebook shares it with the app. */
+export async function messengerName(f: Fetch, cfg: MetaConfig, psid: string, pageToken: string): Promise<string | null> {
+  try {
+    const r = await get<{ first_name?: string; last_name?: string; name?: string }>(f, cfg, psid, pageToken, { fields: "first_name,last_name" });
+    const name = (r.name ?? [r.first_name, r.last_name].filter(Boolean).join(" ")).trim();
+    return name ? name.slice(0, 120) : null;
+  } catch {
+    return null;
+  }
+}
+
+export type MessengerEvent = {
+  pageId: string;
+  psid: string;
+  timestamp: number;
+  mid?: string;
+  text?: string;
+  /** "photo", "audio" etc. when the message is an attachment without text. */
+  attachment?: string;
+  /** A message the Page sent; appId says whether ProPilot or Facebook's inbox sent it. */
+  echo?: { appId: string };
+  postback?: string;
+};
+
+/** Pull the messaging events we handle out of a webhook body. Anything odd is skipped. */
+export function parseWebhook(body: unknown): MessengerEvent[] {
+  const b = body as { object?: string; entry?: Array<{ id?: unknown; messaging?: unknown[] }> } | null;
+  if (b?.object !== "page" || !Array.isArray(b.entry)) return [];
+  const out: MessengerEvent[] = [];
+  for (const entry of b.entry.slice(0, 50)) {
+    const pageId = String(entry.id ?? "");
+    if (!/^\d+$/.test(pageId) || !Array.isArray(entry.messaging)) continue;
+    for (const raw of entry.messaging.slice(0, 50)) {
+      const e = raw as {
+        sender?: { id?: string };
+        recipient?: { id?: string };
+        timestamp?: number;
+        message?: { mid?: string; text?: string; is_echo?: boolean; app_id?: number | string; attachments?: Array<{ type?: string }> };
+        postback?: { title?: string; payload?: string };
+      };
+      const echo = Boolean(e.message?.is_echo);
+      const psid = String((echo ? e.recipient?.id : e.sender?.id) ?? "");
+      if (!/^\d+$/.test(psid) || psid === pageId) continue;
+      const ev: MessengerEvent = { pageId, psid, timestamp: Number(e.timestamp) || Date.now() };
+      if (e.message) {
+        ev.mid = typeof e.message.mid === "string" ? e.message.mid.slice(0, 200) : undefined;
+        if (typeof e.message.text === "string") ev.text = e.message.text.slice(0, 2000);
+        else if (e.message.attachments?.length) ev.attachment = String(e.message.attachments[0]?.type ?? "file").slice(0, 20);
+        if (echo) ev.echo = { appId: String(e.message.app_id ?? "") };
+      } else if (e.postback) {
+        ev.postback = String(e.postback.title ?? e.postback.payload ?? "").slice(0, 200);
+      } else {
+        continue; // reads, deliveries, reactions: not needed
+      }
+      out.push(ev);
+    }
+  }
+  return out;
 }

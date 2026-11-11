@@ -3,7 +3,7 @@ import { decryptSecret } from "./crypto";
 import { createAdminClient } from "./supabase/admin";
 import { createClient } from "./supabase/server";
 
-export type ConnectedPage = { id: string; page_id: string; name: string; tasks: string[]; connected_at: string };
+export type ConnectedPage = { id: string; page_id: string; name: string; tasks: string[]; connected_at: string; messenger_enabled: boolean };
 
 /** The business's connected Pages, as members may see them (no tokens). */
 export async function businessPages(businessId: string): Promise<ConnectedPage[]> {

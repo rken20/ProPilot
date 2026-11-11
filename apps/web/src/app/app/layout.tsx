@@ -1,5 +1,6 @@
 import { can } from "@propilot/shared";
 import { getMemberships, getUser, requireBusiness } from "@/lib/auth";
+import { metaConfig } from "@/lib/meta";
 import { switchBusiness } from "./actions";
 import type { NavItem } from "./nav";
 import { AppShell } from "./shell";
@@ -15,7 +16,9 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
     ...(can(current.role, "lead.viewAll") || can(current.role, "lead.viewAssigned")
       ? [{ href: "/app/leads", label: "Buyer leads", icon: "leads" as const }]
       : []),
-    { href: "/app/inbox", label: "Messenger", icon: "inbox", soon: true },
+    ...(can(current.role, "conversation.reply")
+      ? [{ href: "/app/inbox", label: "Messenger", icon: "inbox" as const, soon: !metaConfig() }]
+      : []),
     { href: "/app/reports", label: "Reports", icon: "reports", soon: true },
     ...(can(current.role, "team.view") ? [{ href: "/app/team", label: "Team", icon: "team" as const }] : []),
     ...(can(current.role, "lead.viewAssigned") || can(current.role, "business.update")

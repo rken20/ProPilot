@@ -8,6 +8,8 @@ import { decryptSecret } from "@/lib/crypto";
 import { SHEETS_SCOPE, createSpreadsheet, googleConfig, refreshAccessToken, revokeToken } from "@/lib/google";
 import { syncLeadsSheet } from "@/lib/lead-jobs";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { pageWithToken } from "@/lib/facebook-pages";
+import { GraphError, metaConfig, subscribePage, unsubscribePage } from "@/lib/meta";
 
 const done = (notice: string) => {
   revalidatePath("/app/integrations");
@@ -89,4 +91,31 @@ export async function disconnectFacebookPage(rowId: string) {
     await admin.from("facebook_pages").delete().eq("business_id", biz.businessId).eq("id", rowId);
   }
   done("facebook-disconnected");
+}
+
+/** Turn AI replies on Messenger on or off for one connected Page. */
+export async function setMessenger(rowId: string, on: boolean) {
+  const biz = await requireBusiness();
+  if (!can(biz.role, "facebook.connect")) done("not-allowed");
+  const cfg = metaConfig();
+  const admin = createAdminClient();
+  const page = await pageWithToken(biz.businessId, rowId);
+  if (!cfg || !admin || !page) done("facebook-failed");
+
+  let notice = on ? "messenger-on" : "messenger-off";
+  try {
+    if (on) await subscribePage(fetch, cfg!, page!.pageId, page!.token);
+    else await unsubscribePage(fetch, cfg!, page!.pageId, page!.token).catch(() => undefined);
+  } catch (e) {
+    console.error("[messenger] subscribe failed:", e instanceof Error ? e.message : String(e));
+    notice = e instanceof GraphError && (e.code === 200 || e.code === 10 || e.tokenInvalid) ? "messenger-permission" : "messenger-failed";
+  }
+  if (notice === "messenger-on" || notice === "messenger-off") {
+    await admin!
+      .from("facebook_pages")
+      .update({ messenger_enabled: on, messenger_subscribed_at: on ? new Date().toISOString() : null })
+      .eq("business_id", biz.businessId)
+      .eq("id", rowId);
+  }
+  done(notice);
 }

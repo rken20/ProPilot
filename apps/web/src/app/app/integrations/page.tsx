@@ -11,7 +11,7 @@ import { CALENDAR_SCOPE, SHEETS_SCOPE } from "@/lib/google";
 import { missingGoogleSettings } from "@/lib/google-oauth";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/time";
-import { createLeadsSheet, disconnectFacebookPage, disconnectGoogle, stopSheetSync, syncSheetNow } from "./actions";
+import { createLeadsSheet, disconnectFacebookPage, disconnectGoogle, setMessenger, stopSheetSync, syncSheetNow } from "./actions";
 
 const NOTICES: Record<string, [tone: "success" | "error" | "info", text: string]> = {
   "google-connected": ["success", "Google is connected."],
@@ -38,6 +38,13 @@ const NOTICES: Record<string, [tone: "success" | "error" | "info", text: string]
     "Facebook didn't share any Pages. Connect again and tick the Pages you manage. Pages need you as an admin or editor.",
   ],
   "facebook-not-ready": ["error", "Connect Facebook isn't switched on for ProPilot yet."],
+  "messenger-on": ["success", "AI replies are on. New Messenger messages to this Page get an answer, and show up in Messenger."],
+  "messenger-off": ["success", "AI replies are off for this Page. Messages stay in Facebook's own inbox."],
+  "messenger-permission": [
+    "error",
+    "Facebook didn't allow Messenger for this Page yet. Press Add or change Pages and allow the messaging permissions, then try again.",
+  ],
+  "messenger-failed": ["error", "Couldn't switch on Messenger for this Page. Please try again."],
 };
 
 export default async function IntegrationsPage({ searchParams }: PageProps<"/app/integrations">) {
@@ -82,8 +89,8 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
           ) : (
             <div className="space-y-4">
               <p>
-                Turn your Page posts into listings, and post listings to your Page. ProPilot only posts when someone on
-                your team presses Post.
+                Turn your Page posts into listings, post listings to your Page, and let the AI answer Messenger inquiries
+                until someone on your team takes over. ProPilot only posts when someone presses Post.
               </p>
               {pages.length ? (
                 <ul className="divide-y divide-line rounded-xl border border-line">
@@ -93,15 +100,27 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
                         <p className="truncate font-medium text-ink">{p.name}</p>
                         <p className="text-xs text-muted">
                           {canPublish(p.tasks) ? "Can read and post" : "Read only: you need to be an admin or editor of this Page to post"}
-                          , connected {timeAgo(p.connected_at)}
+                          {p.messenger_enabled ? ", AI replies on Messenger" : ""}, connected {timeAgo(p.connected_at)}
                         </p>
                       </div>
                       {manageFacebook ? (
-                        <form action={disconnectFacebookPage.bind(null, p.id)}>
-                          <SubmitButton variant="ghost" pendingText="Disconnecting…">
-                            Disconnect
-                          </SubmitButton>
-                        </form>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <form action={setMessenger.bind(null, p.id, !p.messenger_enabled)}>
+                            <SubmitButton
+                              variant={p.messenger_enabled ? "secondary" : "primary"}
+                              pendingText={p.messenger_enabled ? "Turning off…" : "Turning on…"}
+                            >
+                              {p.messenger_enabled ? "Turn off AI replies" : "Turn on AI replies"}
+                            </SubmitButton>
+                          </form>
+                          <form action={disconnectFacebookPage.bind(null, p.id)}>
+                            <SubmitButton variant="ghost" pendingText="Disconnecting…">
+                              Disconnect
+                            </SubmitButton>
+                          </form>
+                        </div>
+                      ) : p.messenger_enabled ? (
+                        <Badge tone="brand">AI replies on</Badge>
                       ) : null}
                     </li>
                   ))}
