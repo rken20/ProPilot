@@ -11,7 +11,7 @@ export default async function SavedPage() {
   return (
     <>
       <h1 className="text-[28px] font-bold tracking-tight">Saved</h1>
-      <p className="mt-1 text-muted">Your shortlist. Only you can see it.</p>
+      <p className="mt-1 text-muted">Only you can see your shortlist.</p>
       {saved.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-dashed border-line bg-white px-6 py-14 text-center">
           <p className="font-semibold">Nothing saved yet</p>

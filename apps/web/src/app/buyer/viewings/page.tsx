@@ -25,7 +25,7 @@ export default async function MyViewingsPage() {
   return (
     <>
       <h1 className="text-[28px] font-bold tracking-tight">My viewings</h1>
-      <p className="mt-1 text-muted">Requests you&apos;ve sent. Agents usually reply by phone.</p>
+      <p className="mt-1 text-muted">Agents usually reply by call or text to the number you gave.</p>
 
       {!requests?.length ? (
         <div className="mt-6 rounded-2xl border border-dashed border-line bg-white px-6 py-14 text-center">

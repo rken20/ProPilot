@@ -15,8 +15,7 @@ export default async function OnboardingPage() {
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-12">
       <Card className="w-full max-w-md">
-        <p className="text-sm font-medium text-brand-700">Step 1 of 1</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           {firstName ? `Welcome, ${firstName}.` : "Welcome."} Set up your business
         </h1>
         <p className="mb-6 mt-1 text-sm text-zinc-600">

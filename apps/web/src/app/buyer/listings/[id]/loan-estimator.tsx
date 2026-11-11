@@ -44,10 +44,10 @@ export function LoanEstimator({ priceMinor, defaultDownpayment }: { priceMinor: 
           </p>
         </div>
       ) : (
-        <p className="mt-4 text-sm text-red-700">Enter a downpayment of 0–100%, a rate of 0–50% and 1–40 years.</p>
+        <p className="mt-4 text-sm text-red-700">Enter a downpayment from 0 to 100%, a rate from 0 to 50%, and a term from 1 to 40 years.</p>
       )}
       <p className="mt-3 text-xs text-muted">
-        An estimate, not a loan offer. Rates and terms depend on your bank or Pag-IBIG.
+        This is an estimate. Your bank or Pag-IBIG sets the actual rate and terms.
       </p>
     </section>
   );

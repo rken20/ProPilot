@@ -35,7 +35,7 @@ export default async function WelcomePage() {
               </span>
               <span>
                 <span className="block font-semibold">I&apos;m looking for a property</span>
-                <span className="mt-0.5 block text-sm text-muted">Browse listings, save favorites and request viewings.</span>
+                <span className="mt-0.5 block text-sm text-muted">Search listings, ask questions and request viewings.</span>
               </span>
             </button>
           </form>

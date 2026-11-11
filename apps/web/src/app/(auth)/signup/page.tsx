@@ -5,8 +5,8 @@ import { safeNext } from "@/lib/form";
 import { SignUpForm } from "../forms";
 
 const COPY = {
-  buyer: { title: "Find your next home", sub: "Browse listings, ask questions any time, and book viewings." },
-  agent: { title: "Set up ProPilot for your listings", sub: "Free during the beta. No card needed." },
+  buyer: { title: "Create your buyer account", sub: "Save the listings you like and ask agents for viewings." },
+  agent: { title: "Create your agent account", sub: "Free during the beta, and no card needed." },
 } as const;
 
 export default async function SignUpPage({ searchParams }: PageProps<"/signup">) {
@@ -26,13 +26,13 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
             href={`/signup?as=buyer${keep}`}
             icon={<House className="size-5" aria-hidden />}
             title="I'm looking for a property"
-            text="Browse listings, save favorites and request viewings."
+            text="Search listings, ask questions and request viewings."
           />
           <Choice
             href={`/signup?as=agent${keep}`}
             icon={<Building2 className="size-5" aria-hidden />}
             title="I sell or manage properties"
-            text="For agents, brokers and developers. List properties and handle buyer leads."
+            text="For agents, brokers and developers who want buyer questions answered for them."
           />
         </div>
         <p className="mt-6 text-center text-sm text-muted">

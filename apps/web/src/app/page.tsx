@@ -18,11 +18,11 @@ export default async function Home() {
       </header>
       <main className="mx-auto max-w-6xl px-6 pb-20 pt-10 sm:pt-16">
         <h1 className="max-w-3xl text-4xl font-bold leading-[1.1] tracking-tight sm:text-[56px]">
-          The smarter way to buy and sell property in the Philippines.
+          Ask about any listing on ProPilot and get an answer, day or night.
         </h1>
         <p className="mt-5 max-w-2xl text-lg text-muted">
-          Ask about any listing and get a straight answer, any hour. Agents get every inquiry handled and the ready
-          buyers sent to them.
+          Answers come from the details the listing agent entered: price, financing, reservation fee. When you want to
+          see the place, the agent gets your request and your number.
         </p>
         {env.isConfigured() ? (
           <div className="mt-10 grid max-w-3xl gap-4 sm:grid-cols-2">
@@ -30,14 +30,14 @@ export default async function Home() {
               href="/signup?as=buyer"
               icon={<House className="size-6" aria-hidden />}
               title="I'm looking for a property"
-              text="Browse listings, compare financing, and book viewings."
+              text="Search by area and budget, estimate the monthly payment, and ask to see the ones you like."
               cta="Start browsing"
             />
             <Entry
               href="/signup?as=agent"
               icon={<Building2 className="size-6" aria-hidden />}
               title="I sell or manage properties"
-              text="List properties and let the AI handle buyer questions."
+              text="Add your listings once. The assistant answers buyers' questions, and viewing requests land in your Buyer leads."
               cta="Set up my listings"
             />
           </div>
