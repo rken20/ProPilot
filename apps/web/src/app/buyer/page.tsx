@@ -5,6 +5,14 @@ import { getFavoriteIds, searchListings } from "@/lib/listings";
 import { pesosToCentavos } from "@/lib/money";
 import { TYPE_LABEL } from "@/lib/property-labels";
 import { ListingCard } from "./listing-card";
+import { ExternalCard } from "./external-card";
+import { OnlineSearch } from "./online-search";
+import { getCachedOnline, getExternalFavoriteIds, onlineSearchEnabled } from "@/lib/external-data";
+import { queryKey, SOURCES } from "@/lib/external-listings";
+import { timeAgo } from "@/lib/time";
+
+// Searching other sites can take up to a minute.
+export const maxDuration = 60;
 
 const BUDGETS = [
   ["", "Any budget"],
@@ -22,10 +30,16 @@ export default async function BrowsePage({ searchParams }: PageProps<"/buyer">) 
   const max = typeof sp.max === "string" ? sp.max : "";
   const maxMinor = max ? pesosToCentavos(max) : null;
 
-  const [{ listings, error }, favorites] = await Promise.all([
-    searchListings({ q, type, maxPriceMinor: maxMinor && Number.isFinite(maxMinor) ? maxMinor : undefined }),
+  const maxPriceMinor = maxMinor && Number.isFinite(maxMinor) ? maxMinor : undefined;
+  const online = onlineSearchEnabled();
+  const canSearchOnline = online && q.trim().length >= 2;
+  const [{ listings, error }, favorites, cached, externalSaved] = await Promise.all([
+    searchListings({ q, type, maxPriceMinor }),
     getFavoriteIds(),
+    canSearchOnline ? getCachedOnline(queryKey({ q: q.trim(), type, maxPriceMinor })) : null,
+    online ? getExternalFavoriteIds() : new Set<string>(),
   ]);
+  const sourceNames = Object.values(SOURCES);
   const filtered = Boolean(q || type || max);
 
   const select =
@@ -97,6 +111,38 @@ export default async function BrowsePage({ searchParams }: PageProps<"/buyer">) 
           ))}
         </div>
       )}
+
+      {online ? (
+        <section className="mt-14 border-t border-line pt-10" aria-labelledby="online-heading">
+          <h2 id="online-heading" className="font-display text-[1.75rem] leading-tight font-medium">
+            From other property sites
+          </h2>
+          <p className="mt-1.5 max-w-2xl text-sm text-muted">
+            Public listings found on {sourceNames.slice(0, -1).join(", ")} and {sourceNames.at(-1)}. Prices and availability
+            can change, so check the original page. You contact the lister there.
+          </p>
+          <div className="mt-6">
+            {!canSearchOnline ? (
+              <p className="text-sm text-muted">Type a city or area above to also search other sites.</p>
+            ) : cached && cached.listings.length ? (
+              <>
+                <p className="text-sm text-muted">
+                  {cached.listings.length} found {cached.searchedAt ? timeAgo(cached.searchedAt) : ""}
+                </p>
+                <div className="pp-stagger mt-2 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {cached.listings.map((l, i) => (
+                    <div key={l.id} style={{ "--i": Math.min(i, 8) } as React.CSSProperties}>
+                      <ExternalCard listing={l} saved={externalSaved.has(l.id)} />
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <OnlineSearch q={q.trim()} type={type} max={max} sources="Takes about half a minute." />
+            )}
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }

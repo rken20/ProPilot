@@ -40,7 +40,7 @@ pnpm --filter @propilot/mobile start             # scan the QR code with Expo Go
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | web | Public. Row-level security protects data. |
 | `APP_ORIGIN` | web | The app's public address for links in emails and invites. |
 | `SUPABASE_SERVICE_ROLE_KEY` | web (server only) | **Secret.** Bypasses RLS. Never prefix with `NEXT_PUBLIC_`. |
-| `ANTHROPIC_API_KEY` | web (server only) | **Secret.** Buyer listing assistant. Optional; chat is disabled without it. |
+| `ANTHROPIC_API_KEY` | web (server only) | **Secret.** Buyer listing assistant, and (with the service role key) searching other property sites. Optional; both are off without it. |
 | `RESEND_API_KEY` or `SMTP_*` | web (server only) | **Secret.** Email alerts to agents on new viewing requests. Optional. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | web (server only) | **Secret.** Connect Google (Sheets + Calendar). |
 | `GOOGLE_REDIRECT_ORIGIN` | web (server only) | Stable app address registered in Google Cloud as `<origin>/api/google/callback`. |
