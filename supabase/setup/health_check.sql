@@ -11,6 +11,7 @@ from (values
   (8, 'Request limits active',   exists (select 1 from pg_proc where proname = 'viewing_requests_guard' and prosrc like '%too many viewing requests%'), 'Run 20261111010000_rate_limits.sql'),
   (9, 'Listings from other sites', to_regclass('public.external_listings') is not null, 'Run 20261111020000_external_listings.sql'),
   (10, 'Facebook Pages', to_regclass('public.facebook_pages') is not null, 'Run 20261111030000_facebook_pages.sql'),
-  (11, 'Messenger', to_regclass('public.messenger_conversations') is not null, 'Run 20261111040000_messenger.sql')
+  (11, 'Messenger', to_regclass('public.messenger_conversations') is not null, 'Run 20261111040000_messenger.sql'),
+  (12, 'Reports', to_regclass('public.listing_question_events') is not null, 'Run 20261111050000_reporting.sql')
 ) as t(n, item, ok, fix)
 order by n;

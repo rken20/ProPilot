@@ -1,8 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { getUser } from "@/lib/auth";
 import { DEFAULT_MODEL, answer, sanitizeHistory } from "@/lib/listing-assistant";
 import { getListing } from "@/lib/listings";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 /** Buyer asks about one listing. Signed-in only; the listing must be public. */
@@ -50,6 +51,13 @@ export async function POST(request: NextRequest) {
   try {
     const client = new Anthropic({ apiKey });
     const reply = await answer(client, process.env.ANTHROPIC_MODEL || DEFAULT_MODEL, listing, history);
+    // Count the question for the agent's reports (no message text is stored).
+    after(async () => {
+      const admin = createAdminClient();
+      if (!admin) return;
+      const { data: prop } = await admin.from("properties").select("business_id").eq("id", listing.id).maybeSingle();
+      if (prop) await admin.from("listing_question_events").insert({ business_id: prop.business_id, property_id: listing.id });
+    });
     return NextResponse.json({ reply });
   } catch (e) {
     console.error("listing-chat failed", e instanceof Error ? e.message : e);

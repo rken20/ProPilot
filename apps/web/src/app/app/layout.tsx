@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
     ...(can(current.role, "conversation.reply")
       ? [{ href: "/app/inbox", label: "Messenger", icon: "inbox" as const, soon: !metaConfig() }]
       : []),
-    { href: "/app/reports", label: "Reports", icon: "reports", soon: true },
+    ...(can(current.role, "analytics.view") ? [{ href: "/app/reports", label: "Reports", icon: "reports" as const }] : []),
     ...(can(current.role, "team.view") ? [{ href: "/app/team", label: "Team", icon: "team" as const }] : []),
     ...(can(current.role, "lead.viewAssigned") || can(current.role, "business.update")
       ? [{ href: "/app/integrations", label: "Integrations", icon: "integrations" as const }]
