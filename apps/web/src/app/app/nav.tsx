@@ -56,8 +56,8 @@ export function Nav({ items }: { items: NavItem[] }) {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cx(
-              "flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-              active ? "bg-brand-600 font-semibold text-white" : "text-white/75 hover:bg-white/[0.07] hover:text-white",
+              "flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-[background-color,color] duration-200",
+              active ? "bg-white/[0.09] font-semibold text-white shadow-[inset_2px_0_0_#c9a463]" : "text-white/70 hover:bg-white/[0.06] hover:text-white",
             )}
           >
             <Icon className="size-[18px]" aria-hidden />

@@ -16,11 +16,11 @@ export function LoanEstimator({ priceMinor, defaultDownpayment }: { priceMinor: 
     result = null;
   }
 
-  const field = "mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm tabular-nums outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
+  const field = "mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm tabular-nums outline-none transition-[border-color,box-shadow] focus:border-brand-600 focus:ring-4 focus:ring-brand-100";
 
   return (
-    <section className="rounded-2xl border border-line bg-white p-5" aria-label="Monthly payment estimate">
-      <h2 className="font-semibold">Estimate your monthly payment</h2>
+    <section className="rounded-2xl border border-line bg-white p-5 shadow-[var(--shadow-card)]" aria-label="Monthly payment estimate">
+      <h2 className="font-display text-xl font-medium">Estimate your monthly payment</h2>
       <div className="mt-4 grid grid-cols-3 gap-3">
         <label className="text-xs font-medium text-muted">
           Downpayment %
@@ -36,9 +36,9 @@ export function LoanEstimator({ priceMinor, defaultDownpayment }: { priceMinor: 
         </label>
       </div>
       {result ? (
-        <div className="mt-4 rounded-xl bg-surface p-4">
+        <div className="mt-4 rounded-xl bg-sand p-4">
           <p className="text-sm text-muted">Estimated monthly payment</p>
-          <p className="text-2xl font-bold tabular-nums">{formatPeso(result.monthlyMinor)}</p>
+          <p className="font-display text-3xl font-medium tabular-nums">{formatPeso(Math.round(result.monthlyMinor / 100) * 100)}</p>
           <p className="mt-1 text-xs text-muted">
             Downpayment {formatPeso(result.downpaymentMinor)}, loan {formatPeso(result.loanMinor)} over {result.months} months.
           </p>

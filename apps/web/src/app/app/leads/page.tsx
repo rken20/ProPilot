@@ -12,8 +12,8 @@ import { updateLead } from "./actions";
 
 const STATUS = {
   new: { label: "New", tone: "bg-orange-50 text-hot" },
-  contacted: { label: "Contacted", tone: "bg-violet-50 text-violet-700" },
-  scheduled: { label: "Viewing scheduled", tone: "bg-emerald-50 text-good" },
+  contacted: { label: "Contacted", tone: "bg-brass-50 text-[#7d5f26]" },
+  scheduled: { label: "Viewing scheduled", tone: "bg-brand-50 text-good" },
   completed: { label: "Viewed", tone: "bg-slate-100 text-slate-600" },
   closed: { label: "Closed", tone: "bg-slate-100 text-slate-500" },
 } as const;
@@ -105,7 +105,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
           {leads.map((l) => {
             const s = STATUS[l.status as Status] ?? STATUS.new;
             return (
-              <li key={l.id} className="rounded-2xl border border-line bg-white p-5">
+              <li key={l.id} className="rounded-2xl border border-line bg-white p-5 shadow-[var(--shadow-card)]">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-lg font-semibold">{l.buyer_name}</p>

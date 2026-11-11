@@ -34,7 +34,7 @@ export default async function InvitePage({ params, searchParams }: PageProps<"/i
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-12">
       <Card className="w-full max-w-md space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Join a team on ProPilot</h1>
+        <h1 className="font-display text-[2rem] leading-tight font-medium">Join a team on ProPilot</h1>
         <p className="text-sm text-zinc-600">
           You&apos;re signed in as <span className="font-medium text-zinc-900">{user.email}</span>. Accept to join the business
           that invited you.

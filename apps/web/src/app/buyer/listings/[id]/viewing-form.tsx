@@ -18,7 +18,7 @@ export function ViewingForm({
   const [state, formAction] = useActionState(action, { data: defaults });
   if (state.ok) {
     return (
-      <div className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900" role="status">
+      <div className="rounded-xl bg-brand-50 p-4 text-sm text-brand-900" role="status">
         <p className="flex items-center gap-2 font-semibold">
           <CircleCheck className="size-4" aria-hidden /> Request sent
         </p>

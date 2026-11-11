@@ -29,14 +29,14 @@ export default async function BrowsePage({ searchParams }: PageProps<"/buyer">) 
   const filtered = Boolean(q || type || max);
 
   const select =
-    "rounded-lg border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100";
+    "rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none transition-[border-color,box-shadow] hover:border-zinc-300 focus:border-brand-600 focus:ring-4 focus:ring-brand-100";
 
   return (
     <>
-      <h1 className="text-[28px] font-bold tracking-tight">Find a property</h1>
-      <p className="mt-1 text-muted">Ask about any listing and get an answer straight from the agent&apos;s details.</p>
+      <h1 className="font-display text-[2.25rem] leading-tight font-medium">Find a property</h1>
+      <p className="mt-2 text-muted">Ask about any listing and get an answer straight from the agent&apos;s details.</p>
 
-      <form className="mt-6 grid gap-2 rounded-2xl border border-line bg-white p-2 sm:grid-cols-[1fr_180px_160px_auto]" role="search">
+      <form className="mt-7 grid gap-2 rounded-2xl border border-line bg-white p-2 shadow-[var(--shadow-card)] sm:grid-cols-[1fr_180px_160px_auto]" role="search">
         <label className="relative">
           <span className="sr-only">City, area or property name</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden />
@@ -44,7 +44,7 @@ export default async function BrowsePage({ searchParams }: PageProps<"/buyer">) 
             name="q"
             defaultValue={q}
             placeholder="City, area or property name"
-            className="w-full rounded-lg border border-transparent bg-surface py-2.5 pl-9 pr-3 text-sm outline-none focus:border-brand-600 focus:bg-white focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-transparent bg-surface py-2.5 pl-9 pr-3 text-sm outline-none transition-[border-color,box-shadow,background-color] focus:border-brand-600 focus:bg-white focus:ring-4 focus:ring-brand-100"
           />
         </label>
         <label>
@@ -89,9 +89,11 @@ export default async function BrowsePage({ searchParams }: PageProps<"/buyer">) 
           </p>
         </div>
       ) : (
-        <div className="mt-2 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {listings.map((l) => (
-            <ListingCard key={l.id} listing={l} saved={favorites.has(l.id)} />
+        <div className="pp-stagger mt-2 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {listings.map((l, i) => (
+            <div key={l.id} style={{ "--i": Math.min(i, 8) } as React.CSSProperties}>
+              <ListingCard listing={l} saved={favorites.has(l.id)} />
+            </div>
           ))}
         </div>
       )}

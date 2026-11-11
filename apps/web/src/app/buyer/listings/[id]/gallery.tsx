@@ -25,16 +25,16 @@ export function Gallery({ photos, title }: { photos: GalleryPhoto[]; title: stri
         if (e.key === "ArrowLeft") go(-1);
       }}
     >
-      <div className="relative overflow-hidden rounded-2xl bg-brand-900">
+      <div className="relative overflow-hidden rounded-2xl bg-brand-900 shadow-[var(--shadow-card)]">
         {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized photo from storage */}
-        <img src={current.full} alt={`${title}, photo ${i + 1} of ${n}`} className="aspect-[16/10] w-full object-contain" />
+        <img key={current.id} src={current.full} alt={`${title}, photo ${i + 1} of ${n}`} className="pp-fade aspect-[16/10] w-full object-contain" />
         {n > 1 ? (
           <>
             <button
               type="button"
               onClick={() => go(-1)}
               aria-label="Previous photo"
-              className="absolute left-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 shadow hover:bg-white"
+              className="absolute left-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 shadow transition-transform duration-200 hover:scale-105 hover:bg-white active:scale-95"
             >
               <ChevronLeft className="size-5" aria-hidden />
             </button>
@@ -42,7 +42,7 @@ export function Gallery({ photos, title }: { photos: GalleryPhoto[]; title: stri
               type="button"
               onClick={() => go(1)}
               aria-label="Next photo"
-              className="absolute right-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 shadow hover:bg-white"
+              className="absolute right-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 shadow transition-transform duration-200 hover:scale-105 hover:bg-white active:scale-95"
             >
               <ChevronRight className="size-5" aria-hidden />
             </button>

@@ -25,7 +25,7 @@ export default async function WelcomePage() {
     <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
         <Logo />
-        <h1 className="mt-8 text-2xl font-bold tracking-tight">{first ? `Welcome, ${first}.` : "Welcome."} How will you use ProPilot?</h1>
+        <h1 className="font-display mt-8 text-[2rem] leading-tight font-medium">{first ? `Welcome, ${first}.` : "Welcome."} How will you use ProPilot?</h1>
         <p className="mt-1 text-sm text-muted">You only need to choose once.</p>
         <div className="mt-6 space-y-3">
           <form action={choose.bind(null, "buyer")}>

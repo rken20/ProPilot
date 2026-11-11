@@ -90,7 +90,7 @@ export function PhotoManager({
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-white p-6" aria-label="Photos">
+    <section className="rounded-2xl border border-line bg-white p-6 shadow-[var(--shadow-card)]" aria-label="Photos">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Photos</h2>

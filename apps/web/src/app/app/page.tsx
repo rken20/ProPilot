@@ -101,7 +101,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
     activity.push({
       at: m.created_at,
       icon: m.role === "owner" ? CircleCheck : UserPlus,
-      tone: "bg-emerald-50 text-good",
+      tone: "bg-brand-50 text-good",
       title: m.role === "owner" ? "Business created" : `${who} joined the team`,
       detail: m.role === "owner" ? biz.businessName : `as ${m.role}`,
     });

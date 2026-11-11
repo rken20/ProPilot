@@ -57,7 +57,7 @@ export default async function ListingPage({ params }: PageProps<"/buyer/listings
 
           <div>
             <p className="text-[32px] font-bold leading-none tracking-tight tabular-nums">{formatPeso(listing.price_minor, listing.currency)}</p>
-            <h1 className="mt-3 text-2xl font-bold tracking-tight">{listing.name}</h1>
+            <h1 className="font-display mt-3 text-[2.25rem] leading-tight font-medium">{listing.name}</h1>
             <p className="mt-1 flex items-center gap-1.5 text-muted">
               <MapPin className="size-4" aria-hidden /> {listing.location}
             </p>
@@ -89,7 +89,7 @@ export default async function ListingPage({ params }: PageProps<"/buyer/listings
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <section className="rounded-2xl border border-line bg-white p-5">
+          <section className="rounded-2xl border border-line bg-white p-5 shadow-[var(--shadow-card)]">
             <h2 className="font-semibold">Request a viewing</h2>
             <p className="mb-4 mt-1 text-sm text-muted">Sent straight to {listing.business_name}.</p>
             <ViewingForm

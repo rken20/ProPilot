@@ -14,7 +14,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const notice = typeof sp.notice === "string" ? NOTICES[sp.notice] : undefined;
   return (
     <>
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight">Log in</h1>
+      <h1 className="font-display mb-2 text-[2rem] leading-tight font-medium">Log in</h1>
       <p className="mb-6 text-sm text-zinc-600">Welcome back to ProPilot AI.</p>
       <GoogleButton next={next} />
       <SignInForm next={next} notice={notice} />

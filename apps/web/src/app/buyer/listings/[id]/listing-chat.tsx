@@ -47,7 +47,7 @@ export function ListingChat({ propertyId }: { propertyId: string }) {
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-white" aria-label="Ask about this property">
+    <section className="rounded-2xl border border-line bg-white shadow-[var(--shadow-card)]" aria-label="Ask about this property">
       <div className="flex items-center gap-2.5 border-b border-line px-5 py-4">
         <span className="grid size-8 place-items-center rounded-lg bg-brand-50 text-brand-600">
           <Sparkles className="size-4" aria-hidden />
@@ -66,7 +66,7 @@ export function ListingChat({ propertyId }: { propertyId: string }) {
                 key={s}
                 type="button"
                 onClick={() => send(s)}
-                className="rounded-full border border-line px-3 py-1.5 text-left text-sm text-ink hover:border-brand-600 hover:bg-brand-50/50"
+                className="rounded-full border border-line px-3 py-1.5 text-left text-sm text-ink transition-colors hover:border-brand-600 hover:bg-brand-50 active:scale-[0.98]"
               >
                 {s}
               </button>
@@ -74,11 +74,11 @@ export function ListingChat({ propertyId }: { propertyId: string }) {
           </div>
         ) : (
           messages.map((m, i) => (
-            <div key={i} className={cx("flex", m.role === "user" ? "justify-end" : "justify-start")}>
+            <div key={i} className={cx("pp-enter flex", m.role === "user" ? "justify-end" : "justify-start")}>
               <p
                 className={cx(
                   "max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
-                  m.role === "user" ? "rounded-br-md bg-brand-600 text-white" : "rounded-bl-md bg-surface text-ink",
+                  m.role === "user" ? "rounded-br-md bg-brand-600 text-white" : "rounded-bl-md bg-zinc-100 text-ink",
                 )}
               >
                 {m.content}
@@ -86,7 +86,14 @@ export function ListingChat({ propertyId }: { propertyId: string }) {
             </div>
           ))
         )}
-        {busy ? <p className="text-sm text-muted">Checking the listing…</p> : null}
+        {busy ? (
+          <p className="pp-fade pp-typing flex w-fit gap-1 rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-3.5" role="status">
+            <span className="size-1.5 rounded-full bg-zinc-500" aria-hidden />
+            <span className="size-1.5 rounded-full bg-zinc-500" aria-hidden />
+            <span className="size-1.5 rounded-full bg-zinc-500" aria-hidden />
+            <span className="sr-only">Checking the listing</span>
+          </p>
+        ) : null}
         {error ? (
           <p role="alert" className="text-sm text-red-700">
             {error}
@@ -111,11 +118,11 @@ export function ListingChat({ propertyId }: { propertyId: string }) {
           onChange={(e) => setInput(e.target.value)}
           maxLength={600}
           placeholder="Ask about price, financing, availability…"
-          className="min-w-0 flex-1 rounded-lg bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-100"
+          className="min-w-0 flex-1 rounded-xl bg-surface px-3.5 py-2.5 text-sm outline-none transition-shadow focus:ring-4 focus:ring-brand-100"
         />
         <button
           disabled={busy || !input.trim()}
-          className="grid size-9 place-items-center rounded-lg bg-brand-600 text-white disabled:opacity-40"
+          className="grid size-10 place-items-center rounded-xl bg-brand-600 text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-95 disabled:opacity-40"
           aria-label="Send"
         >
           <SendHorizontal className="size-4" aria-hidden />

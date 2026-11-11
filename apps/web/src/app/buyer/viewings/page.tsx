@@ -8,8 +8,8 @@ import { cancelViewing } from "../actions";
 
 const STATUS: Record<string, { label: string; tone: string }> = {
   new: { label: "Sent to agent", tone: "bg-brand-50 text-brand-700" },
-  contacted: { label: "Agent contacted you", tone: "bg-violet-50 text-violet-700" },
-  scheduled: { label: "Viewing scheduled", tone: "bg-emerald-50 text-good" },
+  contacted: { label: "Agent contacted you", tone: "bg-brass-50 text-[#7d5f26]" },
+  scheduled: { label: "Viewing scheduled", tone: "bg-brand-50 text-good" },
   completed: { label: "Viewed", tone: "bg-slate-100 text-slate-600" },
   closed: { label: "Closed", tone: "bg-slate-100 text-slate-500" },
 };
@@ -24,7 +24,7 @@ export default async function MyViewingsPage() {
 
   return (
     <>
-      <h1 className="text-[28px] font-bold tracking-tight">My viewings</h1>
+      <h1 className="font-display text-[2.25rem] leading-tight font-medium">My viewings</h1>
       <p className="mt-1 text-muted">Agents usually reply by call or text to the number you gave.</p>
 
       {!requests?.length ? (

@@ -19,7 +19,7 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
   if (!as) {
     return (
       <>
-        <h1 className="mb-1 text-2xl font-bold tracking-tight">Create your account</h1>
+        <h1 className="font-display mb-2 text-[2rem] leading-tight font-medium">Create your account</h1>
         <p className="mb-6 text-sm text-muted">How will you use ProPilot?</p>
         <div className="space-y-3">
           <Choice
@@ -47,7 +47,7 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
 
   return (
     <>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight">{COPY[as].title}</h1>
+      <h1 className="font-display mb-2 text-[2rem] leading-tight font-medium">{COPY[as].title}</h1>
       <p className="mb-6 text-sm text-muted">
         {COPY[as].sub}{" "}
         {next?.startsWith("/invite/") ? null : (
@@ -66,9 +66,9 @@ function Choice({ href, icon, title, text }: { href: string; icon: React.ReactNo
   return (
     <Link
       href={href}
-      className="flex items-start gap-4 rounded-xl border border-line bg-white p-4 transition-colors hover:border-brand-600 hover:bg-brand-50/50"
+      className="pp-lift flex items-start gap-4 rounded-2xl border border-line bg-white p-4 shadow-[var(--shadow-card)] hover:border-brand-600"
     >
-      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">{icon}</span>
+      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600">{icon}</span>
       <span>
         <span className="block font-semibold">{title}</span>
         <span className="mt-0.5 block text-sm text-muted">{text}</span>
