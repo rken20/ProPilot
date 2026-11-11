@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { can } from "@propilot/shared";
-import { Card, PageHeader } from "@/components/ui";
+import { PageHeader } from "@/components/ui";
 import { requireBusiness } from "@/lib/auth";
-import { createProperty } from "../actions";
-import { PropertyForm } from "../property-form";
+import { NewProperty } from "./new-property";
 
 export default async function NewPropertyPage() {
   const biz = await requireBusiness();
@@ -15,9 +14,7 @@ export default async function NewPropertyPage() {
         ← Properties
       </Link>
       <PageHeader title="Add property" />
-      <Card>
-        <PropertyForm action={createProperty} initial={{}} submitLabel="Save property" />
-      </Card>
+      <NewProperty canImport={Boolean(process.env.ANTHROPIC_API_KEY)} />
     </>
   );
 }
