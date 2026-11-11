@@ -14,11 +14,14 @@ export function PropertyForm({
   initial,
   submitLabel,
   readOnly = false,
+  hidden,
 }: {
   action: (prev: FormState, form: FormData) => Promise<FormState>;
   initial: PropertyFormValues;
   submitLabel: string;
   readOnly?: boolean;
+  /** Extra hidden fields, e.g. the Facebook post a new listing came from. */
+  hidden?: Record<string, string>;
 }) {
   const [state, formAction] = useActionState(action, { data: initial });
   const v = state.data ?? initial;
@@ -26,6 +29,7 @@ export function PropertyForm({
 
   return (
     <form action={formAction} className="space-y-6">
+      {hidden ? Object.entries(hidden).map(([k, val]) => <input key={k} type="hidden" name={k} value={val} />) : null}
       {state.error ? <Alert>{state.error}</Alert> : null}
       {state.ok && state.message ? <Alert tone="success">{state.message}</Alert> : null}
 

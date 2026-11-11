@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { can } from "@propilot/shared";
 import { PageHeader } from "@/components/ui";
 import { requireBusiness } from "@/lib/auth";
+import { businessPages } from "@/lib/facebook-pages";
+import { metaConfig } from "@/lib/meta";
 import { NewProperty } from "./new-property";
 
 export default async function NewPropertyPage() {
@@ -14,7 +16,10 @@ export default async function NewPropertyPage() {
         ← Properties
       </Link>
       <PageHeader title="Add property" />
-      <NewProperty canImport={Boolean(process.env.ANTHROPIC_API_KEY)} />
+      <NewProperty
+        canPaste={Boolean(process.env.ANTHROPIC_API_KEY)}
+        pages={metaConfig() ? (await businessPages(biz.businessId)).map((p) => ({ id: p.id, name: p.name })) : []}
+      />
     </>
   );
 }

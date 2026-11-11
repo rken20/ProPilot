@@ -239,7 +239,7 @@ export function DashboardView({
               <QuickAction href="/app/properties/new" icon={Plus} title="Add a property" text="Price, location and financing" />
             ) : null}
             {canManageTeam ? <QuickAction href="/app/team" icon={UserPlus} title="Invite a teammate" text="Agents, admins or marketing" /> : null}
-            <QuickAction icon={MessageCircle} title="Connect Facebook Page" text="Turns on the Messenger assistant" soon />
+            <QuickAction href="/app/integrations" icon={MessageCircle} title="Facebook Pages" text="Import posts as listings, post listings to your Page" />
           </div>
         </section>
       </div>

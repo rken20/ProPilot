@@ -79,3 +79,14 @@ export async function disconnectGoogle() {
   }
   done("google-disconnected");
 }
+
+/** Remove a connected Facebook Page and its stored token. */
+export async function disconnectFacebookPage(rowId: string) {
+  const biz = await requireBusiness();
+  if (!can(biz.role, "facebook.connect")) done("not-allowed");
+  const admin = createAdminClient();
+  if (admin && /^[0-9a-f-]{36}$/i.test(rowId)) {
+    await admin.from("facebook_pages").delete().eq("business_id", biz.businessId).eq("id", rowId);
+  }
+  done("facebook-disconnected");
+}

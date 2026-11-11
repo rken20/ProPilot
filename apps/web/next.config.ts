@@ -14,7 +14,8 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""} https://vercel.live`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${supabase}`,
+  // fbcdn: previews of the business's own Facebook Page posts on Add property.
+  `img-src 'self' data: blob: ${supabase} https://*.fbcdn.net`,
   "font-src 'self' data:",
   `connect-src 'self' ${supabase} ${supabase.replace(/^https/, "wss")} https://vercel.live${dev ? " ws:" : ""}`,
   "frame-src https://vercel.live",

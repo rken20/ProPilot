@@ -1,4 +1,7 @@
 import { CalendarDays, FileSpreadsheet, Mail, type LucideIcon } from "lucide-react";
+import { businessPages } from "@/lib/facebook-pages";
+import { canPublish } from "@/lib/meta";
+import { missingMetaSettings } from "@/lib/meta-oauth";
 import { can } from "@propilot/shared";
 import { Alert, Badge, PageHeader, buttonClass, cx } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -8,7 +11,7 @@ import { CALENDAR_SCOPE, SHEETS_SCOPE } from "@/lib/google";
 import { missingGoogleSettings } from "@/lib/google-oauth";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/time";
-import { createLeadsSheet, disconnectGoogle, stopSheetSync, syncSheetNow } from "./actions";
+import { createLeadsSheet, disconnectFacebookPage, disconnectGoogle, stopSheetSync, syncSheetNow } from "./actions";
 
 const NOTICES: Record<string, [tone: "success" | "error" | "info", text: string]> = {
   "google-connected": ["success", "Google is connected."],
@@ -26,6 +29,15 @@ const NOTICES: Record<string, [tone: "success" | "error" | "info", text: string]
   "sheet-synced": ["success", "Sheet updated."],
   "sheet-stopped": ["success", "Sheet sync is off. The sheet stays in Google Drive."],
   "not-allowed": ["error", "Only the owner or an admin can change this."],
+  "facebook-connected": ["success", "Facebook is connected. Your Pages are listed below."],
+  "facebook-disconnected": ["success", "The Page is disconnected and its access token deleted."],
+  "facebook-cancelled": ["info", "Facebook connection was cancelled."],
+  "facebook-failed": ["error", "Couldn't connect Facebook. Please try again."],
+  "facebook-no-pages": [
+    "error",
+    "Facebook didn't share any Pages. Connect again and tick the Pages you manage. Pages need you as an admin or editor.",
+  ],
+  "facebook-not-ready": ["error", "Connect Facebook isn't switched on for ProPilot yet."],
 };
 
 export default async function IntegrationsPage({ searchParams }: PageProps<"/app/integrations">) {
@@ -33,10 +45,13 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
   const notice = typeof sp.notice === "string" ? NOTICES[sp.notice] : undefined;
   const biz = await requireBusiness();
   const supabase = await createClient();
-  const [{ data: connRows }, { data: integ }] = await Promise.all([
+  const [{ data: connRows }, { data: integ }, pages] = await Promise.all([
     supabase.rpc("my_google_connection"),
     supabase.from("business_integrations").select("sheets_user_id, spreadsheet_url, sheets_synced_at").eq("business_id", biz.businessId).maybeSingle(),
+    businessPages(biz.businessId),
   ]);
+  const metaMissing = missingMetaSettings();
+  const manageFacebook = can(biz.role, "facebook.connect");
   const conn = (connRows as Array<{ google_email: string; scopes: string[]; has_calendar: boolean }> | null)?.[0] ?? null;
   const missing = missingGoogleSettings();
   const googleReady = missing.length === 0;
@@ -54,6 +69,55 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
       ) : null}
 
       <div className="space-y-4">
+        <Panel
+          icon={FacebookIcon}
+          title="Facebook Pages"
+          status={pages.length ? <Badge tone="brand">{pages.length === 1 ? "1 Page" : `${pages.length} Pages`}</Badge> : <Badge>Not connected</Badge>}
+        >
+          {metaMissing.length ? (
+            <p>
+              Connect Facebook isn&apos;t switched on yet.{" "}
+              {manageFacebook ? <span className="text-muted">Missing server settings: {metaMissing.join(", ")}.</span> : null}
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <p>
+                Turn your Page posts into listings, and post listings to your Page. ProPilot only posts when someone on
+                your team presses Post.
+              </p>
+              {pages.length ? (
+                <ul className="divide-y divide-line rounded-xl border border-line">
+                  {pages.map((p) => (
+                    <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-ink">{p.name}</p>
+                        <p className="text-xs text-muted">
+                          {canPublish(p.tasks) ? "Can read and post" : "Read only: you need to be an admin or editor of this Page to post"}
+                          , connected {timeAgo(p.connected_at)}
+                        </p>
+                      </div>
+                      {manageFacebook ? (
+                        <form action={disconnectFacebookPage.bind(null, p.id)}>
+                          <SubmitButton variant="ghost" pendingText="Disconnecting…">
+                            Disconnect
+                          </SubmitButton>
+                        </form>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {manageFacebook ? (
+                <a href="/api/meta/connect" className={buttonClass(pages.length ? "secondary" : "primary")}>
+                  {pages.length ? "Add or change Pages" : "Connect Facebook Page"}
+                </a>
+              ) : (
+                <p className="text-muted">The owner or an admin can connect the business&apos;s Pages.</p>
+              )}
+            </div>
+          )}
+        </Panel>
+
         <Panel icon={Mail} title="Email alerts" status={email ? <Badge tone="brand">On</Badge> : <Badge>Not set up</Badge>}>
           <p>
             {email
@@ -157,9 +221,9 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
   );
 }
 
-function Panel({ icon: Icon, title, status, children }: { icon: LucideIcon | typeof GoogleIcon; title: string; status: React.ReactNode; children: React.ReactNode }) {
+function Panel({ icon: Icon, title, status, children }: { icon: LucideIcon | typeof GoogleIcon | typeof FacebookIcon; title: string; status: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-line bg-white p-5 sm:p-6">
+    <section className="rounded-2xl border border-line bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
       <div className="flex items-center gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600">
           <Icon className="size-5" aria-hidden />
@@ -169,6 +233,14 @@ function Panel({ icon: Icon, title, status, children }: { icon: LucideIcon | typ
       </div>
       <div className={cx("mt-3 text-sm text-ink/80 sm:pl-[52px]")}>{children}</div>
     </section>
+  );
+}
+
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <span aria-hidden className={cx("grid place-items-center rounded-full border border-current text-[12px] font-bold", className)}>
+      f
+    </span>
   );
 }
 

@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { can, propertySchema } from "@propilot/shared";
 import { requireBusiness, requireUser } from "@/lib/auth";
 import { fieldErrorsFrom, str, type FormState } from "@/lib/form";
 import { pesosToCentavos } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
+import { copyPostPhotos } from "@/lib/post-photos";
 
 const FORM_KEYS = [
   "name", "type", "location", "price", "reservationFee", "status", "description",
@@ -81,8 +83,19 @@ export async function createProperty(_prev: FormState, form: FormData): Promise<
     .single();
   if (error) return { error: "Couldn't save the property. Please try again.", data: readForm(form).data };
 
+  // Started from a connected Page's post: copy its photos once the page has responded.
+  const ref = /^([0-9a-f-]{36}):(\d+_\d+)$/i.exec(str(form, "importPost"));
+  if (ref) {
+    const [, pageRowId, postId] = ref;
+    after(() =>
+      copyPostPhotos(biz.businessId, data.id, pageRowId!, postId!).catch((e) =>
+        console.error("[meta] photo import failed:", e instanceof Error ? e.message : String(e)),
+      ),
+    );
+  }
+
   revalidatePath("/app/properties");
-  redirect(`/app/properties/${data.id}?notice=created`);
+  redirect(`/app/properties/${data.id}?notice=${ref ? "created-importing" : "created"}`);
 }
 
 export async function updateProperty(id: string, _prev: FormState, form: FormData): Promise<FormState> {

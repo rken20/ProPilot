@@ -8,7 +8,12 @@ import { centavosToPesosInput } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { archiveProperty, updateProperty } from "../actions";
 import { PropertyForm } from "../property-form";
+import { RefreshSoon } from "@/components/refresh-soon";
 import { PhotoManager, type Photo } from "./photo-manager";
+import { FacebookPost, type FacebookPostLog } from "./facebook-post";
+import { businessPages } from "@/lib/facebook-pages";
+import { defaultCaption, type CaptionListing } from "@/lib/listing-caption";
+import { canPublish, metaConfig } from "@/lib/meta";
 
 export default async function PropertyPage({ params, searchParams }: PageProps<"/app/properties/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
@@ -31,6 +36,20 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
     .eq("kind", "photo")
     .order("sort_order")
     .order("created_at");
+
+  const showFacebook = Boolean(metaConfig()) && can(biz.role, "content.publish");
+  const [fbPages, fbHistory] = showFacebook
+    ? await Promise.all([
+        businessPages(biz.businessId),
+        supabase
+          .from("facebook_posts")
+          .select("id, page_name, status, kind, permalink_url, error, created_at")
+          .eq("property_id", p.id)
+          .order("created_at", { ascending: false })
+          .limit(5)
+          .then((r) => (r.data ?? []) as FacebookPostLog[]),
+      ])
+    : [[], []];
 
   const financing = (p.financing ?? {}) as Record<string, unknown>;
   const initial = {
@@ -63,6 +82,11 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
         <div className="mb-4">
           <Alert tone="success">Property saved. Add photos so buyers can see it.</Alert>
         </div>
+      ) : sp.notice === "created-importing" ? (
+        <div className="mb-4">
+          <Alert tone="success">Property saved. The photos from your Facebook post are being added below.</Alert>
+          <RefreshSoon />
+        </div>
       ) : null}
       <div className="mb-6">
         <PhotoManager
@@ -75,6 +99,17 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       <Card>
         <PropertyForm action={updateProperty.bind(null, p.id)} initial={initial} submitLabel="Save changes" readOnly={!canEdit} />
       </Card>
+
+      {showFacebook && fbPages.length && p.status !== "archived" && p.status !== "sold" ? (
+        <FacebookPost
+          propertyId={p.id}
+          pages={fbPages.map((pg) => ({ id: pg.id, name: pg.name, canPost: canPublish(pg.tasks) }))}
+          photoCount={photos?.length ?? 0}
+          initialCaption={defaultCaption(p as CaptionListing)}
+          history={fbHistory}
+          aiAvailable={Boolean(process.env.ANTHROPIC_API_KEY)}
+        />
+      ) : null}
 
       {can(biz.role, "property.delete") && p.status !== "archived" ? (
         <Card className="mt-6 flex flex-wrap items-center justify-between gap-4">
