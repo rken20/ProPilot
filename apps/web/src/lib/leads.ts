@@ -146,7 +146,8 @@ export function newLeadEmail(lead: Lead, property: { name: string; location: str
     ...(lead.budget_note ? ([["Budget", lead.budget_note]] as Array<[string, string]>) : []),
     ...(lead.message ? ([["Message", lead.message]] as Array<[string, string]>) : []),
   ];
-  const subject = `New viewing request: ${property.name}`;
+  // Line breaks in a subject could add email headers.
+  const subject = `New viewing request: ${property.name}`.replace(/[\r\n]+/g, " ").slice(0, 200);
   const text = [
     `${lead.buyer_name} wants to view ${property.name}.`,
     "",

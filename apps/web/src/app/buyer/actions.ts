@@ -80,7 +80,11 @@ export async function requestViewing(
       error:
         error && /not available/.test(error.message)
           ? "This listing is no longer taking viewing requests."
-          : "Couldn't send your request. Please try again.",
+          : error && /already have an open request/.test(error.message)
+            ? "You already have a request open for this listing. See My viewings."
+            : error && /too many viewing requests/.test(error.message)
+              ? "You've sent 10 requests today. Please try again tomorrow."
+              : "Couldn't send your request. Please try again.",
       data,
     };
   }

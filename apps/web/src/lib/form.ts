@@ -25,8 +25,19 @@ export function str(form: FormData, key: string): string {
   return typeof v === "string" ? v : "";
 }
 
-/** Only allow redirects to paths on this site (no open redirects). */
+/**
+ * Only allow redirects to paths on this site (no open redirects). Browsers
+ * treat "/\\host", tabs and newlines as host separators, so the value is
+ * resolved against a placeholder origin and must stay on it.
+ */
 export function safeNext(next: string | null | undefined, fallback = "/app"): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return fallback;
-  return next;
+  if (!next || next[0] !== "/" || /[\\\s]/.test(next) || next.startsWith("//")) return fallback;
+  try {
+    const base = "https://proPilot.invalid";
+    const url = new URL(next, base);
+    if (url.origin !== new URL(base).origin) return fallback;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return fallback;
+  }
 }

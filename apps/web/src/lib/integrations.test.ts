@@ -124,3 +124,11 @@ describe("Google API client", () => {
     expect(unpackEventRef(null)).toBeNull();
   });
 });
+
+describe("email subject", () => {
+  it("can't carry line breaks into the headers", () => {
+    const m = newLeadEmail(lead, { name: "Unit 1\r\nBcc: victim@example.com", location: "Iloilo" }, "Cruz Realty", "https://x/app/leads");
+    expect(m.subject).not.toMatch(/[\r\n]/);
+    expect(m.subject).toBe("New viewing request: Unit 1 Bcc: victim@example.com");
+  });
+});

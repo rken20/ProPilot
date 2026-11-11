@@ -38,6 +38,7 @@ pnpm --filter @propilot/mobile start             # scan the QR code with Expo Go
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | web | Public. Safe in the browser. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | web | Public. Row-level security protects data. |
+| `APP_ORIGIN` | web | The app's public address for links in emails and invites. |
 | `SUPABASE_SERVICE_ROLE_KEY` | web (server only) | **Secret.** Bypasses RLS. Never prefix with `NEXT_PUBLIC_`. |
 | `ANTHROPIC_API_KEY` | web (server only) | **Secret.** Buyer listing assistant. Optional; chat is disabled without it. |
 | `RESEND_API_KEY` or `SMTP_*` | web (server only) | **Secret.** Email alerts to agents on new viewing requests. Optional. |
@@ -58,6 +59,9 @@ pnpm build
 ```
 
 ## Security rules
+
+- `pnpm audit` before each release. Known and deferred (build-time only, not shipped): zod via
+  eslint-plugin-react-hooks; glob and minimatch via Expo's CLI. Review again 2026-12-15.
 
 - Every tenant table has `business_id` and an RLS policy. New tables need a policy **and** a test in `packages/db-tests`.
 - Paid access is granted only by a verified payment webhook, never by the checkout success page.

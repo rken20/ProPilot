@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getUser } from "@/lib/auth";
 import { DEFAULT_MODEL, answer, sanitizeHistory } from "@/lib/listing-assistant";
 import { getListing } from "@/lib/listings";
+import { createClient } from "@/lib/supabase/server";
 
 /** Buyer asks about one listing. Signed-in only; the listing must be public. */
 export async function POST(request: NextRequest) {
@@ -27,6 +28,19 @@ export async function POST(request: NextRequest) {
   // RLS-backed lookup: returns nothing unless the listing is public and unsold.
   const listing = await getListing(body.propertyId);
   if (!listing) return NextResponse.json({ error: "This listing is no longer available." }, { status: 404 });
+
+  // Cap AI use per buyer (shared across all server instances via Postgres).
+  const supabase = await createClient();
+  const [hour, day] = await Promise.all([
+    supabase.rpc("consume_rate_limit", { p_bucket: "listing_chat_hour", p_limit: 30, p_window_seconds: 3600 }),
+    supabase.rpc("consume_rate_limit", { p_bucket: "listing_chat_day", p_limit: 100, p_window_seconds: 86400 }),
+  ]);
+  if (hour.error || day.error || hour.data !== true || day.data !== true) {
+    return NextResponse.json(
+      { error: "You've asked a lot of questions for now. Please try again later, or request a viewing to ask the agent." },
+      { status: 429 },
+    );
+  }
 
   const history = sanitizeHistory(body.messages);
   if (!history.length || history.at(-1)!.role !== "user") {

@@ -9,7 +9,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
           <Logo />
         </Link>
         <div className="max-w-md space-y-4">
-          <p className="text-3xl font-bold leading-tight tracking-tight">Ask about the reservation fee at 11pm and get an answer from the agent's own listing.</p>
+          <p className="text-3xl font-bold leading-tight tracking-tight">Ask about the reservation fee at 11pm and get an answer from the agent&apos;s own listing.</p>
           <p className="text-white/70">
             When a buyer wants to see the place, the agent gets their name, mobile number and preferred date.
           </p>

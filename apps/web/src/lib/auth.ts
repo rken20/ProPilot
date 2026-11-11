@@ -93,8 +93,14 @@ export const requireBusiness = cache(async (): Promise<Membership> => {
   return memberships.find((m) => m.businessId === chosen) ?? memberships[0]!;
 });
 
-/** Absolute origin of this request, for auth email redirect links. */
+/**
+ * The app's public address for links in emails and invites. APP_ORIGIN pins it
+ * (so a forged Host header can't put another site in a link); otherwise it
+ * comes from the request.
+ */
 export async function getOrigin(): Promise<string> {
+  const pinned = process.env.APP_ORIGIN?.replace(/\/$/, "");
+  if (pinned) return pinned;
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
