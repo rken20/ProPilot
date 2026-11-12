@@ -59,8 +59,8 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
   return (
     <>
       <PageHeader
-        title="Buyer leads"
-        description="Viewing requests from buyers on ProPilot. Call or text them to confirm."
+        title="Viewing requests"
+        description="Buyers on ProPilot asking to see a listing. Call or text them to confirm. Each one is also a lead in your Pipeline."
         action={
           <div className="flex flex-wrap gap-2">
             {integ?.spreadsheet_url ? (

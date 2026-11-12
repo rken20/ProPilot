@@ -141,7 +141,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
           <p>
             {email
               ? "The owner, admins and agents get an email the moment a buyer requests a viewing, with the buyer's mobile number and a link to the lead."
-              : "Lead emails start once an email sender is added to ProPilot's settings. Leads still arrive in Buyer leads."}
+              : "Lead emails start once an email sender is added to ProPilot's settings. Requests still arrive in Viewing requests."}
           </p>
         </Panel>
 
@@ -220,7 +220,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
               )}
             </div>
           ) : (
-            <p>The owner or an admin can turn this on. You can still use Export CSV in Buyer leads.</p>
+            <p>The owner or an admin can turn this on. You can still use Export CSV in Viewing requests.</p>
           )}
         </Panel>
 

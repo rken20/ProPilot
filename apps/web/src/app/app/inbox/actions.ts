@@ -3,10 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { can } from "@propilot/shared";
 import { requireBusiness, requireUser } from "@/lib/auth";
-import { pageWithToken, RECONNECT_MESSAGE } from "@/lib/facebook-pages";
 import { str } from "@/lib/form";
-import { withinReplyWindow } from "@/lib/messenger-window";
-import { GraphError, MAX_MESSENGER_TEXT, metaConfig, sendMessage } from "@/lib/meta";
+import { sendAsTeam, type TeamConversation } from "@/lib/team-send";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,47 +30,10 @@ export async function sendAgentMessage(conversationId: string, _prev: SendState,
   const found = await ownConversation(conversationId);
   if (!found) return { error: "You can't reply to this conversation." };
   const { biz, conv } = found;
-  const text = str(form, "text").slice(0, MAX_MESSENGER_TEXT);
-  if (!text) return { error: "Write a message first." };
-  if (conv.channel === "messenger" && !withinReplyWindow(conv.last_inbound_at as string | null)) {
-    return { error: "Messenger only allows replies within 24 hours of their last message. Call or text them instead." };
-  }
   const admin = createAdminClient();
   if (!admin) return { error: "Replying isn't available right now." };
-
-  try {
-    let mid: string | undefined;
-    if (conv.channel === "messenger") {
-      const cfg = metaConfig();
-      const page = await pageWithToken(biz.businessId, conv.page_row_id as string);
-      if (!cfg || !page) return { error: "This Page isn't connected anymore. Reconnect it in Integrations." };
-      mid = await sendMessage(fetch, cfg, page.pageId, page.token, conv.psid as string, text);
-    }
-    const now = new Date().toISOString();
-    await admin.from("messenger_messages").insert({
-      conversation_id: conv.id,
-      business_id: biz.businessId,
-      sender: "agent",
-      sent_by: user.id,
-      body: text,
-      mid: mid ?? null,
-    });
-    await admin
-      .from("messenger_conversations")
-      .update({
-        mode: "human",
-        taken_over_by: user.id,
-        needs_attention: false,
-        attention_reason: null,
-        last_message_at: now,
-        last_read_at: now,
-      })
-      .eq("id", conv.id);
-  } catch (e) {
-    if (e instanceof GraphError && e.tokenInvalid) return { error: RECONNECT_MESSAGE };
-    console.error("[messenger] agent send failed:", e instanceof Error ? e.message : String(e));
-    return { error: "Messenger didn't accept the message. Please try again." };
-  }
+  const res = await sendAsTeam(admin, biz.businessId, conv as TeamConversation, str(form, "text"), user.id);
+  if (res.error) return { error: res.error };
   revalidatePath("/app/inbox");
   return { sent: Date.now() };
 }

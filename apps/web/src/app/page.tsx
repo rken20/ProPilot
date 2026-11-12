@@ -88,7 +88,7 @@ export default async function Home() {
               <Step n={2} title="The assistant answers buyers" text="It answers from your listing and nothing else. Loan figures are calculated, never guessed.">
                 <ChatFragment />
               </Step>
-              <Step n={3} title="Viewing requests reach you" text="Each request lands in Buyer leads with the buyer's mobile number and the date they prefer.">
+              <Step n={3} title="Viewing requests reach you" text="Each request lands in Viewing requests with the buyer's mobile number and the date they prefer.">
                 <LeadFragment />
               </Step>
             </ol>

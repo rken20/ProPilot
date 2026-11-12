@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bot,
   Building2,
   ChartColumn,
   CreditCard,
@@ -10,6 +11,7 @@ import {
   LayoutDashboard,
   MessageCircle,
   Plug,
+  SquareKanban,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -19,6 +21,8 @@ const ICONS = {
   dashboard: LayoutDashboard,
   properties: Building2,
   leads: Flame,
+  pipeline: SquareKanban,
+  agents: Bot,
   inbox: MessageCircle,
   reports: ChartColumn,
   team: Users,
@@ -26,7 +30,7 @@ const ICONS = {
   integrations: Plug,
 } satisfies Record<string, LucideIcon>;
 
-export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; soon?: boolean };
+export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; soon?: boolean; count?: number };
 
 export function Nav({ items }: { items: NavItem[] }) {
   const path = usePathname();
@@ -61,7 +65,12 @@ export function Nav({ items }: { items: NavItem[] }) {
             )}
           >
             <Icon className="size-[18px]" aria-hidden />
-            {item.label}
+            <span className="flex-1">{item.label}</span>
+            {item.count ? (
+              <span className="rounded-full bg-[#c9a463] px-1.5 py-px text-[11px] font-semibold text-brand-900 tabular-nums" aria-label={`${item.count} waiting`}>
+                {item.count > 99 ? "99+" : item.count}
+              </span>
+            ) : null}
           </Link>
         );
       })}

@@ -93,7 +93,7 @@ export function DashboardView({
           note={availableCount ? `Across ${availableCount} available listing${availableCount === 1 ? "" : "s"}` : "Total price of available listings"} />
         {leads ? (
           <Stat icon={Flame} tint="bg-[#f8ebe4] text-hot" label="New viewing requests" value={<CountUp value={leads.newCount} />}
-            note={leads.openCount ? `${leads.openCount} open in Buyer leads` : publicCount ? "Waiting for buyers" : "Show a listing to buyers to start"}
+            note={leads.openCount ? `${leads.openCount} open viewing requests` : publicCount ? "Waiting for buyers" : "Show a listing to buyers to start"}
             href="/app/leads" />
         ) : (
           <Stat icon={Flame} tint="bg-[#f8ebe4] text-hot" label="Listings shown to buyers" value={<CountUp value={publicCount} />} note="Visible on ProPilot" />

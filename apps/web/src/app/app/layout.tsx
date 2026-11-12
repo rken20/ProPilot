@@ -1,4 +1,5 @@
 import { can } from "@propilot/shared";
+import { createClient } from "@/lib/supabase/server";
 import { getMemberships, getUser, requireBusiness } from "@/lib/auth";
 import { switchBusiness } from "./actions";
 import type { NavItem } from "./nav";
@@ -9,12 +10,27 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const current = await requireBusiness();
   const [memberships, user] = await Promise.all([getMemberships(), getUser()]);
   const fullName = String(user?.user_metadata?.full_name ?? "") || (user?.email ?? "");
+  const sales = can(current.role, "lead.viewAll") || can(current.role, "lead.viewAssigned");
+  // AI suggestions waiting for a decision, shown as a badge on "AI agents".
+  const waiting = sales
+    ? ((
+        await (await createClient())
+          .from("agent_tasks")
+          .select("id", { count: "exact", head: true })
+          .eq("business_id", current.businessId)
+          .eq("status", "proposed")
+      ).count ?? 0)
+    : 0;
 
   const items: NavItem[] = [
     { href: "/app", label: "Dashboard", icon: "dashboard" },
     { href: "/app/properties", label: "Properties", icon: "properties" },
-    ...(can(current.role, "lead.viewAll") || can(current.role, "lead.viewAssigned")
-      ? [{ href: "/app/leads", label: "Buyer leads", icon: "leads" as const }]
+    ...(sales
+      ? [
+          { href: "/app/pipeline", label: "Pipeline", icon: "pipeline" as const },
+          { href: "/app/agents", label: "AI agents", icon: "agents" as const, count: waiting },
+          { href: "/app/leads", label: "Viewing requests", icon: "leads" as const },
+        ]
       : []),
     ...(can(current.role, "conversation.reply")
       ? [{ href: "/app/inbox", label: "Messages", icon: "inbox" as const }]
