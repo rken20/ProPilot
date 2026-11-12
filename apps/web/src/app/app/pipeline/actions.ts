@@ -8,6 +8,9 @@ import { str } from "@/lib/form";
 import { manilaInputToIso } from "@/lib/leads";
 import { pesosToCentavos } from "@/lib/money";
 import { isKind, isStage } from "@/lib/pipeline";
+import { cleanAreas, FINANCING, PROPERTY_TYPE_KEYS, TIMELINES } from "@/lib/qualification";
+import { anthropicFromEnv, qualifyProspect } from "@/lib/qualifier-run";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type ProspectFormState = { error?: string; saved?: number };
@@ -129,4 +132,63 @@ export async function deleteProspect(id: string) {
   await supabase.from("prospects").delete().eq("id", id).eq("business_id", biz.businessId);
   refresh();
   redirect("/app/pipeline");
+}
+
+// ---------------------------------------------------------------- qualification
+
+export type QualifyState = { error?: string; done?: number };
+
+/** Ask the lead qualifier to read this lead again now. */
+export async function recheckProspect(id: string): Promise<QualifyState> {
+  const biz = await salesTeam();
+  if (!biz || !UUID.test(id)) return { error: "You can't check this lead." };
+  const supabase = await createClient();
+  const { data: own } = await supabase.from("prospects").select("id").eq("id", id).eq("business_id", biz.businessId).maybeSingle();
+  if (!own) return { error: "You can't check this lead." };
+  const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "qualify_one", p_limit: 30, p_window_seconds: 3600 });
+  if (allowed !== true) return { error: "You've re-checked a lot of leads this hour. Try again later." };
+  const ai = anthropicFromEnv();
+  const admin = createAdminClient();
+  if (!ai || !admin) return { error: "The AI isn't set up yet." };
+  const res = await qualifyProspect(admin, ai, biz.businessId, id);
+  refresh(id);
+  return res.ok ? { done: Date.now() } : { error: "The AI couldn't read this lead right now. Please try again." };
+}
+
+/** The team's own read of the facts. Once saved, the AI keeps these and only updates the score. */
+export async function saveQualification(id: string, _prev: QualifyState, form: FormData): Promise<QualifyState> {
+  const biz = await salesTeam();
+  if (!biz || !UUID.test(id)) return { error: "You can't change this lead." };
+  const min = pesosToCentavos(str(form, "budgetMin"));
+  const max = pesosToCentavos(str(form, "budgetMax"));
+  if (Number.isNaN(min) || Number.isNaN(max)) return { error: "Type budgets in pesos, e.g. 4500000." };
+  if (min !== null && max !== null && min > max) return { error: "The lowest budget is higher than the highest." };
+  const timeline = str(form, "timeline");
+  const financing = str(form, "financing");
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("prospects")
+    .update({
+      budget_min_minor: min,
+      budget_max_minor: max,
+      areas: cleanAreas(str(form, "areas").split(",")),
+      property_types: form.getAll("types").map(String).filter((t) => (PROPERTY_TYPE_KEYS as readonly string[]).includes(t)),
+      timeline: timeline in TIMELINES ? timeline : null,
+      financing: financing in FINANCING ? financing : null,
+    })
+    .eq("id", id)
+    .eq("business_id", biz.businessId)
+    .select("id");
+  if (error || !data?.length) return { error: "Couldn't save. Please try again." };
+  refresh(id);
+  return { done: Date.now() };
+}
+
+/** Let the AI keep the facts up to date again. */
+export async function letAiUpdateFacts(id: string) {
+  const biz = await salesTeam();
+  if (!biz || !UUID.test(id)) return;
+  const supabase = await createClient();
+  await supabase.from("prospects").update({ facts_by: "ai", needs_qualify: true }).eq("id", id).eq("business_id", biz.businessId);
+  refresh(id);
 }

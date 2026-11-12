@@ -1,15 +1,17 @@
 import Link from "next/link";
-import { Bot, Check, X } from "lucide-react";
+import { ArrowRight, Bot, Check, X } from "lucide-react";
 import { Textarea, buttonClass } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { agentName } from "@/lib/agent-info";
+import { isStage, STAGE_INFO } from "@/lib/pipeline";
 import { timeAgo } from "@/lib/time";
-import { completeTask, dismissTask, sendTask } from "./actions";
+import { applyStageTask, completeTask, dismissTask, sendTask } from "./actions";
 
 export type TaskRow = {
   id: string;
   agent: string;
-  kind: "reminder" | "message";
+  kind: "reminder" | "message" | "stage";
+  proposed_stage?: string | null;
   title: string;
   reason: string | null;
   draft: string | null;
@@ -39,7 +41,20 @@ export function TaskCard({ t, prospectName, canAct, showLead = true }: { t: Task
           ) : null}
 
           {canAct ? (
-            t.kind === "message" ? (
+            t.kind === "stage" && t.proposed_stage && isStage(t.proposed_stage) ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <form action={applyStageTask.bind(null, t.id)}>
+                  <SubmitButton variant="secondary" pendingText="Moving…">
+                    <ArrowRight className="size-4" aria-hidden /> Move to {STAGE_INFO[t.proposed_stage].label}
+                  </SubmitButton>
+                </form>
+                <form action={dismissTask.bind(null, t.id)}>
+                  <SubmitButton variant="ghost" pendingText="…">
+                    <X className="size-4" aria-hidden /> Not yet
+                  </SubmitButton>
+                </form>
+              </div>
+            ) : t.kind === "message" ? (
               <form action={sendTask.bind(null, t.id)} className="mt-3 space-y-2">
                 <label htmlFor={`draft-${t.id}`} className="text-xs font-medium text-muted">
                   Draft message (edit before sending)

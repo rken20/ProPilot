@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { can } from "@propilot/shared";
 import { runPipelineKeeper } from "@/lib/agent-runs";
+import { runQualifier } from "@/lib/qualifier-run";
+import { isStage } from "@/lib/pipeline";
 import { requireBusiness, requireUser } from "@/lib/auth";
 import { str } from "@/lib/form";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -30,7 +32,7 @@ async function ownTask(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("agent_tasks")
-    .select("id, business_id, kind, title, draft, prospect_id, conversation_id, status")
+    .select("id, business_id, kind, title, draft, prospect_id, conversation_id, status, proposed_stage")
     .eq("id", id)
     .eq("business_id", biz.businessId)
     .eq("status", "proposed")
@@ -58,6 +60,25 @@ export async function completeTask(id: string) {
     .eq("status", "proposed")
     .select("id");
   if (data?.length) await logOnProspect(admin, biz.businessId, task.prospect_id, `Done: ${task.title}`, user.id, true);
+  refresh(task.prospect_id);
+}
+
+/** Accept a suggested stage change. The move is made as the teammate, so the timeline shows who did it. */
+export async function applyStageTask(id: string) {
+  const found = await ownTask(id);
+  if (!found || found.task.kind !== "stage" || !found.task.prospect_id || !isStage(found.task.proposed_stage ?? "")) return;
+  const { biz, user, task, admin } = found;
+  const { data: claimed } = await admin
+    .from("agent_tasks")
+    .update({ status: "done", decided_by: user.id, decided_at: new Date().toISOString() })
+    .eq("id", task.id)
+    .eq("business_id", biz.businessId)
+    .eq("status", "proposed")
+    .select("id");
+  if (claimed?.length) {
+    const supabase = await createClient();
+    await supabase.from("prospects").update({ stage: task.proposed_stage }).eq("id", task.prospect_id).eq("business_id", biz.businessId);
+  }
   refresh(task.prospect_id);
 }
 
@@ -134,6 +155,10 @@ export async function runAgentsNow(): Promise<RunState> {
   const admin = createAdminClient();
   if (!admin) return { error: "The agents aren't available right now." };
   const res = await runPipelineKeeper(admin, biz.businessId, "manual");
+  const qual = await runQualifier(admin, biz.businessId, "manual", { limit: 10, deadline: Date.now() + 35_000 });
   refresh();
-  return res.ok ? { summary: res.proposed ? `${res.summary} ${res.proposed} new suggestion${res.proposed === 1 ? "" : "s"} below.` : res.summary } : { error: res.summary };
+  if (!res.ok) return { error: res.summary };
+  const total = res.proposed + qual.proposed;
+  const parts = [res.summary, qual.checked ? qual.summary : ""].filter(Boolean).join(" ");
+  return { summary: total ? `${parts} ${total} new suggestion${total === 1 ? "" : "s"} below.` : parts };
 }

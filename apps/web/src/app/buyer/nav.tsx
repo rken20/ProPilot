@@ -7,6 +7,7 @@ import { cx } from "@/components/ui";
 const ITEMS = [
   { href: "/buyer", label: "Browse" },
   { href: "/buyer/saved", label: "Saved" },
+  { href: "/buyer/my-search", label: "My search" },
   { href: "/buyer/viewings", label: "My viewings" },
   { href: "/buyer/messages", label: "Messages" },
 ];

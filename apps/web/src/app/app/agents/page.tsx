@@ -9,6 +9,9 @@ import { timeAgo } from "@/lib/time";
 import { AgentSettingsForm, RunNow } from "./agent-controls";
 import { TaskCard, type TaskRow } from "./task-card";
 
+// Running the AI agents by hand can take up to about 40 seconds.
+export const maxDuration = 60;
+
 const DECIDED: Record<string, { label: string; tone: string }> = {
   done: { label: "Done", tone: "text-good" },
   dismissed: { label: "Dismissed", tone: "text-muted" },
@@ -25,7 +28,7 @@ export default async function AgentsPage() {
   const [{ data: waiting }, { data: decided }, { data: runs }, { data: settings }] = await Promise.all([
     supabase
       .from("agent_tasks")
-      .select("id, agent, kind, title, reason, draft, prospect_id, conversation_id, created_at")
+      .select("id, agent, kind, title, reason, draft, prospect_id, conversation_id, proposed_stage, created_at")
       .eq("business_id", biz.businessId)
       .eq("status", "proposed")
       .order("created_at", { ascending: false })

@@ -56,6 +56,15 @@ export default function PrivacyPage() {
                 preferred date).
               </li>
               <li>
+                What a buyer is looking for, if they fill in My search: budget, areas, property type, bedrooms, timing,
+                how they plan to pay and must-haves. It&apos;s shared only with businesses the buyer has contacted, and only
+                while sharing is on. Buyers can change or clear it any time.
+              </li>
+              <li>
+                For businesses: a sales pipeline of the people they&apos;re selling to, built from viewing requests and chats
+                with them or added by the team, with notes, stage and an AI lead score.
+              </li>
+              <li>
                 Listings found on other property sites: the listing&apos;s facts (title, price, location, type, size) and
                 a link to the original page. We don&apos;t store their photos or the seller&apos;s contact details.
               </li>
@@ -76,6 +85,11 @@ export default function PrivacyPage() {
                 it&apos;s automated, and to pass the conversation to a person on the business&apos;s team when you ask or when it
                 can&apos;t help. The team can read the conversation and reply.
               </li>
+              <li>
+                For a business&apos;s team: to score how ready each lead is (hot, warm or cold) from what the lead said and
+                shared, and to suggest next steps. Scores are only suggestions, are never based on personal traits, and are
+                never shown to buyers. Nothing is sent to a buyer until a person on the team approves it.
+              </li>
               <li>To keep the service secure, for example limiting how often a feature can be used.</li>
             </ul>
             <p className="mt-3">We don&apos;t sell personal data and we don&apos;t use it for advertising.</p>
@@ -85,7 +99,7 @@ export default function PrivacyPage() {
             <ul className="list-disc space-y-2 pl-5">
               <li>Supabase: database, sign-in and photo storage (Singapore region).</li>
               <li>Vercel: hosting the app.</li>
-              <li>Anthropic: the AI that answers listing questions, reads pasted posts and searches property sites.</li>
+              <li>Anthropic: the AI that answers listing questions and chats, reads pasted posts, searches property sites and scores leads. Lead scoring isn&apos;t sent names, phone numbers or emails.</li>
               <li>Google and Meta (Facebook): only if you connect them, for the features above.</li>
               <li>An email provider, if email alerts are switched on.</li>
             </ul>
@@ -96,6 +110,7 @@ export default function PrivacyPage() {
               <li>Your account and listings: until you delete them or ask us to delete your account.</li>
               <li>Listings from other sites: 30 days after last seen, unless a buyer saved them. Search results: 7 days.</li>
               <li>ProPilot chats and Messenger conversations: deleted 12 months after the last message.</li>
+              <li>Pipeline leads that never got past the early stages, or were marked lost: deleted after 12 months with no activity.</li>
               <li>Google and Facebook tokens: until you disconnect, or remove ProPilot in your Google or Facebook settings.</li>
             </ul>
           </Section>

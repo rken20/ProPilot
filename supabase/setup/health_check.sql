@@ -14,6 +14,7 @@ from (values
   (11, 'Messenger', to_regclass('public.messenger_conversations') is not null, 'Run 20261111040000_messenger.sql'),
   (12, 'Reports', to_regclass('public.listing_question_events') is not null, 'Run 20261111050000_reporting.sql'),
   (13, 'In-app chat', exists (select 1 from pg_proc where proname = 'my_app_conversations'), 'Run 20261112000000_app_chat.sql'),
-  (14, 'Pipeline and AI agents', to_regclass('public.prospects') is not null, 'Run 20261112010000_pipeline.sql')
+  (14, 'Pipeline and AI agents', to_regclass('public.prospects') is not null, 'Run 20261112010000_pipeline.sql'),
+  (15, 'Lead qualification', to_regclass('public.buyer_preferences') is not null, 'Run 20261112020000_qualification.sql')
 ) as t(n, item, ok, fix)
 order by n;

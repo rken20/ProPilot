@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DEFAULT_AGENT_SETTINGS } from "@/lib/agent-info";
 import { keeperProposals, keeperSummary, OPEN_STAGES, type KeeperRequest } from "@/lib/pipeline";
+import { runQualifier } from "@/lib/qualifier-run";
 
 /**
  * Runs the AI agents for one business with the service-role client. Every query
@@ -89,22 +90,31 @@ export async function runPipelineKeeper(
 }
 
 /** The daily run for every business that has its agents switched on. */
-export async function runScheduledAgents(admin: SupabaseClient): Promise<{ businesses: number; proposed: number; failed: number }> {
+export async function runScheduledAgents(admin: SupabaseClient, startedAt = Date.now()): Promise<{ businesses: number; proposed: number; failed: number; qualified: number }> {
   const [{ data: businesses }, { data: off }] = await Promise.all([
     admin.from("businesses").select("id").limit(5000),
     admin.from("agent_settings").select("business_id").eq("enabled", false),
   ]);
   const disabled = new Set((off ?? []).map((r) => r.business_id as string));
+  const active = (businesses ?? []).map((b) => b.id as string).filter((id) => !disabled.has(id));
   let proposed = 0;
   let failed = 0;
-  let count = 0;
-  for (const b of businesses ?? []) {
-    if (disabled.has(b.id as string)) continue;
-    count++;
-    const res = await runPipelineKeeper(admin, b.id as string, "schedule");
+  let qualified = 0;
+  // The Pipeline keeper is quick and runs for everyone first.
+  for (const id of active) {
+    const res = await runPipelineKeeper(admin, id, "schedule");
     proposed += res.proposed;
     if (!res.ok) failed++;
   }
+  // The qualifier calls the AI, so it shares what's left of the time limit. Leads it doesn't reach wait for tomorrow.
+  const deadline = startedAt + 45_000;
+  for (const id of active) {
+    if (Date.now() > deadline) break;
+    const res = await runQualifier(admin, id, "schedule", { limit: 25, deadline });
+    proposed += res.proposed;
+    qualified += res.checked;
+    if (!res.ok) failed++;
+  }
   await admin.rpc("prune_pipeline");
-  return { businesses: count, proposed, failed };
+  return { businesses: active.length, proposed, failed, qualified };
 }

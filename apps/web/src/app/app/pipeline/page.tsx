@@ -24,7 +24,18 @@ type Row = {
   last_activity_at: string;
   closed_at: string | null;
   lost_reason: string | null;
+  temperature: "hot" | "warm" | "cold" | null;
+  score: number | null;
 };
+
+const TEMP = {
+  hot: { label: "Hot", tone: "bg-[#f8ebe4] text-hot" },
+  warm: { label: "Warm", tone: "bg-brass-50 text-[#7d5f26]" },
+  cold: { label: "Cold", tone: "bg-zinc-100 text-zinc-500" },
+} as const;
+// Hot leads first in each column, then warm, unscored and cold.
+const TEMP_ORDER = { hot: 0, warm: 1, cold: 3 } as const;
+const tempRank = (t: Row["temperature"]) => (t ? TEMP_ORDER[t] : 2);
 
 const SOURCE_ICON = { viewing_request: CalendarDays, messenger: MessageCircle, app_chat: Smartphone, manual: Hand } as const;
 const SOURCE_SHORT: Record<string, string> = { viewing_request: "Request", messenger: "Messenger", app_chat: "ProPilot chat", manual: "Added" };
@@ -55,7 +66,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
   const supabase = await createClient();
   let q = supabase
     .from("prospects")
-    .select("id, name, kind, source, stage, property_id, assigned_to, deal_value_minor, next_step, next_step_at, last_activity_at, closed_at, lost_reason")
+    .select("id, name, kind, source, stage, property_id, assigned_to, deal_value_minor, next_step, next_step_at, last_activity_at, closed_at, lost_reason, temperature, score")
     .eq("business_id", biz.businessId)
     .order("last_activity_at", { ascending: false })
     .limit(500);
@@ -152,7 +163,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
         <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
           <div className="grid min-w-[1060px] grid-cols-5 gap-3">
             {OPEN_STAGES.map((stage) => {
-              const col = rows.filter((r) => r.stage === stage);
+              const col = rows.filter((r) => r.stage === stage).sort((a, b) => tempRank(a.temperature) - tempRank(b.temperature));
               const value = col.reduce((s, r) => s + (r.deal_value_minor ?? 0), 0);
               return (
                 <section key={stage} aria-labelledby={`col-${stage}`} className="flex min-h-64 flex-col rounded-2xl bg-zinc-100/70 p-2">
@@ -177,7 +188,14 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
                             className="pp-lift block rounded-xl border border-line bg-white p-3 shadow-[0_1px_2px_rgb(28_26_23/0.04)] hover:border-zinc-300"
                           >
                             <div className="flex items-start justify-between gap-2">
-                              <p className="min-w-0 truncate text-sm font-semibold">{r.name || "Unnamed lead"}</p>
+                              <p className="flex min-w-0 items-center gap-1.5">
+                                <span className="truncate text-sm font-semibold">{r.name || "Unnamed lead"}</span>
+                                {r.temperature ? (
+                                  <span className={cx("shrink-0 rounded px-1.5 py-px text-[10px] font-semibold", TEMP[r.temperature].tone)} title={`Lead score ${r.score}/100`}>
+                                    {TEMP[r.temperature].label}
+                                  </span>
+                                ) : null}
+                              </p>
                               {r.assigned_to ? (
                                 <span
                                   className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-[10px] font-semibold text-brand-700"

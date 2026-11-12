@@ -9,8 +9,8 @@ export const AGENT_INFO = [
   {
     key: "qualifier",
     name: "Lead qualifier",
-    does: "Reads each chat and request for budget, area, timing and intent, and scores the lead with a short reason.",
-    live: false,
+    does: "Reads each lead's chats, requests and notes for budget, area, timing and financing, scores them hot, warm or cold, and suggests who's ready for Qualified.",
+    live: true,
   },
   {
     key: "matcher",

@@ -13,6 +13,10 @@ import { timeAgo } from "@/lib/time";
 import { TaskCard, type TaskRow } from "../../agents/task-card";
 import { addProspectNote, assignProspect, deleteProspect } from "../actions";
 import { ProspectDetailsForm } from "../prospect-forms";
+import { QualificationCard } from "./qualification-card";
+
+// Running the AI agents by hand can take up to about 40 seconds.
+export const maxDuration = 60;
 
 const STAGE_TONE: Record<Stage, string> = {
   inquiry: "bg-zinc-100 text-zinc-700",
@@ -33,17 +37,19 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
 
   const { data: p } = await supabase
     .from("prospects")
-    .select("id, name, phone, email, kind, source, stage, property_id, assigned_to, deal_value_minor, lost_reason, next_step, next_step_at, created_at, last_activity_at")
+    .select(
+      "id, buyer_id, name, phone, email, kind, source, stage, property_id, assigned_to, deal_value_minor, lost_reason, next_step, next_step_at, created_at, last_activity_at, budget_min_minor, budget_max_minor, areas, property_types, timeline, financing, facts_by, score, temperature, score_reason, missing, qualified_at",
+    )
     .eq("id", id)
     .eq("business_id", biz.businessId)
     .maybeSingle();
   if (!p) notFound();
 
-  const [{ data: events }, { data: tasks }, { data: requests }, { data: chats }, { data: listings }, { data: members }] = await Promise.all([
+  const [{ data: events }, { data: tasks }, { data: requests }, { data: chats }, { data: listings }, { data: members }, { data: prefRows }] = await Promise.all([
     supabase.from("prospect_events").select("id, kind, body, actor, created_at").eq("prospect_id", id).order("created_at", { ascending: false }).limit(100),
     supabase
       .from("agent_tasks")
-      .select("id, agent, kind, title, reason, draft, prospect_id, conversation_id, created_at")
+      .select("id, agent, kind, title, reason, draft, prospect_id, conversation_id, proposed_stage, created_at")
       .eq("prospect_id", id)
       .eq("status", "proposed")
       .order("created_at", { ascending: false }),
@@ -51,7 +57,9 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
     supabase.from("messenger_conversations").select("id, channel, last_message_at, mode").eq("prospect_id", id).order("last_message_at", { ascending: false }),
     supabase.from("properties").select("id, name").eq("business_id", biz.businessId).neq("status", "archived").order("name").limit(300),
     supabase.from("business_members").select("user_id, role").eq("business_id", biz.businessId).eq("status", "active").in("role", ["owner", "admin", "agent"]),
+    p.buyer_id ? supabase.rpc("prospect_buyer_preferences", { p_prospect: id }) : Promise.resolve({ data: [] }),
   ]);
+  const prefs = (Array.isArray(prefRows) && prefRows[0]) || null;
 
   const memberIds = (members ?? []).map((m) => m.user_id as string);
   const actorIds = (events ?? []).map((e) => e.actor).filter((x): x is string => !!x);
@@ -201,6 +209,27 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
         </div>
 
         <aside className="space-y-4">
+          <QualificationCard
+            key={p.qualified_at ?? "new"}
+            q={{
+              id: p.id,
+              budget_min_minor: p.budget_min_minor,
+              budget_max_minor: p.budget_max_minor,
+              areas: p.areas ?? [],
+              property_types: p.property_types ?? [],
+              timeline: p.timeline,
+              financing: p.financing,
+              score: p.score,
+              temperature: p.temperature,
+              score_reason: p.score_reason,
+              missing: p.missing ?? [],
+              qualified_at: p.qualified_at,
+              facts_by: p.facts_by,
+            }}
+            prefs={prefs}
+            canEdit={canEdit}
+            aiOn={Boolean(process.env.ANTHROPIC_API_KEY)}
+          />
           {canEdit ? (
             <Card className="p-5">
               <ProspectDetailsForm

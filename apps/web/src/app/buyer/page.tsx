@@ -10,6 +10,10 @@ import { OnlineSearch } from "./online-search";
 import { getCachedOnline, getExternalFavoriteIds, onlineSearchEnabled } from "@/lib/external-data";
 import { queryKey, SOURCES } from "@/lib/external-listings";
 import { timeAgo } from "@/lib/time";
+import Link from "next/link";
+import { SlidersHorizontal } from "lucide-react";
+import { requireUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
 // Searching other sites can take up to a minute.
 export const maxDuration = 60;
@@ -40,6 +44,8 @@ export default async function BrowsePage({ searchParams }: PageProps<"/buyer">) 
     online ? getExternalFavoriteIds() : new Set<string>(),
   ]);
   const sourceNames = Object.values(SOURCES);
+  const user = await requireUser();
+  const { data: prefs } = await (await createClient()).from("buyer_preferences").select("user_id").eq("user_id", user.id).maybeSingle();
   const filtered = Boolean(q || type || max);
 
   const select =
@@ -84,6 +90,19 @@ export default async function BrowsePage({ searchParams }: PageProps<"/buyer">) 
         </label>
         <button className={buttonClass("primary", "py-2.5")}>Search</button>
       </form>
+
+      {!prefs ? (
+        <Link
+          href="/buyer/my-search"
+          className="mt-4 flex items-center gap-3 rounded-2xl border border-line bg-brand-50/60 px-4 py-3 text-sm transition-colors hover:border-brand-100 hover:bg-brand-50"
+        >
+          <SlidersHorizontal className="size-5 shrink-0 text-brand-600" aria-hidden />
+          <span>
+            <span className="font-semibold">Tell agents what you&apos;re looking for.</span>{" "}
+            <span className="text-muted">Budget, areas and timing, in one minute. Agents can then suggest listings that fit.</span>
+          </span>
+        </Link>
+      ) : null}
 
       {error ? (
         <div className="mt-6">
