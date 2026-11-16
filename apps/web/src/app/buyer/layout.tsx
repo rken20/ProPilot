@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { getMemberships, getProfile, requireUser } from "@/lib/auth";
 import { BuyerNav } from "./nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function BuyerLayout({ children }: LayoutProps<"/buyer">) {
   const user = await requireUser();
@@ -24,6 +25,7 @@ export default async function BuyerLayout({ children }: LayoutProps<"/buyer">) {
               </Link>
             ) : null}
             <span className="hidden max-w-40 truncate text-muted sm:inline">{name}</span>
+            <ThemeToggle className="text-muted hover:text-ink" />
             <form action="/auth/signout" method="post">
               <button className="flex items-center gap-1.5 text-muted hover:text-ink" aria-label="Sign out">
                 <LogOut className="size-4" aria-hidden />

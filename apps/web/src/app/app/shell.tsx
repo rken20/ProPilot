@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { LogOut, UserRound } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Nav, type NavItem } from "./nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const ROLE_LABEL = { owner: "Owner", admin: "Admin", agent: "Agent", marketing: "Marketing" } as const;
 
@@ -73,6 +74,7 @@ export function AppShell({ current, memberships, fullName, items, switchBusiness
               </Link>
             </div>
           </div>
+          <ThemeToggle className="mt-3 flex items-center px-2 text-sm text-white/60 hover:text-white" />
           <form action="/auth/signout" method="post" className="mt-3 px-2">
             <button className="flex items-center gap-2 text-sm text-white/60 hover:text-white">
               <LogOut className="size-4" aria-hidden /> Sign out
@@ -83,7 +85,8 @@ export function AppShell({ current, memberships, fullName, items, switchBusiness
 
       <main className="px-4 py-6 sm:px-8 lg:px-10 lg:py-9">
         <div className="mx-auto max-w-6xl">{children}</div>
-        <div className="mt-10 flex gap-4 text-sm lg:hidden">
+        <div className="mt-10 flex flex-wrap gap-4 text-sm lg:hidden">
+          <ThemeToggle className="text-muted" />
           <Link href="/app/account" className="text-muted">
             Account settings
           </Link>

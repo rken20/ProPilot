@@ -9,9 +9,15 @@ export const metadata: Metadata = {
   description: "AI assistant for real estate agents",
 };
 
+const THEME_SCRIPT = `try{if(localStorage.getItem("pp-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${GeistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${GeistMono.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Apply a saved dark-mode choice before the first paint. Static text, no user input. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
