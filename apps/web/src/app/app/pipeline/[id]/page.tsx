@@ -81,7 +81,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="font-display text-[2rem] leading-tight font-medium">{p.name || "Unnamed lead"}</h1>
+            <h1 className="text-[2rem] leading-tight font-bold tracking-tight">{p.name || "Unnamed lead"}</h1>
             <span className={cx("rounded-full px-2.5 py-1 text-xs font-semibold", STAGE_TONE[stage])}>{STAGE_INFO[stage].label}</span>
           </div>
           <p className="mt-1 text-sm text-muted">
@@ -193,7 +193,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
                 <li key={e.id} className="relative">
                   <span
                     className={cx(
-                      "absolute top-1.5 -left-[25px] size-2.5 rounded-full ring-4 ring-surface",
+                      "absolute top-1.5 -left-[25px] size-2.5 rounded-full ring-4 ring-white",
                       e.kind === "note" ? "bg-brass" : e.kind === "stage" ? "bg-brand-600" : "bg-zinc-300",
                     )}
                     aria-hidden

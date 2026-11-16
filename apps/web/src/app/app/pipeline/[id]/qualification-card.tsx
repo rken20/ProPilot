@@ -31,7 +31,7 @@ export type QualificationData = Facts & {
 };
 
 const TONE: Record<Temperature, string> = {
-  hot: "bg-[#f8ebe4] text-hot",
+  hot: "bg-hot text-white",
   warm: "bg-brass-50 text-[#7d5f26]",
   cold: "bg-zinc-100 text-zinc-600",
 };
@@ -57,7 +57,7 @@ function FactRows({ f, extra }: { f: Facts; extra?: Array<[string, string | null
       {rows.map(([k, v]) => (
         <div key={k} className="contents">
           <dt className="text-muted">{k}</dt>
-          <dd className={cx(!v && "text-zinc-400")}>{v ?? "Unknown"}</dd>
+          <dd className={cx(!v && "text-zinc-500")}>{v ?? "Unknown"}</dd>
         </div>
       ))}
     </dl>

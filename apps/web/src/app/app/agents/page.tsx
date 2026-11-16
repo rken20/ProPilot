@@ -69,7 +69,7 @@ export default async function AgentsPage() {
         <div className="space-y-8">
           <section aria-labelledby="waiting">
             <div className="mb-3 flex items-baseline justify-between gap-3">
-              <h2 id="waiting" className="font-display text-xl font-medium">
+              <h2 id="waiting" className="text-xl font-bold tracking-tight">
                 Waiting for you
               </h2>
               <span className="text-sm text-muted">{tasks.length ? `${tasks.length} suggestion${tasks.length === 1 ? "" : "s"}` : ""}</span>
@@ -94,7 +94,7 @@ export default async function AgentsPage() {
           </section>
 
           <section aria-labelledby="activity">
-            <h2 id="activity" className="mb-3 font-display text-xl font-medium">
+            <h2 id="activity" className="mb-3 text-xl font-bold tracking-tight">
               Recent activity
             </h2>
             {(runs ?? []).length || (decided ?? []).length ? (
@@ -143,7 +143,7 @@ export default async function AgentsPage() {
                       <CircleX className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden />
                     )
                   ) : (
-                    <CircleDashed className="mt-0.5 size-4 shrink-0 text-zinc-400" aria-hidden />
+                    <CircleDashed className="mt-0.5 size-4 shrink-0 text-zinc-500" aria-hidden />
                   )}
                   <div>
                     <p className={cx("text-sm font-medium", !a.live && "text-muted")}>

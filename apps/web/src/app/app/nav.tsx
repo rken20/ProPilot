@@ -48,7 +48,7 @@ export function Nav({ items }: { items: NavItem[] }) {
             >
               <Icon className="size-[18px]" aria-hidden />
               <span className="flex-1">{item.label}</span>
-              <span className="hidden rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-white/50 lg:inline">
+              <span className="hidden rounded bg-white/10 px-1.5 py-0.5 text-xs font-medium text-white/50 lg:inline">
                 Soon
               </span>
             </span>
@@ -67,7 +67,7 @@ export function Nav({ items }: { items: NavItem[] }) {
             <Icon className="size-[18px]" aria-hidden />
             <span className="flex-1">{item.label}</span>
             {item.count ? (
-              <span className="rounded-full bg-[#c9a463] px-1.5 py-px text-[11px] font-semibold text-brand-900 tabular-nums" aria-label={`${item.count} waiting`}>
+              <span className="rounded-full bg-[#c9a463] px-1.5 py-px text-xs font-semibold text-brand-900 tabular-nums" aria-label={`${item.count} waiting`}>
                 {item.count > 99 ? "99+" : item.count}
               </span>
             ) : null}

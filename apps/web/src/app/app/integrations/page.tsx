@@ -265,7 +265,7 @@ function FacebookIcon({ className }: { className?: string }) {
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
-    <span aria-hidden className={cx("grid place-items-center rounded-full border border-current text-[11px] font-bold", className)}>
+    <span aria-hidden className={cx("grid place-items-center rounded-full border border-current text-xs font-bold", className)}>
       G
     </span>
   );

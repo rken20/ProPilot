@@ -93,7 +93,7 @@ export function BuyerChat({ conversationId, businessName, initial }: { conversat
                 {m.body}
               </p>
               {!mine ? (
-                <span className="mt-1 px-1 text-[11px] text-muted">{m.sender === "ai" ? `${businessName}'s AI assistant` : `${businessName} agent`}</span>
+                <span className="mt-1 px-1 text-xs text-muted">{m.sender === "ai" ? `${businessName}'s AI assistant` : `${businessName} agent`}</span>
               ) : null}
             </li>
           );

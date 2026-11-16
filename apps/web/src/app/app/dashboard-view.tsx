@@ -67,7 +67,7 @@ export function DashboardView({
       <header style={{ "--i": 0 } as React.CSSProperties} className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-muted">{dateText}</p>
-          <h1 className="font-display mt-1 text-[2.25rem] leading-tight font-medium sm:text-[2.6rem]">
+          <h1 className="mt-1 text-[2.25rem] leading-tight font-bold tracking-tight sm:text-[2.6rem]">
             {greetingText}
             {firstName ? `, ${firstName}` : ""}
           </h1>
@@ -92,11 +92,11 @@ export function DashboardView({
         <Stat icon={Wallet} tint="bg-brand-50 text-good" label="Available inventory" value={<CountUp value={inventoryValue} peso />}
           note={availableCount ? `Across ${availableCount} available listing${availableCount === 1 ? "" : "s"}` : "Total price of available listings"} />
         {leads ? (
-          <Stat icon={Flame} tint="bg-[#f8ebe4] text-hot" label="New viewing requests" value={<CountUp value={leads.newCount} />}
+          <Stat icon={Flame} tint="bg-hot-50 text-hot" label="New viewing requests" value={<CountUp value={leads.newCount} />}
             note={leads.openCount ? `${leads.openCount} open viewing requests` : publicCount ? "Waiting for buyers" : "Show a listing to buyers to start"}
             href="/app/leads" />
         ) : (
-          <Stat icon={Flame} tint="bg-[#f8ebe4] text-hot" label="Listings shown to buyers" value={<CountUp value={publicCount} />} note="Visible on ProPilot" />
+          <Stat icon={Flame} tint="bg-hot-50 text-hot" label="Listings shown to buyers" value={<CountUp value={publicCount} />} note="Visible on ProPilot" />
         )}
         <Stat icon={MessageCircle} tint="bg-brass-50 text-brass" label="Messenger inquiries" value="—" note="Starts when Facebook is connected" muted />
       </section>
@@ -105,7 +105,7 @@ export function DashboardView({
         {/* Assistant status */}
         <section className="rounded-2xl bg-brand-900 p-6 text-white sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-2xl font-medium">Your AI assistant</h2>
+            <h2 className="text-2xl font-bold tracking-tight">Your AI assistant</h2>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium">
               <span className={cx("size-2 rounded-full", assistantLive ? "bg-[#8fd1a6]" : "bg-[#e0b86a]")} aria-hidden />
               {assistantLive ? "Live for ProPilot buyers" : "Not live yet"}
@@ -136,7 +136,7 @@ export function DashboardView({
                       <span className="size-5 shrink-0 rounded-full border-2 border-white/25" aria-hidden />
                     )}
                     <span className={cx("flex-1", s.done && "text-white/55")}>{s.label}</span>
-                    {s.soon ? <span className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-white/60">Coming soon</span> : null}
+                    {s.soon ? <span className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white/60">Coming soon</span> : null}
                     <span className="sr-only">{s.done ? "Done" : "Not done"}</span>
                   </span>
                 );
@@ -158,7 +158,7 @@ export function DashboardView({
 
         {/* Recent activity */}
         <section className="rounded-2xl border border-line bg-white p-6 shadow-[var(--shadow-card)]">
-          <h2 className="font-display text-2xl font-medium">Recent activity</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Recent activity</h2>
           {recent.length === 0 ? (
             <p className="mt-4 text-sm text-muted">Nothing yet. Activity from your team and listings shows up here.</p>
           ) : (
@@ -188,7 +188,7 @@ export function DashboardView({
         {/* Listings snapshot */}
         <section className="rounded-2xl border border-line bg-white p-6 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-2xl font-medium">Your listings</h2>
+            <h2 className="text-2xl font-bold tracking-tight">Your listings</h2>
             {properties.length ? (
               <Link href="/app/properties" className="text-sm font-medium text-brand-600 hover:text-brand-700">
                 View all
@@ -233,7 +233,7 @@ export function DashboardView({
 
         {/* Quick actions */}
         <section className="rounded-2xl border border-line bg-white p-6 shadow-[var(--shadow-card)]">
-          <h2 className="font-display text-2xl font-medium">Quick actions</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Quick actions</h2>
           <div className="mt-4 grid gap-3">
             {canCreateProperty ? (
               <QuickAction href="/app/properties/new" icon={Plus} title="Add a property" text="Price, location and financing" />
@@ -257,7 +257,7 @@ function Stat({ icon: Icon, tint, label, value, note, muted, href }: { icon: Luc
         </span>
         <p className="text-[13px] font-medium leading-tight text-muted sm:text-sm">{label}</p>
       </div>
-      <p className={cx("font-display mt-3 text-[1.6rem] leading-none font-medium tabular-nums sm:mt-4 sm:text-[2.1rem]", muted && "text-slate-300")}>{value}</p>
+      <p className={cx("mt-3 text-[1.6rem] leading-none font-bold tracking-tight tabular-nums sm:mt-4 sm:text-[2.1rem]", muted && "text-slate-300")}>{value}</p>
       <p className="mt-2 text-xs text-muted">{note}</p>
     </>
   );
@@ -273,14 +273,14 @@ function Stat({ icon: Icon, tint, label, value, note, muted, href }: { icon: Luc
 function QuickAction({ href, icon: Icon, title, text, soon }: { href?: string; icon: LucideIcon; title: string; text: string; soon?: boolean }) {
   const inner = (
     <>
-      <span className={cx("grid size-10 shrink-0 place-items-center rounded-lg", soon ? "bg-slate-100 text-slate-400" : "bg-brand-50 text-brand-600")}>
+      <span className={cx("grid size-10 shrink-0 place-items-center rounded-lg", soon ? "bg-slate-100 text-zinc-500" : "bg-brand-50 text-brand-600")}>
         <Icon className="size-5" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
         <span className={cx("block text-sm font-semibold", soon && "text-slate-500")}>{title}</span>
         <span className="block text-xs text-muted">{text}</span>
       </span>
-      {soon ? <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-500">Soon</span> : null}
+      {soon ? <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">Soon</span> : null}
     </>
   );
   if (soon || !href) {

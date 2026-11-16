@@ -15,7 +15,7 @@ export function Label({ className, ...props }: ComponentProps<"label">) {
 }
 
 const fieldBase =
-  "mt-1.5 block w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm shadow-[0_1px_1px_rgb(28_26_23/0.03)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-zinc-400 hover:border-zinc-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100";
+  "mt-1.5 block w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm shadow-[0_1px_1px_rgb(28_26_23/0.03)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-zinc-500 hover:border-zinc-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cx(fieldBase, className)} {...props} />;
@@ -99,7 +99,7 @@ export function Badge({ children, tone = "neutral" }: { children: ReactNode; ton
   const tones = {
     neutral: "bg-zinc-100 text-zinc-700",
     brand: "bg-brand-50 text-brand-700",
-    hot: "bg-[#f8ebe4] text-hot",
+    hot: "bg-hot-50 text-hot",
   };
   return <span className={cx("inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium", tones[tone])}>{children}</span>;
 }
@@ -108,7 +108,7 @@ export function PageHeader({ title, description, action }: { title: string; desc
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="font-display text-[2rem] leading-tight font-medium text-ink">{title}</h1>
+        <h1 className="text-[2rem] leading-tight font-bold tracking-tight text-ink">{title}</h1>
         {description ? <p className="mt-1.5 max-w-xl text-sm text-muted">{description}</p> : null}
       </div>
       {action}

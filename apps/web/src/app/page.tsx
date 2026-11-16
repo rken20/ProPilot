@@ -181,7 +181,7 @@ function ListingFrame() {
         </div>
         <div className="px-5 pb-5 pt-4">
           <HeroChat />
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-line px-4 py-3 text-sm text-zinc-400" aria-hidden="true">
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-line px-4 py-3 text-sm text-zinc-500" aria-hidden="true">
             <span>Ask about this property</span>
             <span className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white">Send</span>
           </div>

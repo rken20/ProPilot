@@ -137,7 +137,7 @@ export function InboxView({
             </ul>
           ) : (
             <Card className="text-center">
-              <MessageCircle className="mx-auto size-8 text-zinc-400" aria-hidden />
+              <MessageCircle className="mx-auto size-8 text-zinc-500" aria-hidden />
               <p className="mt-3 font-medium">No messages yet</p>
               <p className="mt-1 text-sm text-muted">
                 When a buyer messages you in ProPilot or on your Facebook Page, the chat shows up here.
@@ -154,7 +154,7 @@ export function InboxView({
             <div className="rounded-2xl border border-line bg-white shadow-[var(--shadow-card)]">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
                 <div className="min-w-0">
-                  <h2 className="truncate font-display text-2xl font-medium">{nameOf(selected)}</h2>
+                  <h2 className="truncate text-2xl font-bold tracking-tight">{nameOf(selected)}</h2>
                   <p className="text-sm text-muted">
                     {selected.channel === "app"
                       ? "ProPilot chat"
@@ -179,7 +179,7 @@ export function InboxView({
               {helperOn ? <ChatSummary key={selected.id} conversationId={selected.id} /> : null}
 
               {selected.needs_attention && selected.attention_reason ? (
-                <p className="pp-fade border-b border-line bg-[#f8ebe4] px-5 py-2.5 text-sm text-hot">{selected.attention_reason}</p>
+                <p className="pp-fade border-b border-line bg-hot-50 px-5 py-2.5 text-sm text-hot">{selected.attention_reason}</p>
               ) : null}
 
               <ol className="max-h-[60vh] space-y-3 overflow-y-auto px-5 py-5" aria-live="polite">
@@ -197,7 +197,7 @@ export function InboxView({
                       >
                         {m.body}
                       </p>
-                      <span className="mt-1 px-1 text-[11px] text-muted">
+                      <span className="mt-1 px-1 text-xs text-muted">
                         {m.sender === "ai"
                           ? "AI assistant"
                           : m.sender === "agent"
@@ -227,7 +227,7 @@ export function InboxView({
 
             {selected.lead_status !== "none" ? (
               <Card className="mt-5">
-                <h3 className="font-display text-xl font-medium">Viewing request</h3>
+                <h3 className="text-xl font-bold tracking-tight">Viewing request</h3>
                 <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                   <Row k="Name" v={selected.lead_name} />
                   <Row k="Mobile" v={selected.lead_phone} />

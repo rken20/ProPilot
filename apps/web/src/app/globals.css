@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 /*
- * ProPilot design system. Warm and quiet: a deep molave green for actions and
- * the frame, brass for small highlights, warm greys for text and lines, and a
- * serif (Newsreader) for headings over Plus Jakarta Sans for everything else.
+ * ProPilot design system ("Molave refined"). A white ground, a deep molave green
+ * for actions and the frame, brass for small highlights, and one strong
+ * red-orange ("hot") reserved for things that need action. Plus Jakarta Sans
+ * everywhere; the serif (Newsreader) is for buyer-facing and marketing headings.
  * "brand-*", "zinc-*" and "slate-*" are remapped so every screen picks it up.
  */
 @theme inline {
@@ -22,11 +23,12 @@
   --color-sand: #efeae1;
 
   --color-ink: #1c1a17;
-  --color-muted: #6b665d;
-  --color-line: #e6e1d8;
-  --color-surface: #f6f5f2;
+  --color-muted: #5c574f;
+  --color-line: #e0dacf;
+  --color-surface: #f3f1ec;
   --color-good: #2f7a4f;
-  --color-hot: #b4532a;
+  --color-hot: #b93815;
+  --color-hot-50: #fbeae4;
 
   /* Warm greys in place of Tailwind's cool zinc and slate. */
   --color-zinc-50: #f8f7f5;
@@ -34,7 +36,7 @@
   --color-zinc-200: #e6e1d8;
   --color-zinc-300: #d5cfc4;
   --color-zinc-400: #a8a196;
-  --color-zinc-500: #7d776d;
+  --color-zinc-500: #6f695f;
   --color-zinc-600: #615c54;
   --color-zinc-700: #48443e;
   --color-zinc-800: #2e2b27;
@@ -42,7 +44,7 @@
   --color-slate-100: #f1efeb;
   --color-slate-300: #d5cfc4;
   --color-slate-400: #a8a196;
-  --color-slate-500: #7d776d;
+  --color-slate-500: #6f695f;
   --color-slate-600: #615c54;
 
   --shadow-card: 0 1px 2px rgb(28 26 23 / 0.04), 0 10px 28px -14px rgb(28 26 23 / 0.14);
@@ -52,7 +54,7 @@
 }
 
 body {
-  background: var(--color-surface);
+  background: #ffffff;
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-feature-settings: "ss01";

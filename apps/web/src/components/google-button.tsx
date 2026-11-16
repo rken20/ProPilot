@@ -21,7 +21,7 @@ export async function GoogleButton({
         <button className="flex min-h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-sm transition-[background-color,border-color,transform] duration-200 hover:border-zinc-400 hover:bg-zinc-50 active:scale-[0.98]">
           <span
             aria-hidden
-            className="grid size-5 place-items-center rounded-full border border-line text-[11px] font-bold"
+            className="grid size-5 place-items-center rounded-full border border-line text-xs font-bold"
           >
             G
           </span>

@@ -29,7 +29,7 @@ type Row = {
 };
 
 const TEMP = {
-  hot: { label: "Hot", tone: "bg-[#f8ebe4] text-hot" },
+  hot: { label: "Hot", tone: "bg-hot text-white" },
   warm: { label: "Warm", tone: "bg-brass-50 text-[#7d5f26]" },
   cold: { label: "Cold", tone: "bg-zinc-100 text-zinc-500" },
 } as const;
@@ -77,11 +77,11 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
     supabase.from("agent_settings").select("follow_up_days").eq("business_id", biz.businessId).maybeSingle(),
     supabase.from("agent_tasks").select("id", { count: "exact", head: true }).eq("business_id", biz.businessId).eq("status", "proposed"),
   ]);
-  const rows = (data ?? []) as Row[];
+  const allRows = (data ?? []) as Row[];
   const followUpDays = settings?.follow_up_days ?? DEFAULT_AGENT_SETTINGS.follow_up_days;
 
-  const propIds = [...new Set(rows.map((r) => r.property_id).filter((x): x is string => !!x))];
-  const userIds = [...new Set(rows.map((r) => r.assigned_to).filter((x): x is string => !!x))];
+  const propIds = [...new Set(allRows.map((r) => r.property_id).filter((x): x is string => !!x))];
+  const userIds = [...new Set(allRows.map((r) => r.assigned_to).filter((x): x is string => !!x))];
   const [{ data: props }, { data: people }] = await Promise.all([
     propIds.length ? supabase.from("properties").select("id, name").in("id", propIds) : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
     userIds.length
@@ -91,6 +91,11 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
   const propName = new Map((props ?? []).map((p) => [p.id, p.name]));
   const personName = new Map((people ?? []).map((p) => [p.id, p.full_name]));
   const now = new Date();
+  // "Needs action": a next step that's due, or an open lead that has gone quiet.
+  const needsAction = (r: Row) => Boolean(r.next_step_at && new Date(r.next_step_at) <= now) || isQuiet(r, followUpDays, now);
+  const actionCount = view === "open" ? allRows.filter(needsAction).length : 0;
+  const onlyAction = view === "open" && sp.act === "1";
+  const rows = onlyAction ? allRows.filter(needsAction) : allRows;
 
   const openValue = rows.reduce((s, r) => s + (r.deal_value_minor ?? 0), 0);
   const quietCount = view === "open" ? rows.filter((r) => isQuiet(r, followUpDays, now)).length : 0;
@@ -108,9 +113,20 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
         title="Pipeline"
         description="Everyone you're selling to, from first inquiry to closing. New leads from viewing requests and chats appear here on their own."
         action={
-          <Link href="/app/pipeline/new" className={buttonClass()}>
-            <Plus className="size-4" aria-hidden /> Add lead
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {actionCount ? (
+              <Link
+                href={onlyAction ? href(view, mine) : `${href(view, mine)}${mine ? "&" : "?"}act=1`}
+                aria-pressed={onlyAction}
+                className="inline-flex min-h-11 items-center rounded-xl bg-hot px-4 text-sm font-semibold text-white hover:brightness-95"
+              >
+                {onlyAction ? "Show all leads" : `${actionCount} need${actionCount === 1 ? "s" : ""} action`}
+              </Link>
+            ) : null}
+            <Link href="/app/pipeline/new" className={buttonClass()}>
+              <Plus className="size-4" aria-hidden /> Add lead
+            </Link>
+          </div>
         }
       />
 
@@ -166,7 +182,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
               const col = rows.filter((r) => r.stage === stage).sort((a, b) => tempRank(a.temperature) - tempRank(b.temperature));
               const value = col.reduce((s, r) => s + (r.deal_value_minor ?? 0), 0);
               return (
-                <section key={stage} aria-labelledby={`col-${stage}`} className="flex min-h-64 flex-col rounded-2xl bg-zinc-100/70 p-2">
+                <section key={stage} aria-labelledby={`col-${stage}`} className="flex min-h-64 flex-col rounded-2xl bg-surface p-2">
                   <header className="px-2 pt-1.5 pb-2.5">
                     <div className="flex items-baseline justify-between gap-2">
                       <h2 id={`col-${stage}`} className="text-sm font-semibold">
@@ -191,14 +207,14 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
                               <p className="flex min-w-0 items-center gap-1.5">
                                 <span className="truncate text-sm font-semibold">{r.name || "Unnamed lead"}</span>
                                 {r.temperature ? (
-                                  <span className={cx("shrink-0 rounded px-1.5 py-px text-[10px] font-semibold", TEMP[r.temperature].tone)} title={`Lead score ${r.score}/100`}>
+                                  <span className={cx("shrink-0 rounded px-1.5 py-px text-xs font-semibold", TEMP[r.temperature].tone)} title={`Lead score ${r.score}/100`}>
                                     {TEMP[r.temperature].label}
                                   </span>
                                 ) : null}
                               </p>
                               {r.assigned_to ? (
                                 <span
-                                  className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-[10px] font-semibold text-brand-700"
+                                  className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-semibold text-brand-700"
                                   title={`Assigned to ${personName.get(r.assigned_to) ?? "a teammate"}`}
                                 >
                                   {initials(personName.get(r.assigned_to))}
@@ -212,7 +228,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
                             {due ? (
                               <p className="mt-2 truncate rounded-md bg-brass-50 px-2 py-1 text-xs text-[#7d5f26]">Due: {r.next_step || "next step"}</p>
                             ) : null}
-                            <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-muted">
+                            <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted">
                               <span className="flex items-center gap-1">
                                 <Icon className="size-3.5" aria-hidden /> {SOURCE_SHORT[r.source] ?? "Lead"}
                               </span>

@@ -51,7 +51,7 @@ export function FacebookPost({
     <Card className="mt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-medium">Post to Facebook</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Post to Facebook</h2>
           <p className="mt-1 text-sm text-muted">Share this listing on your Page. Edit the caption first; nothing is posted until you press Post.</p>
         </div>
       </div>

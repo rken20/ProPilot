@@ -29,7 +29,7 @@ export function ReportsView({
     <div className="pp-stagger space-y-10">
       <header style={{ "--i": 0 } as React.CSSProperties} className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[2rem] leading-tight font-medium">Reports</h1>
+          <h1 className="text-[2rem] leading-tight font-bold tracking-tight">Reports</h1>
           <p className="mt-1.5 text-sm text-muted">{range.label}. Times are Manila time.</p>
         </div>
         <RangePicker range={range} />
@@ -199,7 +199,7 @@ function Section({ i, title, csv, children }: { i: number; title: string; csv?: 
   return (
     <section style={{ "--i": i } as React.CSSProperties} aria-labelledby={`report-${i}`}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 id={`report-${i}`} className="font-display text-2xl font-medium">
+        <h2 id={`report-${i}`} className="text-2xl font-bold tracking-tight">
           {title}
         </h2>
         {csv ? (
@@ -217,7 +217,7 @@ function Tile({ label, value, note }: { label: string; value: React.ReactNode; n
   return (
     <div className="rounded-2xl border border-line bg-white p-4 shadow-[var(--shadow-card)] sm:p-5">
       <p className="text-sm text-muted">{label}</p>
-      <p className="font-display mt-2 text-[1.9rem] leading-none font-medium tabular-nums text-ink">{value}</p>
+      <p className="mt-2 text-[1.9rem] leading-none font-bold tracking-tight tabular-nums text-ink">{value}</p>
       <p className="mt-2 text-xs leading-snug text-muted">{note}</p>
     </div>
   );
@@ -238,7 +238,7 @@ function Empty({ text }: { text: string }) {
 
 const Th = ({ children }: { children: React.ReactNode }) => <th className="px-4 py-3 text-right font-medium">{children}</th>;
 const Td = ({ value, strong }: { value: number; strong?: boolean }) => (
-  <td className={cx("px-4 py-3 text-right tabular-nums", value ? (strong ? "font-semibold text-ink" : "text-ink") : "text-zinc-400")}>{value}</td>
+  <td className={cx("px-4 py-3 text-right tabular-nums", value ? (strong ? "font-semibold text-ink" : "text-ink") : "text-zinc-500")}>{value}</td>
 );
 
 /** Stacked columns, ProPilot buyers under Messenger, with a 2px surface gap and a legend. */
@@ -257,7 +257,7 @@ function SourceChart({ series }: { series: LeadsReport["series"] }) {
       <div className="relative flex h-48 gap-[2px] pl-8" aria-hidden="true">
         {ticks.map((t) => (
           <div key={t} className="absolute inset-x-8 border-t border-zinc-100" style={{ bottom: `${(t / top) * 100}%` }}>
-            <span className="absolute -left-8 -translate-y-1/2 text-[11px] tabular-nums text-muted">{t}</span>
+            <span className="absolute -left-8 -translate-y-1/2 text-xs tabular-nums text-muted">{t}</span>
           </div>
         ))}
         {series.map((s) => {
@@ -278,7 +278,7 @@ function SourceChart({ series }: { series: LeadsReport["series"] }) {
           );
         })}
       </div>
-      <div className="mt-2 flex gap-[2px] pl-8 text-[11px] text-muted" aria-hidden="true">
+      <div className="mt-2 flex gap-[2px] pl-8 text-xs text-muted" aria-hidden="true">
         {series.map((s, i) => (
           <span key={s.label} className="relative h-4 flex-1">
             {i % every === 0 ? (

@@ -56,7 +56,7 @@ export default async function BuyerMessages({ searchParams }: PageProps<"/buyer/
           </ul>
         ) : (
           <Card className="text-center">
-            <MessageCircle className="mx-auto size-8 text-zinc-400" aria-hidden />
+            <MessageCircle className="mx-auto size-8 text-zinc-500" aria-hidden />
             <p className="mt-3 font-medium">No messages yet</p>
             <p className="mt-1 text-sm text-muted">Open a listing and press Message the agent to start a chat.</p>
             <Link href="/buyer" className="mt-4 inline-block text-sm font-semibold text-brand-700">
