@@ -8,7 +8,7 @@ export type PlanInfo = {
   name: string;
   /** Whether AI features are included. */
   ai: boolean;
-  /** Home Finder AI buyers per month; null = unlimited, 0 = not included. */
+  /** Buyer Finder buyers per month; null = unlimited, 0 = not included. */
   homeFinderBuyers: number | null;
   /** When the paid period ends (null on Free). */
   periodEnd: string | null;

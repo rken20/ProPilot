@@ -156,7 +156,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
                     <Link href={`/app/inbox?c=${c.id}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-zinc-50">
                       <span className="flex items-center gap-2.5">
                         {c.channel === "app" ? <Smartphone className="size-4 text-muted" aria-hidden /> : <MessageCircle className="size-4 text-muted" aria-hidden />}
-                        {c.channel === "app" ? "ProPilot chat" : "Messenger chat"}
+                        {c.channel === "app" ? "Home Finder chat" : "Messenger chat"}
                         <span className="text-xs text-muted">{c.mode === "ai" ? "AI answering" : "Team answering"}</span>
                       </span>
                       <span className="text-xs text-muted">{timeAgo(c.last_message_at)}</span>
@@ -201,7 +201,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
                   />
                   <p className={cx("text-sm", e.kind === "note" && "rounded-lg bg-white px-3 py-2 ring-1 ring-line")}>{e.body}</p>
                   <p className="mt-0.5 text-xs text-muted">
-                    {e.actor ? nameOf.get(e.actor) ?? "Teammate" : "ProPilot"} · {timeAgo(e.created_at)}
+                    {e.actor ? nameOf.get(e.actor) ?? "Teammate" : "Home Finder"} · {timeAgo(e.created_at)}
                   </p>
                 </li>
               ))}

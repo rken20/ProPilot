@@ -13,7 +13,7 @@ import { cleanReported, normaliseSearchedUrl, SOURCES, type CleanListing, type S
 const MAX_SEARCHES = 3;
 const MAX_ROUNDS = 4;
 
-const SYSTEM = `You find property listings for sale in the Philippines on public listing sites, for a home buyer using ProPilot.
+const SYSTEM = `You find property listings for sale in the Philippines on public listing sites, for a home buyer using Home Finder.
 
 Use web_search to find individual listing pages that match the buyer's search. Then call report_listings once with what you found.
 - Report only individual listings for sale (one property per page). Skip search result pages, category pages, articles, rentals and pre-selling project brochures.

@@ -24,7 +24,7 @@ export const KIND_LABEL: Record<Kind, string> = { buyer: "Buyer", seller: "Selle
 export const SOURCE_LABEL: Record<string, string> = {
   viewing_request: "Viewing request",
   messenger: "Messenger",
-  app_chat: "ProPilot chat",
+  app_chat: "Home Finder chat",
   manual: "Added by hand",
 };
 

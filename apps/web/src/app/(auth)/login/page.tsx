@@ -15,7 +15,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <>
       <h1 className="font-display mb-2 text-[2rem] leading-tight font-medium">Log in</h1>
-      <p className="mb-6 text-sm text-zinc-600">Welcome back to ProPilot AI.</p>
+      <p className="mb-6 text-sm text-zinc-600">Welcome back to Home Finder AI.</p>
       <GoogleButton next={next} />
       <SignInForm next={next} notice={notice} />
     </>

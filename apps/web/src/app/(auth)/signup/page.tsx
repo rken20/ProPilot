@@ -20,7 +20,7 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
     return (
       <>
         <h1 className="font-display mb-2 text-[2rem] leading-tight font-medium">Create your account</h1>
-        <p className="mb-6 text-sm text-muted">How will you use ProPilot?</p>
+        <p className="mb-6 text-sm text-muted">How will you use Home Finder?</p>
         <div className="space-y-3">
           <Choice
             href={`/signup?as=buyer${keep}`}

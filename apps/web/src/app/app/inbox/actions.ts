@@ -24,7 +24,7 @@ async function ownConversation(id: string) {
   return data ? { biz, conv: data } : null;
 }
 
-/** Reply as the Page from ProPilot. Replying takes the conversation over from the AI. */
+/** Reply as the Page from Home Finder. Replying takes the conversation over from the AI. */
 export async function sendAgentMessage(conversationId: string, _prev: SendState, form: FormData): Promise<SendState> {
   const user = await requireUser();
   const found = await ownConversation(conversationId);

@@ -60,7 +60,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
     <>
       <PageHeader
         title="Viewing requests"
-        description="Buyers on ProPilot asking to see a listing. Call or text them to confirm. Each one is also a lead in your Pipeline."
+        description="Buyers on Home Finder asking to see a listing. Call or text them to confirm. Each one is also a lead in your Pipeline."
         action={
           <div className="flex flex-wrap gap-2">
             {integ?.spreadsheet_url ? (
@@ -96,7 +96,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
           <CalendarDays className="mx-auto size-8 text-muted" aria-hidden />
           <p className="mt-3 font-semibold">{filter === "open" ? "No open leads" : "Nothing here"}</p>
           <p className="mt-1 text-sm text-muted">
-            Turn on <span className="font-medium text-ink">Show to ProPilot buyers</span> on a property so buyers can find it
+            Turn on <span className="font-medium text-ink">Show to Home Finder buyers</span> on a property so buyers can find it
             and request viewings.
           </p>
         </div>

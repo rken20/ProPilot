@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export const metadata: Metadata = { title: "Data deletion status · ProPilot AI" };
+export const metadata: Metadata = { title: "Data deletion status · Home Finder AI" };
 
 /** Where Meta sends people to check a Facebook data deletion request. */
 export default async function DeletionStatus({ searchParams }: PageProps<"/privacy/deletion">) {
@@ -18,7 +18,7 @@ export default async function DeletionStatus({ searchParams }: PageProps<"/priva
   return (
     <div className="min-h-svh bg-surface">
       <header className="mx-auto max-w-2xl px-6 py-6">
-        <Link href="/" aria-label="ProPilot AI home">
+        <Link href="/" aria-label="Home Finder AI home">
           <Logo />
         </Link>
       </header>
@@ -29,7 +29,7 @@ export default async function DeletionStatus({ searchParams }: PageProps<"/priva
             <p>
               Done. Request <span className="font-mono text-sm">{code}</span> was completed on{" "}
               {new Date(row.created_at as string).toLocaleDateString("en-PH", { dateStyle: "long", timeZone: "Asia/Manila" })}:
-              every Facebook Page token you had connected to ProPilot was deleted.
+              every Facebook Page token you had connected to Home Finder was deleted.
             </p>
           ) : (
             <p>We couldn&apos;t find that confirmation code. Check the link Facebook gave you, or see our privacy policy.</p>

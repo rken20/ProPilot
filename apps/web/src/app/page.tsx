@@ -26,7 +26,7 @@ export default async function Home() {
         {/* Hero: alone on the first screen. */}
         <section className="flex min-h-svh flex-col">
           <header className={`${wrap} flex items-center justify-between py-5`}>
-            <Link href="/" aria-label="ProPilot AI home">
+            <Link href="/" aria-label="Home Finder AI home">
               <Logo />
             </Link>
             <nav className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export default async function Home() {
                       Find a property
                     </Link>
                   </div>
-                  <p className="mt-5 text-sm text-muted">Free for agents and buyers while ProPilot is in beta.</p>
+                  <p className="mt-5 text-sm text-muted">Free for agents and buyers while Home Finder is in beta.</p>
                 </div>
               ) : (
                 <p className="mt-9 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
@@ -133,7 +133,7 @@ export default async function Home() {
           <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-brand-900 to-transparent" aria-hidden="true" />
           <div className={`${wrap} flex min-h-[70svh] flex-col justify-center py-20`}>
             <h2 className="font-display max-w-3xl text-4xl leading-tight font-medium sm:text-6xl">
-              Put your first listing up this week, while ProPilot is free.
+              Put your first listing up this week, while Home Finder is free.
             </h2>
             {configured ? (
               <div className="mt-10 flex flex-col gap-3 sm:flex-row">
@@ -208,7 +208,7 @@ function FormFragment() {
       <Row k="Price" v="₱4,800,000" />
       <Row k="Reservation fee" v="₱20,000" />
       <div className="flex items-center justify-between gap-3 pt-1">
-        <span className="text-muted">Show to ProPilot buyers</span>
+        <span className="text-muted">Show to Home Finder buyers</span>
         <span className="relative inline-flex h-6 w-10 items-center rounded-full bg-brand-600">
           <span className="absolute right-0.5 size-5 rounded-full bg-white shadow" />
         </span>

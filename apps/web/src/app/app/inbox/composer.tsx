@@ -111,7 +111,7 @@ export function Composer({
       </div>
       <p className="px-1 text-xs text-muted">
         Enter to send, Shift+Enter for a new line.{" "}
-        {channel === "app" ? "Sent to the buyer in ProPilot." : "Sent from your Page on Messenger."}
+        {channel === "app" ? "Sent to the buyer in Home Finder." : "Sent from your Page on Messenger."}
       </p>
     </form>
   );

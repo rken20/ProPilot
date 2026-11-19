@@ -86,7 +86,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
     { label: "Add your first property", done: properties.length > 0, href: "/app/properties/new" },
     { label: "Add price and financing details", done: hasFinancing, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
     { label: "Add photos to a listing", done: covers.size > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
-    { label: "Show a listing to ProPilot buyers", done: publicCount > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
+    { label: "Show a listing to Home Finder buyers", done: publicCount > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
     { label: "Invite your team", done: members.length > 1 || invites.length > 0, href: canManageTeam ? "/app/team" : undefined },
     metaConfig()
       ? { label: "Connect your Facebook Page", done: (await businessPages(biz.businessId)).length > 0, href: "/app/integrations" }

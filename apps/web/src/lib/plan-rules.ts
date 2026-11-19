@@ -31,7 +31,7 @@ export const BUYER_UPGRADE_MESSAGE = "AI answers and AI search are part of the B
 export const BUYER_PLAN_COPY: Record<string, { tagline: string; includes: string[]; excludes?: string }> = {
   free: {
     tagline: "Browse and contact agents, free.",
-    includes: ["Browse and save ProPilot listings", "Message agents and request viewings", "My search: tell agents what you want"],
+    includes: ["Browse and save Home Finder listings", "Message agents and request viewings", "My search: tell agents what you want"],
     excludes: "No AI: no AI answers on listings, no AI search of other sites, and agents reply in person.",
   },
   basic: {
@@ -56,17 +56,17 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Pipeline and Messages inbox",
       "Listing reports",
     ],
-    excludes: "No AI features: no AI chat replies, lead scoring, Home Finder AI or AI writing.",
+    excludes: "No AI features: no AI chat replies, lead scoring, Buyer Finder or AI writing.",
   },
   basic: {
     tagline: "Para sa individual property owners",
     includes: [
       "Everything in Free",
-      "Up to 5 AI-found potential buyers a month (Home Finder AI)",
+      "Up to 5 AI-found potential buyers a month (Buyer Finder)",
       "Basic buyer matching and lead scoring",
-      "AI replies in ProPilot chat and Messenger",
+      "AI replies in Home Finder chat and Messenger",
       "AI-written listing descriptions and captions",
-      "Ask ProPilot and the reply helper",
+      "Ask Home Finder and the reply helper",
     ],
     excludes: "Walay AI video creation. Limited buyer finder.",
   },

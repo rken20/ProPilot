@@ -32,8 +32,8 @@ export async function confirmPayment(id: string) {
     ["Paid until", end ? dateFmt.format(new Date(end)) : "—"],
   ];
   const origin = await getOrigin();
-  if (pay.business_id) await emailOwners(admin, pay.business_id as string, `${planName} is on`, lines, { label: "Open ProPilot", url: `${origin}/app/billing` });
-  else if (pay.buyer_id) await emailUser(admin, pay.buyer_id as string, `${planName} is on`, lines, { label: "Open ProPilot", url: `${origin}/buyer/plan` });
+  if (pay.business_id) await emailOwners(admin, pay.business_id as string, `${planName} is on`, lines, { label: "Open Home Finder", url: `${origin}/app/billing` });
+  else if (pay.buyer_id) await emailUser(admin, pay.buyer_id as string, `${planName} is on`, lines, { label: "Open Home Finder", url: `${origin}/buyer/plan` });
   refresh();
 }
 

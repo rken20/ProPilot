@@ -110,7 +110,7 @@ export default async function ListingPage({ params }: PageProps<"/buyer/listings
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           <section className="rounded-2xl border border-line bg-white p-5 shadow-[var(--shadow-card)]">
             <h2 className="font-semibold">Talk to {listing.business_name}</h2>
-            <p className="mb-4 mt-1 text-sm text-muted">Chat in ProPilot. Their AI assistant answers right away, and an agent can join anytime.</p>
+            <p className="mb-4 mt-1 text-sm text-muted">Chat in Home Finder. Their AI assistant answers right away, and an agent can join anytime.</p>
             <form action={startChat.bind(null, listing.id)}>
               <SubmitButton variant="secondary" className="w-full" pendingText="Opening chat…">
                 <MessageCircle className="size-4" aria-hidden /> Message the agent

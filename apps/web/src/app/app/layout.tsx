@@ -44,7 +44,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
       ? [{ href: "/app/integrations", label: "Integrations", icon: "integrations" as const }]
       : []),
     ...(can(current.role, "billing.view") ? [{ href: "/app/billing", label: "Billing", icon: "billing" as const }] : []),
-    // ProPilot staff only: GCash payments waiting for a check.
+    // Home Finder staff only: GCash payments waiting for a check.
     ...(user && (await isSuperAdmin(user.id)) ? [{ href: "/admin/payments", label: "Payments to check", icon: "billing" as const, count: await pendingPayments() }] : []),
   ];
 

@@ -96,7 +96,7 @@ export function DashboardView({
             note={leads.openCount ? `${leads.openCount} open viewing requests` : publicCount ? "Waiting for buyers" : "Show a listing to buyers to start"}
             href="/app/leads" />
         ) : (
-          <Stat icon={Flame} tint="bg-hot-50 text-hot" label="Listings shown to buyers" value={<CountUp value={publicCount} />} note="Visible on ProPilot" />
+          <Stat icon={Flame} tint="bg-hot-50 text-hot" label="Listings shown to buyers" value={<CountUp value={publicCount} />} note="Visible on Home Finder" />
         )}
         <Stat icon={MessageCircle} tint="bg-brass-50 text-brass" label="Messenger inquiries" value="—" note="Starts when Facebook is connected" muted />
       </section>
@@ -108,11 +108,11 @@ export function DashboardView({
             <h2 className="text-2xl font-bold tracking-tight">Your AI assistant</h2>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium">
               <span className={cx("size-2 rounded-full", assistantLive ? "bg-[#8fd1a6]" : "bg-[#e0b86a]")} aria-hidden />
-              {assistantLive ? "Live for ProPilot buyers" : "Not live yet"}
+              {assistantLive ? "Live for Home Finder buyers" : "Not live yet"}
             </span>
           </div>
           <p className="mt-2 max-w-md text-sm leading-relaxed text-white/70">
-            It already answers ProPilot buyers on listings you choose to show. Once your Facebook Page is connected,
+            It already answers Home Finder buyers on listings you choose to show. Once your Facebook Page is connected,
             it will answer Messenger inquiries too, day and night.
           </p>
 

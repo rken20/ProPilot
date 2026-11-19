@@ -22,7 +22,7 @@ export async function startChat(propertyId: string) {
   if (!prop) redirect("/buyer/messages?notice=unavailable");
   const businessId = prop!.business_id as string;
   const profile = await getProfile();
-  const name = (profile?.full_name || user.email?.split("@")[0] || "ProPilot buyer").slice(0, 120);
+  const name = (profile?.full_name || user.email?.split("@")[0] || "Home Finder buyer").slice(0, 120);
 
   const find = () =>
     admin!.from("messenger_conversations").select("id").eq("business_id", businessId).eq("buyer_id", user.id).eq("channel", "app").maybeSingle();

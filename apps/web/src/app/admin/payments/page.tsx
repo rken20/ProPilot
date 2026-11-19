@@ -6,7 +6,7 @@ import { formatPeso } from "@/lib/money";
 import { requireSuperAdmin } from "@/lib/superadmin";
 import { confirmPayment, grantPlan, rejectPayment } from "./actions";
 
-export const metadata = { title: "Payments · ProPilot admin" };
+export const metadata = { title: "Payments · Home Finder admin" };
 
 const when = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 const day = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric" });
@@ -28,7 +28,7 @@ type Row = {
   businesses: { name: string } | null;
 };
 
-/** ProPilot super admins only: check GCash payments and turn plans on. */
+/** Home Finder super admins only: check GCash payments and turn plans on. */
 export default async function AdminPaymentsPage() {
   const { admin } = await requireSuperAdmin();
   const cols = "id, business_id, buyer_id, months, amount_minor, method, reference, payer_name, status, reject_reason, period_end, created_at, plans(name), businesses(name)";
@@ -50,7 +50,7 @@ export default async function AdminPaymentsPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <Link href="/app" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-        <ArrowLeft className="size-4" aria-hidden /> Back to ProPilot
+        <ArrowLeft className="size-4" aria-hidden /> Back to Home Finder
       </Link>
       <PageHeader
         title="Payments to check"

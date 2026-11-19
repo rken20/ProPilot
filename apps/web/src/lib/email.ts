@@ -15,7 +15,7 @@ export function emailProvider(): "resend" | "smtp" | null {
 }
 
 function fromAddress(): string {
-  return process.env.EMAIL_FROM || (process.env.SMTP_USER ? `ProPilot AI <${process.env.SMTP_USER}>` : "ProPilot AI <onboarding@resend.dev>");
+  return process.env.EMAIL_FROM || (process.env.SMTP_USER ? `Home Finder AI <${process.env.SMTP_USER}>` : "Home Finder AI <onboarding@resend.dev>");
 }
 
 export async function sendEmail(email: Email, fetchImpl: typeof fetch = fetch): Promise<SendResult> {

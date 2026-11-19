@@ -1,4 +1,4 @@
-/** ProPilot mark: a roofline that doubles as a navigation chevron. */
+/** Home Finder mark: a roofline that doubles as a navigation chevron. */
 export function Logo({ className = "", tone = "light" }: { className?: string; tone?: "light" | "dark" }) {
   const tile = tone === "dark" ? "#f6f5f2" : "#24543f";
   const roof = tone === "dark" ? "#24543f" : "#ffffff";
@@ -9,7 +9,7 @@ export function Logo({ className = "", tone = "light" }: { className?: string; t
         <path d="M8 17.5 16 10l8 7.5" fill="none" stroke={roof} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M11.5 16v6.5h9V16" fill="none" stroke="#c9a463" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span className="whitespace-nowrap text-[17px] font-bold tracking-tight">ProPilot AI</span>
+      <span className="whitespace-nowrap text-[17px] font-bold tracking-tight">Home Finder AI</span>
     </span>
   );
 }

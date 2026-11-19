@@ -17,7 +17,7 @@ const done = (notice: string) => {
   redirect(`/app/integrations?notice=${notice}`);
 };
 
-/** Create "ProPilot leads – <business>" in the signed-in user's Drive and keep it in sync. */
+/** Create "Home Finder leads – <business>" in the signed-in user's Drive and keep it in sync. */
 export async function createLeadsSheet() {
   const user = await requireUser();
   const biz = await requireBusiness();
@@ -32,7 +32,7 @@ export async function createLeadsSheet() {
   let failed = false;
   try {
     const { access_token } = await refreshAccessToken(fetch, cfg!, decryptSecret(conn!.refresh_token_enc as string));
-    const sheet = await createSpreadsheet(fetch, access_token, `ProPilot leads – ${biz.businessName}`);
+    const sheet = await createSpreadsheet(fetch, access_token, `Home Finder leads – ${biz.businessName}`);
     await admin!.from("business_integrations").upsert({
       business_id: biz.businessId,
       sheets_user_id: user.id,
@@ -64,7 +64,7 @@ export async function stopSheetSync() {
   done("sheet-stopped");
 }
 
-/** Revoke ProPilot's access with Google and forget the token. */
+/** Revoke Home Finder's access with Google and forget the token. */
 export async function disconnectGoogle() {
   const user = await requireUser();
   const admin = createAdminClient();

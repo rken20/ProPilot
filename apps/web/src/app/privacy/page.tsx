@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/logo";
 
-export const metadata: Metadata = { title: "Privacy policy · ProPilot AI" };
+export const metadata: Metadata = { title: "Privacy policy · Home Finder AI" };
 
 const UPDATED = "11 November 2026";
 
@@ -13,19 +13,19 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-svh bg-surface">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
-        <Link href="/" aria-label="ProPilot AI home">
+        <Link href="/" aria-label="Home Finder AI home">
           <Logo />
         </Link>
       </header>
       <main className="mx-auto max-w-3xl px-6 pb-24">
         <h1 className="font-display text-[2.6rem] leading-tight font-medium">Privacy policy</h1>
-        <p className="mt-2 text-sm text-muted">Last updated {UPDATED}. ProPilot AI is in beta in the Philippines.</p>
+        <p className="mt-2 text-sm text-muted">Last updated {UPDATED}. Home Finder AI is in beta in the Philippines.</p>
 
         <div className="mt-10 space-y-10 text-[15px] leading-relaxed text-ink/90">
-          <Section title="What ProPilot is">
+          <Section title="What Home Finder is">
             <p>
-              ProPilot AI helps real estate agents and brokers list properties and answer buyers, and helps buyers find
-              properties, ask about them and request viewings. This policy explains what personal data ProPilot handles,
+              Home Finder AI helps real estate agents and brokers list properties and answer buyers, and helps buyers find
+              properties, ask about them and request viewings. This policy explains what personal data Home Finder handles,
               why, and what you can do about it under the Data Privacy Act of 2012 (Republic Act 10173).
             </p>
           </Section>
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
                 name, mobile number, preferred date and message), which go to the agent of that listing.
               </li>
               <li>
-                If you connect Google: your Google email address and an encrypted token that lets ProPilot use only the
+                If you connect Google: your Google email address and an encrypted token that lets Home Finder use only the
                 spreadsheet and calendar it creates.
               </li>
               <li>
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
                 Page, and your app-specific Facebook user ID. We don&apos;t keep your personal Facebook login token.
               </li>
               <li>
-                Chats in ProPilot between a buyer and a business: the messages, the listing it started from, and any viewing
+                Chats in Home Finder between a buyer and a business: the messages, the listing it started from, and any viewing
                 details you give. The business&apos;s team can read them.
               </li>
               <li>
@@ -85,7 +85,7 @@ export default function PrivacyPage() {
                 publish a listing to your Page when someone on your team presses Post.
               </li>
               <li>
-                In ProPilot chats and on Messenger: to answer questions about the business&apos;s listings with an automated assistant, which says
+                In Home Finder chats and on Messenger: to answer questions about the business&apos;s listings with an automated assistant, which says
                 it&apos;s automated, and to pass the conversation to a person on the business&apos;s team when you ask or when it
                 can&apos;t help. The team can read the conversation and reply.
               </li>
@@ -113,15 +113,15 @@ export default function PrivacyPage() {
             <ul className="list-disc space-y-2 pl-5">
               <li>Your account and listings: until you delete them or ask us to delete your account.</li>
               <li>Listings from other sites: 30 days after last seen, unless a buyer saved them. Search results: 7 days.</li>
-              <li>ProPilot chats and Messenger conversations: deleted 12 months after the last message.</li>
+              <li>Home Finder chats and Messenger conversations: deleted 12 months after the last message.</li>
               <li>Pipeline leads that never got past the early stages, or were marked lost: deleted after 12 months with no activity.</li>
-              <li>Google and Facebook tokens: until you disconnect, or remove ProPilot in your Google or Facebook settings.</li>
+              <li>Google and Facebook tokens: until you disconnect, or remove Home Finder in your Google or Facebook settings.</li>
             </ul>
           </Section>
 
           <Section title="Facebook data and how to delete it">
             <p>
-              You can disconnect a Page any time under Integrations, which deletes its token. You can also remove ProPilot
+              You can disconnect a Page any time under Integrations, which deletes its token. You can also remove Home Finder
               AI in Facebook under Settings and privacy, then Settings, then Business integrations (or Apps and websites).
               When you do and ask for your data to be deleted, Facebook tells us and we delete every Page token you
               connected. You&apos;ll get a confirmation code you can check on our deletion status page.

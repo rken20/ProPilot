@@ -17,7 +17,7 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
     <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
         <Logo />
-        <h1 className="font-display mt-8 text-[2rem] leading-tight font-medium">{first ? `Welcome, ${first}.` : "Welcome."} How will you use ProPilot?</h1>
+        <h1 className="font-display mt-8 text-[2rem] leading-tight font-medium">{first ? `Welcome, ${first}.` : "Welcome."} How will you use Home Finder?</h1>
         <p className="mt-1 text-sm text-muted">You only need to choose once.</p>
         {failed ? (
           <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">

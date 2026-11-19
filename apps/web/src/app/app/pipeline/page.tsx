@@ -38,7 +38,7 @@ const TEMP_ORDER = { hot: 0, warm: 1, cold: 3 } as const;
 const tempRank = (t: Row["temperature"]) => (t ? TEMP_ORDER[t] : 2);
 
 const SOURCE_ICON = { viewing_request: CalendarDays, messenger: MessageCircle, app_chat: Smartphone, manual: Hand } as const;
-const SOURCE_SHORT: Record<string, string> = { viewing_request: "Request", messenger: "Messenger", app_chat: "ProPilot chat", manual: "Added" };
+const SOURCE_SHORT: Record<string, string> = { viewing_request: "Request", messenger: "Messenger", app_chat: "Home Finder chat", manual: "Added" };
 
 const VIEWS = [
   ["open", "Open"],

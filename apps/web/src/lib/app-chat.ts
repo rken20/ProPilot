@@ -50,7 +50,7 @@ export async function replyInApp(conversationId: string, triggerMessageId: strin
     });
     if (!turn) return;
     await admin.from("messenger_messages").insert({ conversation_id: conv.id, business_id: conv.business_id, sender: "ai", body: turn.result.reply });
-    await applyTurn(admin, conv.id as string, conv.business_id as string, turn, { channelLabel: "ProPilot chat", sourceName: name, appOrigin });
+    await applyTurn(admin, conv.id as string, conv.business_id as string, turn, { channelLabel: "Home Finder chat", sourceName: name, appOrigin });
   } catch (e) {
     console.error("[app-chat] reply failed:", e instanceof Error ? e.message : String(e));
   }

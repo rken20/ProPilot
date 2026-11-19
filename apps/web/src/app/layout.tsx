@@ -5,7 +5,7 @@ import "@fontsource-variable/newsreader";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ProPilot AI",
+  title: "Home Finder AI",
   description: "AI assistant for real estate agents",
 };
 

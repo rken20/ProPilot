@@ -85,7 +85,7 @@ export function googleCalendarUrl(lead: Lead, property: { name: string; location
       `Mobile: ${lead.buyer_phone}`,
       lead.budget_note ? `Budget: ${lead.budget_note}` : "",
       lead.message ? `Message: ${lead.message}` : "",
-      "From ProPilot AI",
+      "From Home Finder AI",
     ]
       .filter(Boolean)
       .join("\n"),
@@ -155,12 +155,12 @@ export function newLeadEmail(lead: Lead, property: { name: string; location: str
     "",
     `Call or text them to confirm, then update the lead: ${leadsUrl}`,
     "",
-    `Sent by ProPilot AI to the team at ${businessName}.`,
+    `Sent by Home Finder AI to the team at ${businessName}.`,
   ].join("\n");
   const html = `<!doctype html><html><body style="margin:0;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#0e1726">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e3e8f0;border-radius:12px">
-<tr><td style="padding:24px 24px 8px"><p style="margin:0;font-size:13px;color:#5b6577">ProPilot AI</p>
+<tr><td style="padding:24px 24px 8px"><p style="margin:0;font-size:13px;color:#5b6577">Home Finder AI</p>
 <h1 style="margin:8px 0 0;font-size:20px;line-height:1.3">${esc(lead.buyer_name)} wants to view ${esc(property.name)}</h1></td></tr>
 <tr><td style="padding:16px 24px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 ${lines.map(([k, v]) => `<tr><td style="padding:6px 0;width:130px;font-size:13px;color:#5b6577;vertical-align:top">${esc(k)}</td><td style="padding:6px 0;font-size:14px">${esc(v)}</td></tr>`).join("")}
