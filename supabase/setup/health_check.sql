@@ -17,6 +17,7 @@ from (values
   (14, 'Pipeline and AI agents', to_regclass('public.prospects') is not null, 'Run 20261112010000_pipeline.sql'),
   (15, 'Lead qualification', to_regclass('public.buyer_preferences') is not null, 'Run 20261112020000_qualification.sql'),
   (16, 'Plans and GCash payments', to_regclass('public.payments') is not null, 'Run 20261119000000_billing.sql'),
-  (17, 'Buyer plans', to_regclass('public.buyer_subscriptions') is not null, 'Run 20261119010000_buyer_plans.sql')
+  (17, 'Buyer plans', to_regclass('public.buyer_subscriptions') is not null, 'Run 20261119010000_buyer_plans.sql'),
+  (18, 'Property matcher', to_regclass('public.buyer_introductions') is not null, 'Run 20261119030000_matching.sql')
 ) as t(n, item, ok, fix)
 order by n;

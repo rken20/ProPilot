@@ -15,8 +15,8 @@ export const AGENT_INFO = [
   {
     key: "matcher",
     name: "Property matcher",
-    does: "Matches new listings to qualified buyers, and buyers to listings that fit them.",
-    live: false,
+    does: "Each morning, finds the best new listing for each open lead by budget, area, type and financing, and drafts a message for you to approve.",
+    live: true,
   },
   {
     key: "follow_up",
@@ -27,8 +27,8 @@ export const AGENT_INFO = [
   {
     key: "discovery",
     name: "Buyer Finder",
-    does: "Finds potential buyers for your listings among people who reached out or opted in: Home Finder buyers whose search fits, Lead Ads forms, Page comments, open-house sign-ups and client lists.",
-    live: false,
+    does: "On each listing, shows the leads in your pipeline who fit it and Home Finder buyers on Basic who asked for matching listings. Send it to up to 5 of them a month. Lead Ads forms and client lists come later.",
+    live: true,
   },
 ] as const;
 

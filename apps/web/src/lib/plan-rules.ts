@@ -32,7 +32,7 @@ export const BUYER_PLAN_COPY: Record<string, { tagline: string; includes: string
   free: {
     tagline: "Browse and contact agents, free.",
     includes: ["Browse and save Home Finder listings", "Message agents and request viewings", "My search: tell agents what you want"],
-    excludes: "No AI: no AI answers on listings, no AI search of other sites, and agents reply in person.",
+    excludes: "No AI or matching: search Home Finder listings yourself, and agents reply in person.",
   },
   basic: {
     tagline: "AI help while you look for a home",
@@ -41,7 +41,8 @@ export const BUYER_PLAN_COPY: Record<string, { tagline: string; includes: string
       "Ask the AI about any listing whose agent has AI on",
       "AI search of other property sites",
       "Instant AI replies when you message an agent",
-      "Alerts when a matching listing is posted (coming soon)",
+      "Listings that fit your search, and emails when new ones are posted",
+      "Agents with matching listings can send them to you, if you allow it",
     ],
   },
 };
@@ -56,14 +57,14 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Pipeline and Messages inbox",
       "Listing reports",
     ],
-    excludes: "No AI features: no AI chat replies, lead scoring, Buyer Finder or AI writing.",
+    excludes: "No AI features: no AI chat replies, lead scoring, matching, Buyer Finder or AI writing.",
   },
   basic: {
     tagline: "Para sa individual property owners",
     includes: [
       "Everything in Free",
-      "Up to 5 AI-found potential buyers a month (Buyer Finder)",
-      "Basic buyer matching and lead scoring",
+      "Buyer Finder: send a listing to up to 5 matching Home Finder buyers a month",
+      "Property matcher and lead scoring",
       "AI replies in Home Finder chat and Messenger",
       "AI-written listing descriptions and captions",
       "Ask Home Finder and the reply helper",

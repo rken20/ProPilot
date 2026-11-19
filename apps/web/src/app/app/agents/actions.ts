@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { can } from "@propilot/shared";
 import { runPipelineKeeper } from "@/lib/agent-runs";
+import { runMatcher } from "@/lib/matcher-run";
 import { runQualifier } from "@/lib/qualifier-run";
 import { isStage } from "@/lib/pipeline";
 import { requireBusiness, requireUser } from "@/lib/auth";
@@ -155,10 +156,11 @@ export async function runAgentsNow(): Promise<RunState> {
   const admin = createAdminClient();
   if (!admin) return { error: "The agents aren't available right now." };
   const res = await runPipelineKeeper(admin, biz.businessId, "manual");
+  const match = await runMatcher(admin, biz.businessId, "manual");
   const qual = await runQualifier(admin, biz.businessId, "manual", { limit: 10, deadline: Date.now() + 35_000 });
   refresh();
   if (!res.ok) return { error: res.summary };
-  const total = res.proposed + qual.proposed;
-  const parts = [res.summary, qual.checked ? qual.summary : ""].filter(Boolean).join(" ");
+  const total = res.proposed + match.proposed + qual.proposed;
+  const parts = [res.summary, match.proposed ? match.summary : "", qual.checked ? qual.summary : ""].filter(Boolean).join(" ");
   return { summary: total ? `${parts} ${total} new suggestion${total === 1 ? "" : "s"} below.` : parts };
 }

@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { str } from "@/lib/form";
 import { pesosToCentavos } from "@/lib/money";
 import { cleanAreas, FINANCING, PROPERTY_TYPE_KEYS, TIMELINES } from "@/lib/qualification";
+import { buyerAiEnabled } from "@/lib/plan";
 import { createClient } from "@/lib/supabase/server";
 
 export type PrefsState = { error?: string; saved?: number };
@@ -20,7 +21,12 @@ export async function savePreferences(_prev: PrefsState, form: FormData): Promis
   const timeline = str(form, "timeline");
   const financing = str(form, "financing");
   const supabase = await createClient();
+  // Matching opt-ins are a Basic feature; on Free they're left as they were.
+  const matching = (await buyerAiEnabled(user.id))
+    ? { open_to_agents: form.get("openToAgents") === "on", match_alerts: form.get("matchAlerts") === "on" }
+    : {};
   const { error } = await supabase.from("buyer_preferences").upsert({
+    ...matching,
     user_id: user.id,
     budget_min_minor: min,
     budget_max_minor: max,
@@ -42,4 +48,13 @@ export async function clearPreferences() {
   const supabase = await createClient();
   await supabase.from("buyer_preferences").delete().eq("user_id", user.id);
   revalidatePath("/buyer", "layout");
+}
+
+/** Hide a listing an agent sent. RLS and a trigger only let the buyer set dismissed_at on their own. */
+export async function dismissIntroduction(id: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return;
+  const user = await requireUser();
+  const supabase = await createClient();
+  await supabase.from("buyer_introductions").update({ dismissed_at: new Date().toISOString() }).eq("id", id).eq("buyer_id", user.id);
+  revalidatePath("/buyer/my-search");
 }

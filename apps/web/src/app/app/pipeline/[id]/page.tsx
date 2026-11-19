@@ -15,6 +15,9 @@ import { addProspectNote, assignProspect, deleteProspect } from "../actions";
 import { ProspectDetailsForm } from "../prospect-forms";
 import { QualificationCard } from "./qualification-card";
 import { aiEnabled } from "@/lib/plan";
+import { factsOf } from "@/lib/buyer-finder";
+import { rankMatches, scoreMatch } from "@/lib/matching";
+import { ListingsThatFit, type FitRow } from "./listings-that-fit";
 
 // Running the AI agents by hand can take up to about 40 seconds.
 export const maxDuration = 60;
@@ -71,6 +74,39 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
   const canEdit = can(biz.role, "lead.update");
   const canAssign = can(biz.role, "lead.assign");
   const stage = p.stage as Stage;
+  const aiOn = await aiEnabled(biz.businessId);
+
+  // Property matcher (Basic): the lead's facts, filled in from the buyer's shared My search where unknown.
+  let fits: { rows: FitRow[]; enough: boolean } | null = null;
+  if (aiOn) {
+    const own = factsOf(p);
+    const shared = prefs ? factsOf(prefs as Record<string, unknown>) : null;
+    const facts = shared
+      ? {
+          budget_min_minor: own.budget_min_minor ?? shared.budget_min_minor,
+          budget_max_minor: own.budget_max_minor ?? shared.budget_max_minor,
+          areas: own.areas.length ? own.areas : shared.areas,
+          property_types: own.property_types.length ? own.property_types : shared.property_types,
+          timeline: own.timeline ?? shared.timeline,
+          financing: own.financing ?? shared.financing,
+        }
+      : own;
+    const enough = [facts.budget_max_minor !== null, facts.areas.length > 0, facts.property_types.length > 0].filter(Boolean).length >= 2;
+    const { data: forSale } = enough
+      ? await supabase
+          .from("properties")
+          .select("id, name, type, location, price_minor, financing")
+          .eq("business_id", biz.businessId)
+          .eq("status", "available")
+          .limit(500)
+      : { data: [] };
+    const rows = rankMatches(
+      (forSale ?? []).map((l) => ({ ...l, price_minor: Number(l.price_minor) })),
+      (l) => scoreMatch(l as Parameters<typeof scoreMatch>[0], facts),
+      5,
+    ).map(({ item, match }) => ({ id: item.id, name: item.name, location: item.location, price_minor: item.price_minor, asked: item.id === p.property_id, match }));
+    fits = { rows, enough };
+  }
   const phone = (p.phone ?? "").replace(/[^\d+]/g, "");
 
   return (
@@ -229,8 +265,9 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
             }}
             prefs={prefs}
             canEdit={canEdit}
-            aiOn={await aiEnabled(biz.businessId)}
+            aiOn={aiOn}
           />
+          {fits ? <ListingsThatFit rows={fits.rows} enough={fits.enough} /> : null}
           {canEdit ? (
             <Card className="p-5">
               <ProspectDetailsForm

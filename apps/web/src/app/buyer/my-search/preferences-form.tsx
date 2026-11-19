@@ -8,7 +8,16 @@ import { TYPE_LABEL } from "@/lib/property-labels";
 import { FINANCING, PROPERTY_TYPE_KEYS, TIMELINES, type Preferences } from "@/lib/qualification";
 import { savePreferences, type PrefsState } from "./actions";
 
-export function PreferencesForm({ p, share }: { p: Preferences | null; share: boolean }) {
+export function PreferencesForm({
+  p,
+  share,
+  matching,
+}: {
+  p: Preferences | null;
+  share: boolean;
+  /** The buyer's matching opt-ins; null on Free (matching is a Basic feature). */
+  matching: { openToAgents: boolean; matchAlerts: boolean } | null;
+}) {
   const [state, action] = useActionState<PrefsState, FormData>(savePreferences, {});
   return (
     <form action={action} className="space-y-6">
@@ -89,6 +98,28 @@ export function PreferencesForm({ p, share }: { p: Preferences | null; share: bo
           </span>
         </span>
       </label>
+
+      {matching ? (
+        <>
+          <label className="flex items-start gap-3 rounded-xl border border-line bg-white p-4 text-sm">
+            <input type="checkbox" name="openToAgents" defaultChecked={matching.openToAgents} className="mt-0.5 size-4 accent-[var(--color-brand-600)]" />
+            <span>
+              <span className="font-medium">Let agents send me listings that fit</span>
+              <span className="block text-muted">
+                Agents with a matching listing see what you&apos;re looking for, never your name or contact details. They can send you the listing, and we&apos;ll
+                email you. You decide whether to message them.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3 rounded-xl border border-line bg-white p-4 text-sm">
+            <input type="checkbox" name="matchAlerts" defaultChecked={matching.matchAlerts} className="mt-0.5 size-4 accent-[var(--color-brand-600)]" />
+            <span>
+              <span className="font-medium">Email me new listings that fit</span>
+              <span className="block text-muted">At most one email a day, only when something new matches.</span>
+            </span>
+          </label>
+        </>
+      ) : null}
 
       <SubmitButton pendingText="Saving…">Save</SubmitButton>
     </form>

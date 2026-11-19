@@ -14,7 +14,9 @@ import { FacebookPost, type FacebookPostLog } from "./facebook-post";
 import { businessPages } from "@/lib/facebook-pages";
 import { defaultCaption, type CaptionListing } from "@/lib/listing-caption";
 import { canPublish, metaConfig } from "@/lib/meta";
-import { aiEnabled } from "@/lib/plan";
+import { aiEnabled, businessPlan } from "@/lib/plan";
+import { buyerFinder, type ListingForMatch } from "@/lib/buyer-finder";
+import { BuyerFinder, BuyerFinderUpgrade } from "./buyer-finder";
 
 export default async function PropertyPage({ params, searchParams }: PageProps<"/app/properties/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
@@ -52,6 +54,14 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
           .then((r) => (r.data ?? []) as FacebookPostLog[]),
       ])
     : [[], []];
+
+  // Buyer Finder (Basic): for people who work leads, on listings that are still for sale.
+  const sales = can(biz.role, "lead.viewAll") || can(biz.role, "lead.viewAssigned");
+  const plan = await businessPlan(biz.businessId);
+  const finderOn = sales && aiOn && plan.homeFinderBuyers !== 0 && p.status === "available";
+  const finder = finderOn
+    ? await buyerFinder(supabase, { ...p, price_minor: Number(p.price_minor) } as ListingForMatch, plan.homeFinderBuyers)
+    : null;
 
   const financing = (p.financing ?? {}) as Record<string, unknown>;
   const initial = {
@@ -101,6 +111,12 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       <Card>
         <PropertyForm action={updateProperty.bind(null, p.id)} initial={initial} submitLabel="Save changes" readOnly={!canEdit} aiWrite={aiOn} />
       </Card>
+
+      {finder ? (
+        <BuyerFinder propertyId={p.id} data={finder} isPublic={p.is_public} canSend={sales} />
+      ) : sales && !aiOn && p.status === "available" ? (
+        <BuyerFinderUpgrade canUpgrade={can(biz.role, "billing.manage")} />
+      ) : null}
 
       {showFacebook && fbPages.length && p.status !== "archived" && p.status !== "sold" ? (
         <FacebookPost
