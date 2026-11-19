@@ -15,18 +15,23 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const [memberships, user] = await Promise.all([getMemberships(), getUser()]);
   const fullName = String(user?.user_metadata?.full_name ?? "") || (user?.email ?? "");
   const sales = can(current.role, "lead.viewAll") || can(current.role, "lead.viewAssigned");
-  // AI suggestions waiting for a decision, shown as a badge on Pipeline and its "AI agents" tab.
-  const waiting = sales
-    ? ((
-        await (await createClient())
-          .from("agent_tasks")
-          .select("id", { count: "exact", head: true })
-          .eq("business_id", current.businessId)
-          .eq("status", "proposed")
-      ).count ?? 0)
-    : 0;
-
-  const superAdmin = user ? await isSuperAdmin(user.id) : false;
+  // Independent lookups run side by side: each is a round trip to the database.
+  const [waiting, superAdmin, aiOn] = await Promise.all([
+    // AI suggestions waiting for a decision, shown as a badge on Pipeline and its "AI agents" tab.
+    sales
+      ? createClient().then(async (supabase) =>
+          (
+            await supabase
+              .from("agent_tasks")
+              .select("id", { count: "exact", head: true })
+              .eq("business_id", current.businessId)
+              .eq("status", "proposed")
+          ).count ?? 0,
+        )
+      : Promise.resolve(0),
+    user ? isSuperAdmin(user.id) : Promise.resolve(false),
+    aiEnabled(current.businessId),
+  ]);
   const paymentsWaiting = superAdmin ? await pendingPayments() : 0;
 
   // Pages that share a sidebar item are reached through tabs at the top of the page.
@@ -65,7 +70,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
     <AppShell current={current} memberships={memberships} fullName={fullName} items={items} switchBusiness={switchBusiness}>
       <SectionTabs groups={[homeTabs, salesTabs, settingsTabs]} />
       {children}
-      {(await aiEnabled(current.businessId)) ? <AgentAssistant /> : null}
+      {aiOn ? <AgentAssistant /> : null}
     </AppShell>
   );
 }

@@ -16,22 +16,17 @@ export type PlanInfo = {
 
 const FREE: PlanInfo = { code: FREE_PLAN, name: "Free", ai: false, homeFinderBuyers: 0, periodEnd: null };
 
-/**
- * The plan a business is on right now. Read with the service role so it works
- * for buyers, webhooks and background jobs too; only `businessId`'s rows are read.
- * Cached for the length of one request.
- */
-async function planFrom(
-  admin: NonNullable<ReturnType<typeof createAdminClient>>,
-  sub: { current_period_end: unknown; plans: unknown } | null,
-): Promise<PlanInfo> {
-  const plan = (sub?.plans ?? null) as { code: string; name: string } | null;
+/** Plan and limits come back in one query (the subscription with its plan and the plan's limits). */
+const SUB_SELECT = "current_period_end, plans(code, name, plan_entitlements(feature_key, limit))";
+
+function planFrom(sub: { current_period_end: unknown; plans: unknown } | null): PlanInfo {
+  const plan = (sub?.plans ?? null) as { code: string; name: string; plan_entitlements?: Array<{ feature_key: string; limit: number | null }> } | null;
   const code = effectivePlanCode(sub && plan ? { code: plan.code, current_period_end: sub.current_period_end as string } : null, new Date());
   if (code === FREE_PLAN || !plan) return FREE;
-  const { data: rows } = await admin.from("plan_entitlements").select("feature_key, limit, plans!inner(code)").eq("plans.code", code);
+  const rows = plan.plan_entitlements ?? [];
   const limit = (key: string) => {
-    const row = (rows ?? []).find((r) => r.feature_key === key);
-    return row ? (row.limit as number | null) : 0;
+    const row = rows.find((r) => r.feature_key === key);
+    return row ? row.limit : 0;
   };
   const ai = limit("ai");
   return { code, name: plan.name, ai: ai === null || ai > 0, homeFinderBuyers: limit("home_finder_buyers"), periodEnd: sub!.current_period_end as string };
@@ -45,16 +40,16 @@ async function planFrom(
 export const businessPlan = cache(async (businessId: string): Promise<PlanInfo> => {
   const admin = createAdminClient();
   if (!admin) return FREE;
-  const { data: sub } = await admin.from("subscriptions").select("current_period_end, plans(code, name)").eq("business_id", businessId).maybeSingle();
-  return planFrom(admin, sub);
+  const { data: sub } = await admin.from("subscriptions").select(SUB_SELECT).eq("business_id", businessId).maybeSingle();
+  return planFrom(sub);
 });
 
 /** The plan a buyer is on right now (buyers have their own subscription). */
 export const buyerPlan = cache(async (userId: string): Promise<PlanInfo> => {
   const admin = createAdminClient();
   if (!admin) return FREE;
-  const { data: sub } = await admin.from("buyer_subscriptions").select("current_period_end, plans(code, name)").eq("user_id", userId).maybeSingle();
-  return planFrom(admin, sub);
+  const { data: sub } = await admin.from("buyer_subscriptions").select(SUB_SELECT).eq("user_id", userId).maybeSingle();
+  return planFrom(sub);
 });
 
 /** Buyer-side AI (AI search, AI answers, instant AI replies) needs the buyer to be on a plan with AI. */
