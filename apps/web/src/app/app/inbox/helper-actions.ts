@@ -7,6 +7,8 @@ import { DEFAULT_MODEL } from "@/lib/listing-assistant";
 import type { MessengerListing } from "@/lib/messenger-assistant";
 import { draftReply, summarize, translate, type HelperTurn, type Summary } from "@/lib/reply-helper";
 import { createClient } from "@/lib/supabase/server";
+import { aiEnabled } from "@/lib/plan";
+import { UPGRADE_MESSAGE } from "@/lib/plan-rules";
 
 type Result<T> = { ok: T } | { error: string };
 
@@ -16,6 +18,7 @@ async function context(conversationId: string) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!can(biz.role, "conversation.reply")) return { error: "You can't use the reply helper." } as const;
   if (!apiKey) return { error: "The AI isn't switched on yet." } as const;
+  if (!(await aiEnabled(biz.businessId))) return { error: UPGRADE_MESSAGE } as const;
   if (!/^[0-9a-f-]{36}$/i.test(conversationId)) return { error: "Conversation not found." } as const;
   const supabase = await createClient();
   const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "reply_helper", p_limit: 60, p_window_seconds: 3600 });

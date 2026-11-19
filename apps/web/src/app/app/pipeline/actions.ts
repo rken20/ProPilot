@@ -12,6 +12,8 @@ import { cleanAreas, FINANCING, PROPERTY_TYPE_KEYS, TIMELINES } from "@/lib/qual
 import { anthropicFromEnv, qualifyProspect } from "@/lib/qualifier-run";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { aiEnabled } from "@/lib/plan";
+import { UPGRADE_MESSAGE } from "@/lib/plan-rules";
 
 export type ProspectFormState = { error?: string; saved?: number };
 
@@ -150,6 +152,7 @@ export async function recheckProspect(id: string): Promise<QualifyState> {
   const ai = anthropicFromEnv();
   const admin = createAdminClient();
   if (!ai || !admin) return { error: "The AI isn't set up yet." };
+  if (!(await aiEnabled(biz.businessId))) return { error: UPGRADE_MESSAGE };
   const res = await qualifyProspect(admin, ai, biz.businessId, id);
   refresh(id);
   return res.ok ? { done: Date.now() } : { error: "The AI couldn't read this lead right now. Please try again." };

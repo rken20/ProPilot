@@ -1,6 +1,7 @@
 import "server-only";
 import { aiTurn, applyTurn } from "./messenger-jobs";
 import { createAdminClient } from "./supabase/admin";
+import { aiEnabled } from "@/lib/plan";
 
 /** Let a quick burst of buyer messages settle before answering, like Messenger. */
 const SETTLE_MS = 1500;
@@ -18,10 +19,10 @@ export async function replyInApp(conversationId: string, triggerMessageId: strin
       .eq("channel", "app")
       .maybeSingle();
     if (!conv || conv.mode !== "ai") return;
-    if (!apiKey) {
+    if (!apiKey || !(await aiEnabled(conv.business_id as string))) {
       await admin
         .from("messenger_conversations")
-        .update({ needs_attention: true, attention_reason: "The AI assistant isn't switched on, so this needs a person." })
+        .update({ needs_attention: true, attention_reason: apiKey ? "AI replies are part of the Basic plan, so this needs a person." : "The AI assistant isn't switched on, so this needs a person." })
         .eq("id", conversationId);
       return;
     }

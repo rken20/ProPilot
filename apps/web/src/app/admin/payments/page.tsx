@@ -1,0 +1,185 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { Card, PageHeader } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
+import { formatPeso } from "@/lib/money";
+import { requireSuperAdmin } from "@/lib/superadmin";
+import { confirmPayment, grantPlan, rejectPayment } from "./actions";
+
+export const metadata = { title: "Payments · ProPilot admin" };
+
+const when = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+const day = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric" });
+
+type Row = {
+  id: string;
+  business_id: string;
+  months: number;
+  amount_minor: number;
+  method: string;
+  reference: string | null;
+  payer_name: string | null;
+  status: string;
+  reject_reason: string | null;
+  period_end: string | null;
+  created_at: string;
+  plans: { name: string } | null;
+  businesses: { name: string } | null;
+};
+
+/** ProPilot super admins only: check GCash payments and turn plans on. */
+export default async function AdminPaymentsPage() {
+  const { admin } = await requireSuperAdmin();
+  const cols = "id, business_id, months, amount_minor, method, reference, payer_name, status, reject_reason, period_end, created_at, plans(name), businesses(name)";
+  const [{ data: pending }, { data: recent }, { data: businesses }, { data: plans }, { data: subs }] = await Promise.all([
+    admin.from("payments").select(cols).eq("status", "pending").order("created_at").limit(100),
+    admin.from("payments").select(cols).neq("status", "pending").order("created_at", { ascending: false }).limit(30),
+    admin.from("businesses").select("id, name").order("name").limit(1000),
+    admin.from("plans").select("code, name, price_minor").eq("is_active", true).neq("price_minor", 0).order("sort_order"),
+    admin.from("subscriptions").select("business_id, current_period_end, plans(name)"),
+  ]);
+  const subOf = new Map((subs ?? []).map((s) => [s.business_id as string, s]));
+  const rows = (pending ?? []) as unknown as Row[];
+
+  return (
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <Link href="/app" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
+        <ArrowLeft className="size-4" aria-hidden /> Back to ProPilot
+      </Link>
+      <PageHeader
+        title="Payments to check"
+        description="Find each payment in your GCash transaction history by its reference number and amount, then confirm it. Confirming turns the plan on right away."
+      />
+
+      {rows.length ? (
+        <ul className="space-y-4">
+          {rows.map((p) => (
+            <li key={p.id}>
+              <Card className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-lg font-bold tracking-tight">{p.businesses?.name ?? "Business"}</p>
+                    <p className="text-sm text-muted">
+                      {p.plans?.name}, {p.months} month{p.months === 1 ? "" : "s"} · sent {when.format(new Date(p.created_at))}
+                    </p>
+                  </div>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                    <dt className="text-muted">Amount</dt>
+                    <dd className="font-semibold tabular-nums">{formatPeso(p.amount_minor)}</dd>
+                    <dt className="text-muted">Reference</dt>
+                    <dd className="font-semibold tabular-nums">{p.reference}</dd>
+                    <dt className="text-muted">Paid from</dt>
+                    <dd className="font-semibold">{p.payer_name}</dd>
+                  </dl>
+                </div>
+                <div className="flex flex-wrap items-end gap-3 border-t border-line pt-4">
+                  <form action={confirmPayment.bind(null, p.id)}>
+                    <SubmitButton pendingText="Confirming…">Found it, confirm</SubmitButton>
+                  </form>
+                  <form action={rejectPayment.bind(null, p.id)} className="flex flex-1 flex-wrap items-end gap-2">
+                    <label className="min-w-56 flex-1 text-xs font-medium text-muted">
+                      Note to the owner (optional)
+                      <input
+                        name="reason"
+                        maxLength={300}
+                        placeholder="e.g. The amount received was ₱450, not ₱499."
+                        className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100"
+                      />
+                    </label>
+                    <SubmitButton variant="secondary" pendingText="…">
+                      Not found
+                    </SubmitButton>
+                  </form>
+                </div>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <Card>
+          <p className="font-semibold">No payments waiting.</p>
+          <p className="mt-1 text-sm text-muted">You&apos;ll get an email when an owner sends GCash payment details.</p>
+        </Card>
+      )}
+
+      <Card className="mt-8">
+        <h2 className="text-lg font-bold tracking-tight">Give a plan for free</h2>
+        <p className="mt-1 mb-4 text-sm text-muted">For beta testers and partners. It works like a confirmed payment of ₱0 and shows in their payment history.</p>
+        <form action={grantPlan} className="flex flex-wrap items-end gap-3">
+          <label className="min-w-56 flex-1 text-xs font-medium text-muted">
+            Business
+            <select name="businessId" required className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-ink">
+              {(businesses ?? []).map((b) => {
+                const s = subOf.get(b.id as string);
+                const active = s && new Date(s.current_period_end as string) > new Date();
+                return (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                    {active ? ` (${(s!.plans as unknown as { name: string } | null)?.name} until ${day.format(new Date(s!.current_period_end as string))})` : " (Free)"}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+          <label className="text-xs font-medium text-muted">
+            Plan
+            <select name="plan" className="mt-1 block rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-ink">
+              {(plans ?? []).map((p) => (
+                <option key={p.code} value={p.code}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-medium text-muted">
+            Months
+            <select name="months" defaultValue="3" className="mt-1 block rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-ink">
+              {[1, 3, 6, 12].map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+          <SubmitButton variant="secondary" pendingText="Giving…">
+            Give plan
+          </SubmitButton>
+        </form>
+      </Card>
+
+      {recent?.length ? (
+        <section className="mt-8">
+          <h2 className="mb-3 text-lg font-bold tracking-tight">Recently checked</h2>
+          <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead className="text-xs text-muted">
+                <tr className="border-b border-line">
+                  <th className="px-4 py-3 font-medium">Business</th>
+                  <th className="px-4 py-3 font-medium">Plan</th>
+                  <th className="px-4 py-3 font-medium">Amount</th>
+                  <th className="px-4 py-3 font-medium">Reference</th>
+                  <th className="px-4 py-3 font-medium">Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(recent as unknown as Row[]).map((p) => (
+                  <tr key={p.id} className="border-b border-line last:border-0">
+                    <td className="px-4 py-3">{p.businesses?.name}</td>
+                    <td className="px-4 py-3">
+                      {p.plans?.name}, {p.months} mo
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">{p.method === "complimentary" ? "Free (given)" : formatPeso(p.amount_minor)}</td>
+                    <td className="px-4 py-3 tabular-nums">{p.reference ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {p.status === "confirmed" ? `Confirmed, until ${p.period_end ? day.format(new Date(p.period_end)) : "—"}` : `Not found${p.reject_reason ? `: ${p.reject_reason}` : ""}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+    </main>
+  );
+}

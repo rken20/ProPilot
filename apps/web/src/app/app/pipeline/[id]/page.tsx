@@ -14,6 +14,7 @@ import { TaskCard, type TaskRow } from "../../agents/task-card";
 import { addProspectNote, assignProspect, deleteProspect } from "../actions";
 import { ProspectDetailsForm } from "../prospect-forms";
 import { QualificationCard } from "./qualification-card";
+import { aiEnabled } from "@/lib/plan";
 
 // Running the AI agents by hand can take up to about 40 seconds.
 export const maxDuration = 60;
@@ -228,7 +229,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
             }}
             prefs={prefs}
             canEdit={canEdit}
-            aiOn={Boolean(process.env.ANTHROPIC_API_KEY)}
+            aiOn={await aiEnabled(biz.businessId)}
           />
           {canEdit ? (
             <Card className="p-5">

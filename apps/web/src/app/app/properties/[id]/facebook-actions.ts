@@ -12,6 +12,7 @@ import { mediaUrl } from "@/lib/media";
 import { canPublish, GraphError, metaConfig, publishPost, uploadPhoto } from "@/lib/meta";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { aiEnabled } from "@/lib/plan";
 
 export type PublishState = { error?: string; postedTo?: string; link?: string; caption?: string; nonce?: number };
 
@@ -97,7 +98,7 @@ export async function draftCaption(propertyId: string): Promise<{ caption?: stri
   const listing = await loadListing(propertyId, biz.businessId);
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!listing) return { error: "Listing not found." };
-  if (!apiKey) return { caption: defaultCaption(listing) };
+  if (!apiKey || !(await aiEnabled(biz.businessId))) return { caption: defaultCaption(listing) };
 
   const supabase = await createClient();
   const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "caption_draft", p_limit: 30, p_window_seconds: 3600 });

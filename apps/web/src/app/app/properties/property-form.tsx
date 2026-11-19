@@ -6,6 +6,7 @@ import { Alert, Field, Input, Label, Select, Textarea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/lib/form";
 import { STATUS_LABEL, TYPE_LABEL } from "@/lib/property-labels";
+import { WriteDescriptionButton } from "./write-description";
 
 export type PropertyFormValues = Record<string, string>;
 
@@ -15,6 +16,7 @@ export function PropertyForm({
   submitLabel,
   readOnly = false,
   hidden,
+  aiWrite = false,
 }: {
   action: (prev: FormState, form: FormData) => Promise<FormState>;
   initial: PropertyFormValues;
@@ -22,6 +24,8 @@ export function PropertyForm({
   readOnly?: boolean;
   /** Extra hidden fields, e.g. the Facebook post a new listing came from. */
   hidden?: Record<string, string>;
+  /** Show "Write with AI" for the description (plans with AI only). */
+  aiWrite?: boolean;
 }) {
   const [state, formAction] = useActionState(action, { data: initial });
   const v = state.data ?? initial;
@@ -112,6 +116,7 @@ export function PropertyForm({
         <Field label="Description" htmlFor="description" error={e.description} hint="Features, inclusions, nearby places. The assistant uses only what's written here.">
           <Textarea id="description" name="description" defaultValue={v.description} rows={5} />
         </Field>
+        {aiWrite && !readOnly ? <WriteDescriptionButton targetId="description" /> : null}
       </fieldset>
 
       {readOnly ? null : <SubmitButton pendingText="Saving…">{submitLabel}</SubmitButton>}

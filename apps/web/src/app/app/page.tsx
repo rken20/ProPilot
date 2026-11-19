@@ -8,6 +8,7 @@ import { getCoverThumbs } from "@/lib/listings";
 import { mediaUrl } from "@/lib/media";
 import { greeting, longDate } from "@/lib/time";
 import { DashboardView, type Activity, type SetupStep } from "./dashboard-view";
+import { aiEnabled } from "@/lib/plan";
 
 const NOTICES: Record<string, string> = {
   welcome: "Your business is set up. Add your first property so the assistant has something to talk about.",
@@ -138,7 +139,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       steps={steps}
       leads={canSeeLeads ? { newCount: newLeads, openCount: openLeads } : null}
       publicCount={publicCount}
-      assistantLive={publicCount > 0 && Boolean(process.env.ANTHROPIC_API_KEY)}
+      assistantLive={publicCount > 0 && (await aiEnabled(biz.businessId))}
       recent={recent}
     />
   );

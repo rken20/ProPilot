@@ -12,6 +12,8 @@ type Page = { id: string; name: string };
 
 /** Add property, with an optional "start from a Facebook post" step above the form. */
 export function NewProperty({ canPaste, pages }: { canPaste: boolean; pages: Page[] }) {
+  // Writing a description and filling from a post both need AI on the plan.
+  const aiWrite = canPaste;
   const [state, action, pending] = useActionState<ImportState, FormData>(importListing, {});
   const filled = Boolean(state.nonce);
   // The panel starts open and folds away after each fill; the header reopens it.
@@ -127,6 +129,7 @@ export function NewProperty({ canPaste, pages }: { canPaste: boolean; pages: Pag
           action={createProperty}
           initial={state.values ?? {}}
           submitLabel="Save property"
+          aiWrite={aiWrite}
           hidden={state.importRef ? { importPost: state.importRef } : undefined}
         />
       </Card>

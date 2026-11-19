@@ -5,6 +5,7 @@ import { DEFAULT_MODEL, answer, sanitizeHistory } from "@/lib/listing-assistant"
 import { getListing } from "@/lib/listings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { listingAiEnabled } from "@/lib/plan";
 
 /** Buyer asks about one listing. Signed-in only; the listing must be public. */
 export async function POST(request: NextRequest) {
@@ -29,6 +30,9 @@ export async function POST(request: NextRequest) {
   // RLS-backed lookup: returns nothing unless the listing is public and unsold.
   const listing = await getListing(body.propertyId);
   if (!listing) return NextResponse.json({ error: "This listing is no longer available." }, { status: 404 });
+  if (!(await listingAiEnabled(listing.id))) {
+    return NextResponse.json({ error: "AI answers aren't on for this listing. You can message the agent or request a viewing." }, { status: 403 });
+  }
 
   // Cap AI use per buyer (shared across all server instances via Postgres).
   const supabase = await createClient();

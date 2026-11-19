@@ -9,6 +9,8 @@ import { formatPeso } from "@/lib/money";
 import { loadReportData } from "@/lib/report-data";
 import { fmtDuration, leadsReport, messengerReport, parseRange } from "@/lib/reports";
 import { createClient } from "@/lib/supabase/server";
+import { aiEnabled } from "@/lib/plan";
+import { UPGRADE_MESSAGE } from "@/lib/plan-rules";
 
 const ROLE = { owner: "owner", admin: "admin", agent: "agent", marketing: "marketing" } as const;
 
@@ -17,6 +19,7 @@ export async function askAgentAssistant(raw: AgentTurn[]): Promise<{ reply?: str
   const biz = await requireBusiness();
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { error: "The AI isn't switched on yet." };
+  if (!(await aiEnabled(biz.businessId))) return { error: UPGRADE_MESSAGE };
   const history = sanitizeAgentHistory(raw);
   if (!history.length || history.at(-1)!.role !== "user") return { error: "Ask a question first." };
 

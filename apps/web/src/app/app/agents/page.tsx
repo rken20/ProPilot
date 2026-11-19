@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/time";
 import { AgentSettingsForm, RunNow } from "./agent-controls";
 import { TaskCard, type TaskRow } from "./task-card";
+import { aiEnabled } from "@/lib/plan";
 
 // Running the AI agents by hand can take up to about 40 seconds.
 export const maxDuration = 60;
@@ -54,6 +55,7 @@ export default async function AgentsPage() {
   const prospectName = new Map((prospects ?? []).map((p) => [p.id, p.name]));
   const personName = new Map((people ?? []).map((p) => [p.id, p.full_name]));
   const cfg = { ...DEFAULT_AGENT_SETTINGS, ...(settings ?? {}) };
+  const aiOn = await aiEnabled(biz.businessId);
   const canAct = can(biz.role, "lead.update");
   const canManage = can(biz.role, "lead.assign");
   const lastRun = runs?.[0];
@@ -148,7 +150,7 @@ export default async function AgentsPage() {
                   <div>
                     <p className={cx("text-sm font-medium", !a.live && "text-muted")}>
                       {a.name}{" "}
-                      <span className="text-xs font-normal text-muted">{a.live ? (cfg.enabled ? "· On" : "· Paused") : "· Coming next"}</span>
+                      <span className="text-xs font-normal text-muted">{!a.live ? "· Coming next" : a.key !== "pipeline" && !aiOn ? "· Basic plan" : cfg.enabled ? "· On" : "· Paused"}</span>
                     </p>
                     <p className="text-xs text-muted">{a.does}</p>
                   </div>

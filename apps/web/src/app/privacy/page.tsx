@@ -61,6 +61,10 @@ export default function PrivacyPage() {
                 while sharing is on. Buyers can change or clear it any time.
               </li>
               <li>
+                For plan payments: the GCash reference number, the name on the GCash account used, the amount and the plan.
+                We use these only to find and confirm the payment.
+              </li>
+              <li>
                 For businesses: a sales pipeline of the people they&apos;re selling to, built from viewing requests and chats
                 with them or added by the team, with notes, stage and an AI lead score.
               </li>

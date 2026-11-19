@@ -5,6 +5,9 @@ import { switchBusiness } from "./actions";
 import type { NavItem } from "./nav";
 import { AgentAssistant } from "./agent-assistant";
 import { AppShell } from "./shell";
+import { aiEnabled } from "@/lib/plan";
+import { isSuperAdmin } from "@/lib/superadmin";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const current = await requireBusiness();
@@ -40,13 +43,22 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
     ...(can(current.role, "lead.viewAssigned") || can(current.role, "business.update")
       ? [{ href: "/app/integrations", label: "Integrations", icon: "integrations" as const }]
       : []),
-    ...(can(current.role, "billing.view") ? [{ href: "/app/billing", label: "Billing", icon: "billing" as const, soon: true }] : []),
+    ...(can(current.role, "billing.view") ? [{ href: "/app/billing", label: "Billing", icon: "billing" as const }] : []),
+    // ProPilot staff only: GCash payments waiting for a check.
+    ...(user && (await isSuperAdmin(user.id)) ? [{ href: "/admin/payments", label: "Payments to check", icon: "billing" as const, count: await pendingPayments() }] : []),
   ];
 
   return (
     <AppShell current={current} memberships={memberships} fullName={fullName} items={items} switchBusiness={switchBusiness}>
       {children}
-      {process.env.ANTHROPIC_API_KEY ? <AgentAssistant /> : null}
+      {(await aiEnabled(current.businessId)) ? <AgentAssistant /> : null}
     </AppShell>
   );
+}
+
+async function pendingPayments(): Promise<number> {
+  const admin = createAdminClient();
+  if (!admin) return 0;
+  const { count } = await admin.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending");
+  return count ?? 0;
 }

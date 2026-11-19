@@ -5,6 +5,7 @@ import { businessPages } from "@/lib/facebook-pages";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { InboxView, type Conversation, type Message } from "./inbox-view";
+import { aiEnabled } from "@/lib/plan";
 
 export default async function InboxPage({ searchParams }: PageProps<"/app/inbox">) {
   const sp = await searchParams;
@@ -74,7 +75,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/app/inbox"
       thread={thread}
       listingName={listingName}
       pageNames={Object.fromEntries(pageName)}
-      helperOn={Boolean(process.env.ANTHROPIC_API_KEY)}
+      helperOn={await aiEnabled(biz.businessId)}
     />
   );
 }

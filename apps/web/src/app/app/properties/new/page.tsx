@@ -6,6 +6,7 @@ import { requireBusiness } from "@/lib/auth";
 import { businessPages } from "@/lib/facebook-pages";
 import { metaConfig } from "@/lib/meta";
 import { NewProperty } from "./new-property";
+import { aiEnabled } from "@/lib/plan";
 
 export default async function NewPropertyPage() {
   const biz = await requireBusiness();
@@ -17,7 +18,7 @@ export default async function NewPropertyPage() {
       </Link>
       <PageHeader title="Add property" />
       <NewProperty
-        canPaste={Boolean(process.env.ANTHROPIC_API_KEY)}
+        canPaste={await aiEnabled(biz.businessId)}
         pages={metaConfig() ? (await businessPages(biz.businessId)).map((p) => ({ id: p.id, name: p.name })) : []}
       />
     </>

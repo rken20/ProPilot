@@ -14,6 +14,7 @@ import {
   type MessengerEvent,
 } from "./meta";
 import { createAdminClient } from "./supabase/admin";
+import { aiEnabled } from "@/lib/plan";
 
 /** Cost guards: AI replies per conversation per day, and per business per day. */
 export const AI_REPLIES_PER_CONVERSATION_DAY = 25;
@@ -101,6 +102,10 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     await flag(admin, conv.id as string, "The AI assistant isn't switched on, so this needs a person.");
+    return;
+  }
+  if (!(await aiEnabled(businessId))) {
+    await flag(admin, conv.id as string, "AI replies are part of the Basic plan, so this needs a person.");
     return;
   }
 

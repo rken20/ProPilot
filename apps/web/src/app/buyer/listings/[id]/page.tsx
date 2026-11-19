@@ -14,10 +14,11 @@ import { Gallery } from "./gallery";
 import { ListingChat } from "./listing-chat";
 import { LoanEstimator } from "./loan-estimator";
 import { ViewingForm } from "./viewing-form";
+import { listingAiEnabled } from "@/lib/plan";
 
 export default async function ListingPage({ params }: PageProps<"/buyer/listings/[id]">) {
   const { id } = await params;
-  const [listing, favorites, profile, rawPhotos] = await Promise.all([getListing(id), getFavoriteIds(), getProfile(), getListingPhotos(id)]);
+  const [listing, favorites, profile, rawPhotos, aiOn] = await Promise.all([getListing(id), getFavoriteIds(), getProfile(), getListingPhotos(id), listingAiEnabled(id)]);
   if (!listing) notFound();
   const photos = rawPhotos.map((p) => ({
     id: p.id,
@@ -87,7 +88,7 @@ export default async function ListingPage({ params }: PageProps<"/buyer/listings
             </section>
           ) : null}
 
-          <ListingChat propertyId={listing.id} />
+          {aiOn ? <ListingChat propertyId={listing.id} /> : null}
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">

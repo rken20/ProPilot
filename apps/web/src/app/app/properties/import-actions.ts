@@ -9,6 +9,8 @@ import { pageWithToken, RECONNECT_MESSAGE } from "@/lib/facebook-pages";
 import { GraphError, metaConfig, pagePost, postImageUrls, recentPosts } from "@/lib/meta";
 import { fillFromPost, KEY_FIELDS, MAX_POST_CHARS } from "@/lib/post-import";
 import { createClient } from "@/lib/supabase/server";
+import { aiEnabled } from "@/lib/plan";
+import { UPGRADE_MESSAGE } from "@/lib/plan-rules";
 
 export type ImportState = {
   values?: Record<string, string>;
@@ -34,6 +36,7 @@ export async function importFromPost(prev: ImportState, form: FormData): Promise
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return fail("Filling from a post isn't switched on yet.");
+  if (!(await aiEnabled(biz.businessId))) return fail(UPGRADE_MESSAGE);
 
   const supabase = await createClient();
   const [hour, day] = await Promise.all([
@@ -119,7 +122,8 @@ export async function importPagePost(prev: ImportState, form: FormData): Promise
 
   let values: Record<string, string> = { description: message };
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (apiKey) {
+  // On Free, the post's text goes into the description and the rest is typed by hand.
+  if (apiKey && (await aiEnabled(biz.businessId))) {
     const supabase = await createClient();
     const { data: ok } = await supabase.rpc("consume_rate_limit", { p_bucket: "post_import_hour", p_limit: 20, p_window_seconds: 3600 });
     if (ok !== true) return fail("You've filled a lot of listings from posts today. Please try again later.");

@@ -14,12 +14,14 @@ import { FacebookPost, type FacebookPostLog } from "./facebook-post";
 import { businessPages } from "@/lib/facebook-pages";
 import { defaultCaption, type CaptionListing } from "@/lib/listing-caption";
 import { canPublish, metaConfig } from "@/lib/meta";
+import { aiEnabled } from "@/lib/plan";
 
 export default async function PropertyPage({ params, searchParams }: PageProps<"/app/properties/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const [biz, user] = await Promise.all([requireBusiness(), getUser()]);
+  const aiOn = await aiEnabled(biz.businessId);
   const supabase = await createClient();
   const { data: p } = await supabase
     .from("properties")
@@ -97,7 +99,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
         />
       </div>
       <Card>
-        <PropertyForm action={updateProperty.bind(null, p.id)} initial={initial} submitLabel="Save changes" readOnly={!canEdit} />
+        <PropertyForm action={updateProperty.bind(null, p.id)} initial={initial} submitLabel="Save changes" readOnly={!canEdit} aiWrite={aiOn} />
       </Card>
 
       {showFacebook && fbPages.length && p.status !== "archived" && p.status !== "sold" ? (
@@ -107,7 +109,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
           photoCount={photos?.length ?? 0}
           initialCaption={defaultCaption(p as CaptionListing)}
           history={fbHistory}
-          aiAvailable={Boolean(process.env.ANTHROPIC_API_KEY)}
+          aiAvailable={aiOn}
         />
       ) : null}
 

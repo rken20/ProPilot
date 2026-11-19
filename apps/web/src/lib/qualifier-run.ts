@@ -16,6 +16,7 @@ import {
   type QualifyContext,
 } from "@/lib/qualification";
 import type { HelperTurn } from "@/lib/reply-helper";
+import { aiEnabled } from "@/lib/plan";
 
 /**
  * Runs the lead qualifier with the service-role client. Every query is scoped
@@ -198,7 +199,7 @@ export async function runQualifier(
   opts: { limit: number; deadline: number },
 ): Promise<{ ok: boolean; checked: number; proposed: number; summary: string }> {
   const ai = anthropicFromEnv();
-  if (!ai) return { ok: true, checked: 0, proposed: 0, summary: "" };
+  if (!ai || !(await aiEnabled(businessId))) return { ok: true, checked: 0, proposed: 0, summary: "" };
   const { data: queue } = await admin
     .from("prospects")
     .select("id")
