@@ -14,6 +14,8 @@ import Link from "next/link";
 import { SlidersHorizontal } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { buyerAiEnabled } from "@/lib/plan";
+import { BuyerUpgradeNote } from "./upgrade-note";
 
 // Searching other sites can take up to a minute.
 export const maxDuration = 60;
@@ -45,7 +47,10 @@ export default async function BrowsePage({ searchParams }: PageProps<"/buyer">) 
   ]);
   const sourceNames = Object.values(SOURCES);
   const user = await requireUser();
-  const { data: prefs } = await (await createClient()).from("buyer_preferences").select("user_id").eq("user_id", user.id).maybeSingle();
+  const [{ data: prefs }, buyerAi] = await Promise.all([
+    (await createClient()).from("buyer_preferences").select("user_id").eq("user_id", user.id).maybeSingle(),
+    buyerAiEnabled(user.id),
+  ]);
   const filtered = Boolean(q || type || max);
 
   const select =
@@ -157,7 +162,13 @@ export default async function BrowsePage({ searchParams }: PageProps<"/buyer">) 
                 </div>
               </>
             ) : (
-              <OnlineSearch q={q.trim()} type={type} max={max} sources="Takes about half a minute." />
+              buyerAi ? (
+                <OnlineSearch q={q.trim()} type={type} max={max} sources="Takes about half a minute." />
+              ) : (
+                <BuyerUpgradeNote title="Search other property sites with AI">
+                  The AI looks through public property sites for listings that match your search. AI search is part of Basic.
+                </BuyerUpgradeNote>
+              )
             )}
           </div>
         </section>

@@ -12,13 +12,15 @@ export function GcashPayForm({
   priceMinor,
   gcashNumber,
   gcashName,
+  action: payAction = submitGcashPayment,
 }: {
+  action?: (prev: PayState, form: FormData) => Promise<PayState>;
   plan: { code: string; name: string };
   priceMinor: number;
   gcashNumber: string;
   gcashName: string;
 }) {
-  const [state, action] = useActionState<PayState, FormData>(submitGcashPayment, {});
+  const [state, action] = useActionState<PayState, FormData>(payAction, {});
   const [months, setMonths] = useState(1);
   const total = priceMinor * months;
 

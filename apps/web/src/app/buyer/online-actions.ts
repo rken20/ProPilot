@@ -9,12 +9,15 @@ import { searchOtherSites } from "@/lib/external-search";
 import { DEFAULT_MODEL } from "@/lib/listing-assistant";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { buyerAiEnabled } from "@/lib/plan";
+import { BUYER_UPGRADE_MESSAGE } from "@/lib/plan-rules";
 
 export type OnlineState = { error?: string; found?: number };
 
 /** Search public property sites for the buyer's current filters and store what's found. */
 export async function searchOnline(_prev: OnlineState, form: FormData): Promise<OnlineState> {
-  await requireUser();
+  const user = await requireUser();
+  if (!(await buyerAiEnabled(user.id))) return { error: BUYER_UPGRADE_MESSAGE };
   const filters = parseFilters((n) => form.get(n));
   if (filters.q.length < 2) return { error: "Type a city or area first." };
 

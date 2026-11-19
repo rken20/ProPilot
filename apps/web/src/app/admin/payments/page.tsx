@@ -13,7 +13,8 @@ const day = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "
 
 type Row = {
   id: string;
-  business_id: string;
+  business_id: string | null;
+  buyer_id: string | null;
   months: number;
   amount_minor: number;
   method: string;
@@ -30,14 +31,19 @@ type Row = {
 /** ProPilot super admins only: check GCash payments and turn plans on. */
 export default async function AdminPaymentsPage() {
   const { admin } = await requireSuperAdmin();
-  const cols = "id, business_id, months, amount_minor, method, reference, payer_name, status, reject_reason, period_end, created_at, plans(name), businesses(name)";
-  const [{ data: pending }, { data: recent }, { data: businesses }, { data: plans }, { data: subs }] = await Promise.all([
+  const cols = "id, business_id, buyer_id, months, amount_minor, method, reference, payer_name, status, reject_reason, period_end, created_at, plans(name), businesses(name)";
+  const [{ data: pending }, { data: recent }, { data: businesses }, { data: plans }, { data: subs }, { data: buyers }, { data: buyerSubs }] = await Promise.all([
     admin.from("payments").select(cols).eq("status", "pending").order("created_at").limit(100),
     admin.from("payments").select(cols).neq("status", "pending").order("created_at", { ascending: false }).limit(30),
     admin.from("businesses").select("id, name").order("name").limit(1000),
     admin.from("plans").select("code, name, price_minor").eq("is_active", true).neq("price_minor", 0).order("sort_order"),
     admin.from("subscriptions").select("business_id, current_period_end, plans(name)"),
+    admin.from("profiles").select("id, full_name, email").eq("account_type", "buyer").order("full_name").limit(1000),
+    admin.from("buyer_subscriptions").select("user_id, current_period_end, plans(name)"),
   ]);
+  const buyerName = new Map((buyers ?? []).map((b) => [b.id as string, (b.full_name as string) || (b.email as string) || "Buyer"]));
+  const buyerSubOf = new Map((buyerSubs ?? []).map((s) => [s.user_id as string, s]));
+  const payer = (p: Row) => (p.business_id ? (p.businesses?.name ?? "Business") : `Buyer: ${buyerName.get(p.buyer_id ?? "") ?? "account"}`);
   const subOf = new Map((subs ?? []).map((s) => [s.business_id as string, s]));
   const rows = (pending ?? []) as unknown as Row[];
 
@@ -58,7 +64,7 @@ export default async function AdminPaymentsPage() {
               <Card className="space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <p className="text-lg font-bold tracking-tight">{p.businesses?.name ?? "Business"}</p>
+                    <p className="text-lg font-bold tracking-tight">{payer(p)}</p>
                     <p className="text-sm text-muted">
                       {p.plans?.name}, {p.months} month{p.months === 1 ? "" : "s"} · sent {when.format(new Date(p.created_at))}
                     </p>
@@ -104,21 +110,37 @@ export default async function AdminPaymentsPage() {
 
       <Card className="mt-8">
         <h2 className="text-lg font-bold tracking-tight">Give a plan for free</h2>
-        <p className="mt-1 mb-4 text-sm text-muted">For beta testers and partners. It works like a confirmed payment of ₱0 and shows in their payment history.</p>
+        <p className="mt-1 mb-4 text-sm text-muted">
+          For beta testers and partners, businesses or buyers. It works like a confirmed payment of ₱0 and shows in their payment history.
+        </p>
         <form action={grantPlan} className="flex flex-wrap items-end gap-3">
           <label className="min-w-56 flex-1 text-xs font-medium text-muted">
-            Business
-            <select name="businessId" required className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-ink">
-              {(businesses ?? []).map((b) => {
-                const s = subOf.get(b.id as string);
-                const active = s && new Date(s.current_period_end as string) > new Date();
-                return (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                    {active ? ` (${(s!.plans as unknown as { name: string } | null)?.name} until ${day.format(new Date(s!.current_period_end as string))})` : " (Free)"}
-                  </option>
-                );
-              })}
+            Business or buyer
+            <select name="target" required className="mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-ink">
+              <optgroup label="Businesses">
+                {(businesses ?? []).map((b) => {
+                  const s = subOf.get(b.id as string);
+                  const active = s && new Date(s.current_period_end as string) > new Date();
+                  return (
+                    <option key={b.id} value={`b:${b.id}`}>
+                      {b.name}
+                      {active ? ` (${(s!.plans as unknown as { name: string } | null)?.name} until ${day.format(new Date(s!.current_period_end as string))})` : " (Free)"}
+                    </option>
+                  );
+                })}
+              </optgroup>
+              <optgroup label="Buyers">
+                {(buyers ?? []).map((b) => {
+                  const s = buyerSubOf.get(b.id as string);
+                  const active = s && new Date(s.current_period_end as string) > new Date();
+                  return (
+                    <option key={b.id} value={`u:${b.id}`}>
+                      {buyerName.get(b.id as string)}
+                      {active ? ` (${(s!.plans as unknown as { name: string } | null)?.name} until ${day.format(new Date(s!.current_period_end as string))})` : " (Free)"}
+                    </option>
+                  );
+                })}
+              </optgroup>
             </select>
           </label>
           <label className="text-xs font-medium text-muted">
@@ -164,7 +186,7 @@ export default async function AdminPaymentsPage() {
               <tbody>
                 {(recent as unknown as Row[]).map((p) => (
                   <tr key={p.id} className="border-b border-line last:border-0">
-                    <td className="px-4 py-3">{p.businesses?.name}</td>
+                    <td className="px-4 py-3">{payer(p)}</td>
                     <td className="px-4 py-3">
                       {p.plans?.name}, {p.months} mo
                     </td>

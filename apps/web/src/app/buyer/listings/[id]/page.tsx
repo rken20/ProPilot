@@ -14,11 +14,21 @@ import { Gallery } from "./gallery";
 import { ListingChat } from "./listing-chat";
 import { LoanEstimator } from "./loan-estimator";
 import { ViewingForm } from "./viewing-form";
-import { listingAiEnabled } from "@/lib/plan";
+import { buyerAiEnabled, listingAiEnabled } from "@/lib/plan";
+import { BuyerUpgradeNote } from "../../upgrade-note";
+import { requireUser } from "@/lib/auth";
 
 export default async function ListingPage({ params }: PageProps<"/buyer/listings/[id]">) {
   const { id } = await params;
-  const [listing, favorites, profile, rawPhotos, aiOn] = await Promise.all([getListing(id), getFavoriteIds(), getProfile(), getListingPhotos(id), listingAiEnabled(id)]);
+  const user = await requireUser();
+  const [listing, favorites, profile, rawPhotos, listerAi, buyerAi] = await Promise.all([
+    getListing(id),
+    getFavoriteIds(),
+    getProfile(),
+    getListingPhotos(id),
+    listingAiEnabled(id),
+    buyerAiEnabled(user.id),
+  ]);
   if (!listing) notFound();
   const photos = rawPhotos.map((p) => ({
     id: p.id,
@@ -88,7 +98,13 @@ export default async function ListingPage({ params }: PageProps<"/buyer/listings
             </section>
           ) : null}
 
-          {aiOn ? <ListingChat propertyId={listing.id} /> : null}
+          {listerAi && buyerAi ? (
+            <ListingChat propertyId={listing.id} />
+          ) : listerAi ? (
+            <BuyerUpgradeNote title="Ask the AI about this listing">
+              Get instant answers about price, payment terms and what&apos;s included. AI answers are part of Basic.
+            </BuyerUpgradeNote>
+          ) : null}
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">

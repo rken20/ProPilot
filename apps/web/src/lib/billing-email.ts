@@ -30,3 +30,8 @@ export async function emailOwners(admin: SupabaseClient, businessId: string, sub
   const { data } = await admin.from("profiles").select("email").in("id", owners.map((o) => o.user_id));
   await send((data ?? []).map((p) => p.email as string | null).filter((e): e is string => !!e), subject, lines, link);
 }
+
+export async function emailUser(admin: SupabaseClient, userId: string, subject: string, lines: Array<[string, string]>, link: { label: string; url: string }) {
+  const { data } = await admin.from("profiles").select("email").eq("id", userId).maybeSingle();
+  await send(data?.email ? [data.email as string] : [], subject, lines, link);
+}

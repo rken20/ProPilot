@@ -1,7 +1,7 @@
 import "server-only";
 import { aiTurn, applyTurn } from "./messenger-jobs";
 import { createAdminClient } from "./supabase/admin";
-import { aiEnabled } from "@/lib/plan";
+import { aiEnabled, buyerAiEnabled } from "@/lib/plan";
 
 /** Let a quick burst of buyer messages settle before answering, like Messenger. */
 const SETTLE_MS = 1500;
@@ -14,16 +14,20 @@ export async function replyInApp(conversationId: string, triggerMessageId: strin
     if (!admin) return;
     const { data: conv } = await admin
       .from("messenger_conversations")
-      .select("id, business_id, property_id, mode, businesses(name)")
+      .select("id, business_id, buyer_id, property_id, mode, businesses(name)")
       .eq("id", conversationId)
       .eq("channel", "app")
       .maybeSingle();
     if (!conv || conv.mode !== "ai") return;
-    if (!apiKey || !(await aiEnabled(conv.business_id as string))) {
-      await admin
-        .from("messenger_conversations")
-        .update({ needs_attention: true, attention_reason: apiKey ? "AI replies are part of the Basic plan, so this needs a person." : "The AI assistant isn't switched on, so this needs a person." })
-        .eq("id", conversationId);
+    const listerAi = Boolean(apiKey) && (await aiEnabled(conv.business_id as string));
+    const buyerAi = Boolean(apiKey) && Boolean(conv.buyer_id) && (await buyerAiEnabled(conv.buyer_id as string));
+    if (!listerAi || !buyerAi) {
+      const reason = !apiKey
+        ? "The AI assistant isn't switched on, so this needs a person."
+        : !listerAi
+          ? "AI replies are part of the Basic plan, so this needs a person."
+          : "This buyer isn't on Basic, so AI replies are off. A person needs to reply.";
+      await admin.from("messenger_conversations").update({ needs_attention: true, attention_reason: reason }).eq("id", conversationId);
       return;
     }
 
@@ -42,7 +46,7 @@ export async function replyInApp(conversationId: string, triggerMessageId: strin
     const turn = await aiTurn(admin, { id: conv.id as string, business_id: conv.business_id as string, property_id: conv.property_id as string | null }, {
       name,
       channel: "app",
-      apiKey,
+      apiKey: apiKey!,
     });
     if (!turn) return;
     await admin.from("messenger_messages").insert({ conversation_id: conv.id, business_id: conv.business_id, sender: "ai", body: turn.result.reply });

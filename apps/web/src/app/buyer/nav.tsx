@@ -8,6 +8,7 @@ const ITEMS = [
   { href: "/buyer", label: "Browse" },
   { href: "/buyer/saved", label: "Saved" },
   { href: "/buyer/my-search", label: "My search" },
+  { href: "/buyer/plan", label: "My plan" },
   { href: "/buyer/viewings", label: "My viewings" },
   { href: "/buyer/messages", label: "Messages" },
 ];

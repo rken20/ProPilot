@@ -16,6 +16,7 @@ from (values
   (13, 'In-app chat', exists (select 1 from pg_proc where proname = 'my_app_conversations'), 'Run 20261112000000_app_chat.sql'),
   (14, 'Pipeline and AI agents', to_regclass('public.prospects') is not null, 'Run 20261112010000_pipeline.sql'),
   (15, 'Lead qualification', to_regclass('public.buyer_preferences') is not null, 'Run 20261112020000_qualification.sql'),
-  (16, 'Plans and GCash payments', to_regclass('public.payments') is not null, 'Run 20261119000000_billing.sql')
+  (16, 'Plans and GCash payments', to_regclass('public.payments') is not null, 'Run 20261119000000_billing.sql'),
+  (17, 'Buyer plans', to_regclass('public.buyer_subscriptions') is not null, 'Run 20261119010000_buyer_plans.sql')
 ) as t(n, item, ok, fix)
 order by n;

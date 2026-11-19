@@ -111,3 +111,54 @@ describe("payments", () => {
     await expect(pay("1000000000004")).resolves.toBeTruthy();
   });
 });
+
+describe("buyer plans", () => {
+  const BUYER = "00000000-0000-0000-0000-000000000df1";
+  const BUYER2 = "00000000-0000-0000-0000-000000000df2";
+  const buyerPay = async (buyer: string, reference: string) =>
+    (
+      await db.query<{ id: string }>(
+        `insert into public.payments (buyer_id, plan_id, months, amount_minor, reference, payer_name, submitted_by)
+         values ($1, $2, 1, 49900, $3, 'Maria S.', $1) returning id`,
+        [buyer, basic, reference],
+      )
+    ).rows[0]!.id;
+
+  beforeAll(async () => {
+    await db.exec(`
+      insert into auth.users (id, email, raw_user_meta_data) values
+        ('${BUYER}', 'b1@example.test', '{"account_type":"buyer"}'), ('${BUYER2}', 'b2@example.test', '{"account_type":"buyer"}');
+    `);
+  });
+
+  it("belong to one payer: a business or a buyer, never both or neither", async () => {
+    await expect(
+      db.query(`insert into public.payments (business_id, buyer_id, plan_id, amount_minor, reference, payer_name) values ($1, $2, $3, 1, '2000000000001', 'x')`, [biz, BUYER, basic]),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      db.query(`insert into public.payments (plan_id, amount_minor, reference, payer_name) values ($1, 1, '2000000000002', 'x')`, [basic]),
+    ).rejects.toThrow(/check constraint/);
+  });
+
+  it("are visible to that buyer only, and confirming gives the buyer the plan", async () => {
+    const id = await buyerPay(BUYER, "2000000000003");
+    await expect(buyerPay(BUYER, "2000000000004")).rejects.toThrow(/duplicate key/);
+    expect((await as(db, BUYER, () => db.query(`select id from public.payments`))).rows).toHaveLength(1);
+    expect((await as(db, BUYER2, () => db.query(`select id from public.payments`))).rows).toHaveLength(0);
+    expect((await as(db, OWNER, () => db.query(`select id from public.payments where buyer_id is not null`))).rows).toHaveLength(0);
+
+    await db.query(`select * from public.apply_payment($1, $2)`, [id, ADMIN]);
+    expect((await as(db, BUYER, () => db.query(`select user_id from public.buyer_subscriptions`))).rows).toEqual([{ user_id: BUYER }]);
+    expect((await as(db, BUYER2, () => db.query(`select user_id from public.buyer_subscriptions`))).rows).toHaveLength(0);
+    // The business's own plan is untouched.
+    expect((await db.query(`select count(*)::int as n from public.subscriptions`)).rows[0]).toEqual({ n: 1 });
+  });
+
+  it("can't be written by buyers", async () => {
+    await expect(
+      as(db, BUYER2, () =>
+        db.query(`insert into public.buyer_subscriptions (user_id, plan_id, current_period_start, current_period_end) values ($1, $2, now(), now() + interval '1 year')`, [BUYER2, basic]),
+      ),
+    ).rejects.toThrow(/row-level security/);
+  });
+});

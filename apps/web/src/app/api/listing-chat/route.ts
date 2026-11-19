@@ -6,10 +6,13 @@ import { getListing } from "@/lib/listings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { listingAiEnabled } from "@/lib/plan";
+import { buyerAiEnabled } from "@/lib/plan";
+import { BUYER_UPGRADE_MESSAGE } from "@/lib/plan-rules";
 
 /** Buyer asks about one listing. Signed-in only; the listing must be public. */
 export async function POST(request: NextRequest) {
-  if (!(await getUser())) return NextResponse.json({ error: "Please log in again." }, { status: 401 });
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Please log in again." }, { status: 401 });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -33,6 +36,7 @@ export async function POST(request: NextRequest) {
   if (!(await listingAiEnabled(listing.id))) {
     return NextResponse.json({ error: "AI answers aren't on for this listing. You can message the agent or request a viewing." }, { status: 403 });
   }
+  if (!(await buyerAiEnabled(user.id))) return NextResponse.json({ error: BUYER_UPGRADE_MESSAGE }, { status: 403 });
 
   // Cap AI use per buyer (shared across all server instances via Postgres).
   const supabase = await createClient();

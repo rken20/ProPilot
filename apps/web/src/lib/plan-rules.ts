@@ -25,6 +25,26 @@ export function daysLeft(periodEnd: string | null, now: Date): number | null {
 }
 
 export const UPGRADE_MESSAGE = "AI features are part of the Basic plan. An owner can upgrade in Billing.";
+export const BUYER_UPGRADE_MESSAGE = "AI answers and AI search are part of the Basic plan. You can upgrade in My plan.";
+
+/** What each plan says to buyers on My plan. */
+export const BUYER_PLAN_COPY: Record<string, { tagline: string; includes: string[]; excludes?: string }> = {
+  free: {
+    tagline: "Browse and contact agents, free.",
+    includes: ["Browse and save ProPilot listings", "Message agents and request viewings", "My search: tell agents what you want"],
+    excludes: "No AI: no AI answers on listings, no AI search of other sites, and agents reply in person.",
+  },
+  basic: {
+    tagline: "AI help while you look for a home",
+    includes: [
+      "Everything in Free",
+      "Ask the AI about any listing whose agent has AI on",
+      "AI search of other property sites",
+      "Instant AI replies when you message an agent",
+      "Alerts when a matching listing is posted (coming soon)",
+    ],
+  },
+};
 
 /** What each plan says on the Billing page. */
 export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; excludes?: string }> = {

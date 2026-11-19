@@ -9,7 +9,18 @@ import { loadChat, sendChat } from "../actions";
 const SUGGESTIONS = ["Is this still available?", "Can I schedule a viewing this weekend?", "What payment options do you accept?"];
 
 /** The buyer's side of an in-app chat. Polls for replies: quickly while waiting for the AI, slowly otherwise. */
-export function BuyerChat({ conversationId, businessName, initial }: { conversationId: string; businessName: string; initial: ChatMessage[] }) {
+export function BuyerChat({
+  conversationId,
+  businessName,
+  initial,
+  instantReplies = true,
+}: {
+  conversationId: string;
+  businessName: string;
+  initial: ChatMessage[];
+  /** False when the AI won't answer (the buyer or the business isn't on Basic): no typing dots, an agent replies. */
+  instantReplies?: boolean;
+}) {
   const [messages, setMessages] = useState(initial);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -57,7 +68,7 @@ export function BuyerChat({ conversationId, businessName, initial }: { conversat
       return;
     }
     if (r.messages) setMessages(r.messages);
-    setTyping(r.messages?.at(-1)?.sender === "buyer");
+    setTyping(instantReplies && r.messages?.at(-1)?.sender === "buyer");
   }
 
   return (
@@ -65,7 +76,9 @@ export function BuyerChat({ conversationId, businessName, initial }: { conversat
       <ol className="max-h-[60vh] min-h-64 space-y-3 overflow-y-auto px-5 py-5" aria-live="polite">
         {messages.length === 0 ? (
           <li className="text-sm text-muted">
-            Say hello or pick a question. {businessName}&apos;s AI assistant answers right away, and an agent can join anytime.
+            {instantReplies
+              ? `Say hello or pick a question. ${businessName}'s AI assistant answers right away, and an agent can join anytime.`
+              : `Say hello or pick a question. An agent from ${businessName} will reply here.`}
             <div className="mt-3 flex flex-wrap gap-2">
               {SUGGESTIONS.map((s) => (
                 <button
