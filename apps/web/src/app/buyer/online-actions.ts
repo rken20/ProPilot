@@ -9,7 +9,7 @@ import { searchOtherSites } from "@/lib/external-search";
 import { DEFAULT_MODEL } from "@/lib/listing-assistant";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { buyerAiEnabled } from "@/lib/plan";
+import { buyerAiEnabled, buyerPlan } from "@/lib/plan";
 import { BUYER_UPGRADE_MESSAGE } from "@/lib/plan-rules";
 
 export type OnlineState = { error?: string; found?: number };
@@ -36,9 +36,12 @@ export async function searchOnline(_prev: OnlineState, form: FormData): Promise<
 
   // Each search costs money, so cap it per buyer (shared across server instances).
   const supabase = await createClient();
+  // The daily allowance comes from the plan (Basic 15, Pro 45); 15 if the plan doesn't say.
+  const perDay = (await buyerPlan(user.id)).onlineSearchesPerDay;
+  const daily = perDay === null ? 200 : perDay || 15;
   const [hour, day] = await Promise.all([
-    supabase.rpc("consume_rate_limit", { p_bucket: "online_search_hour", p_limit: 5, p_window_seconds: 3600 }),
-    supabase.rpc("consume_rate_limit", { p_bucket: "online_search_day", p_limit: 15, p_window_seconds: 86400 }),
+    supabase.rpc("consume_rate_limit", { p_bucket: "online_search_hour", p_limit: daily > 15 ? 10 : 5, p_window_seconds: 3600 }),
+    supabase.rpc("consume_rate_limit", { p_bucket: "online_search_day", p_limit: daily, p_window_seconds: 86400 }),
   ]);
   if (hour.error || day.error || hour.data !== true || day.data !== true) {
     return { error: "You've searched other sites a lot today. Please try again later." };

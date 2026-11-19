@@ -62,16 +62,20 @@ export async function openBuyersFor(listing: ListingForMatch, limit = SHOW) {
   // Matching is a Basic feature for buyers too: only buyers on a current paid plan are in the pool.
   const paid = await basicBuyers(admin, candidates.map((r) => r.user_id as string));
   const rows = candidates.filter((r) => paid.has(r.user_id as string));
-  return rankMatches(rows, (r) => scoreMatch(listing, factsOf(r)), limit).map(({ item, match }) => ({
-    buyerId: item.user_id as string,
-    facts: factsOf(item),
-    match,
-  }));
+  // Pro buyers are listed first, then everyone by how well they fit.
+  return rankMatches(rows, (r) => scoreMatch(listing, factsOf(r)), rows.length)
+    .sort((a, b) => Number(paid.get(b.item.user_id as string) === "pro") - Number(paid.get(a.item.user_id as string) === "pro"))
+    .slice(0, limit)
+    .map(({ item, match }) => ({
+      buyerId: item.user_id as string,
+      facts: factsOf(item),
+      match,
+    }));
 }
 
-/** Which of these buyers are on a paid plan with AI right now. */
-export async function basicBuyers(admin: SupabaseClient, ids: string[]): Promise<Set<string>> {
-  const out = new Set<string>();
+/** Which of these buyers are on a paid plan with AI right now, and which plan. */
+export async function basicBuyers(admin: SupabaseClient, ids: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
   for (let i = 0; i < ids.length; i += 500) {
     const { data } = await admin
       .from("buyer_subscriptions")
@@ -79,7 +83,7 @@ export async function basicBuyers(admin: SupabaseClient, ids: string[]): Promise
       .in("user_id", ids.slice(i, i + 500))
       .neq("plans.code", FREE_PLAN)
       .gt("current_period_end", new Date().toISOString());
-    for (const r of data ?? []) out.add(r.user_id as string);
+    for (const r of data ?? []) out.set(r.user_id as string, (r.plans as unknown as { code: string }).code);
   }
   return out;
 }

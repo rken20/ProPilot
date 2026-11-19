@@ -10,11 +10,13 @@ export type PlanInfo = {
   ai: boolean;
   /** Buyer Finder buyers per month; null = unlimited, 0 = not included. */
   homeFinderBuyers: number | null;
+  /** Buyers' AI searches of other sites a day; null = unlimited, 0 = not included. */
+  onlineSearchesPerDay: number | null;
   /** When the paid period ends (null on Free). */
   periodEnd: string | null;
 };
 
-const FREE: PlanInfo = { code: FREE_PLAN, name: "Free", ai: false, homeFinderBuyers: 0, periodEnd: null };
+const FREE: PlanInfo = { code: FREE_PLAN, name: "Free", ai: false, homeFinderBuyers: 0, onlineSearchesPerDay: 0, periodEnd: null };
 
 /** Plan and limits come back in one query (the subscription with its plan and the plan's limits). */
 const SUB_SELECT = "current_period_end, plans(code, name, plan_entitlements(feature_key, limit))";
@@ -29,7 +31,14 @@ function planFrom(sub: { current_period_end: unknown; plans: unknown } | null): 
     return row ? row.limit : 0;
   };
   const ai = limit("ai");
-  return { code, name: plan.name, ai: ai === null || ai > 0, homeFinderBuyers: limit("home_finder_buyers"), periodEnd: sub!.current_period_end as string };
+  return {
+    code,
+    name: plan.name,
+    ai: ai === null || ai > 0,
+    homeFinderBuyers: limit("home_finder_buyers"),
+    onlineSearchesPerDay: limit("online_searches_day"),
+    periodEnd: sub!.current_period_end as string,
+  };
 }
 
 /**

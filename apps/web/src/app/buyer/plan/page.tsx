@@ -60,7 +60,7 @@ export default async function BuyerPlanPage() {
         </div>
       ) : null}
 
-      <div className="mt-7 grid gap-5 md:grid-cols-2">
+      <div className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {(plans ?? []).map((p) => {
           const copy = BUYER_PLAN_COPY[p.code as string];
           const current = p.code === plan.code;
@@ -94,19 +94,18 @@ export default async function BuyerPlanPage() {
 
       {paid.length ? (
         <Card className="mt-6">
-          <h2 className="text-lg font-bold tracking-tight">{plan.code === FREE_PLAN ? `Upgrade to ${paid[0]!.name}` : `Renew ${plan.name}`}</h2>
+          <h2 className="text-lg font-bold tracking-tight">{plan.code === FREE_PLAN ? "Upgrade" : "Renew or change your plan"}</h2>
           <p className="mt-1 mb-5 text-sm text-muted">
-            {plan.code === FREE_PLAN ? "Pay by GCash. Your plan starts when we confirm the payment." : "Renewing early adds the months to the end of your current plan."}
+            {plan.code === FREE_PLAN ? "Pay by GCash. Your plan starts when we confirm the payment." : "Renewing the same plan early adds the months to the end. Switching plans starts the new plan when we confirm the payment."}
           </p>
           {!gcashNumber || !gcashName ? (
             <p className="text-sm text-muted">GCash payments aren&apos;t set up yet. Please check back soon.</p>
           ) : pending ? (
             <p className="text-sm text-muted">You can pay again once we&apos;ve checked your current payment.</p>
           ) : (
-            <GcashPayForm
-              action={submitBuyerPayment}
-              plan={{ code: paid[0]!.code as string, name: paid[0]!.name as string }}
-              priceMinor={paid[0]!.price_minor as number}
+            <GcashPayForm action={submitBuyerPayment}
+              plans={paid.map((x) => ({ code: x.code as string, name: x.name as string, priceMinor: x.price_minor as number }))}
+              defaultCode={plan.code === FREE_PLAN ? undefined : plan.code}
               gcashNumber={gcashNumber}
               gcashName={gcashName}
             />

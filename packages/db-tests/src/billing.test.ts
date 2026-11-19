@@ -39,20 +39,29 @@ beforeAll(async () => {
 });
 
 describe("plans", () => {
-  it("offers Free and Basic, with AI only on Basic", async () => {
+  it("offers Free, Basic and Pro, with AI only on the paid plans", async () => {
     const plans = await as(db, OWNER, () =>
       db.query<{ code: string; price_minor: number }>(`select code, price_minor from public.plans where is_active order by sort_order`),
     );
     expect(plans.rows).toEqual([
       { code: "free", price_minor: 0 },
       { code: "basic", price_minor: 49900 },
+      { code: "pro", price_minor: 99900 },
     ]);
-    const ai = await db.query<{ code: string; limit: number | null }>(
-      `select p.code, e."limit" from public.plan_entitlements e join public.plans p on p.id = e.plan_id where e.feature_key = 'ai' and p.is_active order by p.sort_order`,
+    const limits = await db.query<{ code: string; feature_key: string; limit: number | null }>(
+      `select p.code, e.feature_key, e."limit" from public.plan_entitlements e join public.plans p on p.id = e.plan_id
+       where p.is_active and e.feature_key in ('ai', 'home_finder_buyers', 'online_searches_day') order by p.sort_order, e.feature_key`,
     );
-    expect(ai.rows).toEqual([
-      { code: "free", limit: 0 },
-      { code: "basic", limit: null },
+    expect(limits.rows).toEqual([
+      { code: "free", feature_key: "ai", limit: 0 },
+      { code: "free", feature_key: "home_finder_buyers", limit: 0 },
+      { code: "free", feature_key: "online_searches_day", limit: 0 },
+      { code: "basic", feature_key: "ai", limit: null },
+      { code: "basic", feature_key: "home_finder_buyers", limit: 5 },
+      { code: "basic", feature_key: "online_searches_day", limit: 15 },
+      { code: "pro", feature_key: "ai", limit: null },
+      { code: "pro", feature_key: "home_finder_buyers", limit: 20 },
+      { code: "pro", feature_key: "online_searches_day", limit: 45 },
     ]);
   });
 });

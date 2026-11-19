@@ -5,7 +5,7 @@
  */
 
 export const FREE_PLAN = "free";
-export const PAID_PLANS = ["basic"] as const;
+export const PAID_PLANS = ["basic", "pro"] as const;
 
 /** GCash reference numbers are 13 digits. People often type them with spaces. */
 export function cleanGcashReference(raw: string): string | null {
@@ -45,6 +45,14 @@ export const BUYER_PLAN_COPY: Record<string, { tagline: string; includes: string
       "Agents with matching listings can send them to you, if you allow it",
     ],
   },
+  pro: {
+    tagline: "For serious home hunters",
+    includes: [
+      "Everything in Basic",
+      "45 AI searches of other property sites a day (Basic: 15)",
+      "Listed first to agents with a matching listing, if you allow it",
+    ],
+  },
 };
 
 /** What each plan says on the Billing page. */
@@ -70,5 +78,13 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Ask Home Finder and the reply helper",
     ],
     excludes: "Walay AI video creation. Limited buyer finder.",
+  },
+  pro: {
+    tagline: "Para sa mga agent at broker",
+    includes: [
+      "Everything in Basic",
+      "Buyer Finder: send a listing to up to 20 matching Home Finder buyers a month",
+      "AI video creation (coming soon)",
+    ],
   },
 };

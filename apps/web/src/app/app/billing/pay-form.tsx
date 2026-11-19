@@ -8,20 +8,24 @@ import { submitGcashPayment, type PayState } from "./actions";
 
 /** Pay with GCash: send the amount, then report the reference number for checking. */
 export function GcashPayForm({
-  plan,
-  priceMinor,
+  plans,
+  defaultCode,
   gcashNumber,
   gcashName,
   action: payAction = submitGcashPayment,
 }: {
   action?: (prev: PayState, form: FormData) => Promise<PayState>;
-  plan: { code: string; name: string };
-  priceMinor: number;
+  /** The paid plans to choose from, cheapest first. */
+  plans: Array<{ code: string; name: string; priceMinor: number }>;
+  defaultCode?: string;
   gcashNumber: string;
   gcashName: string;
 }) {
   const [state, action] = useActionState<PayState, FormData>(payAction, {});
   const [months, setMonths] = useState(1);
+  const [code, setCode] = useState(defaultCode && plans.some((p) => p.code === defaultCode) ? defaultCode : plans[0]!.code);
+  const plan = plans.find((p) => p.code === code) ?? plans[0]!;
+  const priceMinor = plan.priceMinor;
   const total = priceMinor * months;
 
   if (state.sent) {
@@ -35,8 +39,29 @@ export function GcashPayForm({
 
   return (
     <form action={action} className="space-y-5">
-      <input type="hidden" name="plan" value={plan.code} />
       {state.error ? <Alert>{state.error}</Alert> : null}
+
+      {plans.length > 1 ? (
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium">Plan</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {plans.map((p) => (
+              <label
+                key={p.code}
+                className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-line bg-white px-4 py-3 text-sm has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50"
+              >
+                <span className="flex items-center gap-2.5">
+                  <input type="radio" name="plan" value={p.code} checked={p.code === code} onChange={() => setCode(p.code)} className="accent-[var(--color-brand-600)]" />
+                  <span className="font-semibold">{p.name}</span>
+                </span>
+                <span className="tabular-nums text-muted">{formatPeso(p.priceMinor)} / month</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : (
+        <input type="hidden" name="plan" value={plan.code} />
+      )}
 
       <Field label="How many months" htmlFor="months">
         <Select id="months" name="months" value={months} onChange={(e) => setMonths(Number(e.target.value))}>

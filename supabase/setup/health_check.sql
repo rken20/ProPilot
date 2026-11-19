@@ -18,6 +18,7 @@ from (values
   (15, 'Lead qualification', to_regclass('public.buyer_preferences') is not null, 'Run 20261112020000_qualification.sql'),
   (16, 'Plans and GCash payments', to_regclass('public.payments') is not null, 'Run 20261119000000_billing.sql'),
   (17, 'Buyer plans', to_regclass('public.buyer_subscriptions') is not null, 'Run 20261119010000_buyer_plans.sql'),
-  (18, 'Property matcher', to_regclass('public.buyer_introductions') is not null, 'Run 20261119030000_matching.sql')
+  (18, 'Property matcher', to_regclass('public.buyer_introductions') is not null, 'Run 20261119030000_matching.sql'),
+  (19, 'Pro plan', exists (select 1 from public.plans where code = 'pro' and is_active), 'Run 20261119040000_pro_plan.sql')
 ) as t(n, item, ok, fix)
 order by n;
