@@ -2,10 +2,11 @@
 --
 -- Matching is a Basic feature on both sides. Buyers on Basic can opt in (off by
 -- default) to let agents with matching listings send them those listings, and
--- to get emails about new matching listings. When an agent sends a listing through Buyer Finder, the buyer sees
--- it on My search and decides whether to message the agent. Agents never see
--- who the buyer is. Sending counts toward the business's monthly limit, which
--- the server enforces here so two clicks can't go over it.
+-- to get emails about new matching listings. When an agent sends a listing
+-- through Buyer Finder, the buyer sees it on My search and decides whether to
+-- message the agent. Agents never see who the buyer is. Sending counts toward
+-- the business's monthly limit, which the server enforces here so two clicks
+-- can't go over it.
 
 alter table public.buyer_preferences
   add column if not exists open_to_agents boolean not null default false,
