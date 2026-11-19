@@ -26,8 +26,8 @@ export const AGENT_INFO = [
   },
   {
     key: "discovery",
-    name: "Lead finder",
-    does: "Brings in people who reached out or opted in: Lead Ads forms, Page comments, open-house sign-ups and client lists.",
+    name: "Home Finder AI",
+    does: "Finds potential buyers for your listings among people who reached out or opted in: ProPilot buyers whose search fits, Lead Ads forms, Page comments, open-house sign-ups and client lists.",
     live: false,
   },
 ] as const;
