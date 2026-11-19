@@ -6,7 +6,7 @@ import { getUser, requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getCoverThumbs } from "@/lib/listings";
 import { mediaUrl } from "@/lib/media";
-import { greeting, longDate } from "@/lib/time";
+import { daysAgoIso, greeting, longDate } from "@/lib/time";
 import { DashboardView, type Activity, type SetupStep } from "./dashboard-view";
 import { aiEnabled } from "@/lib/plan";
 
@@ -54,6 +54,29 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       : Promise.resolve({ data: [] as Array<{ id: string; property_id: string; buyer_name: string; status: string; created_at: string }> }),
   ]);
   const leads = leadsRes.data ?? [];
+
+  // ---- Messenger inquiries: new Messenger chats in the last 30 days ----------
+  const canSeeChats = can(biz.role, "conversation.reply");
+  const pagesConnected = metaConfig() ? (await businessPages(biz.businessId)).length > 0 : false;
+  let messenger: { count: number; waiting: number } | null = null;
+  if (canSeeChats) {
+    const since = daysAgoIso(30);
+    const [recentRes, waitingRes] = await Promise.all([
+      supabase
+        .from("messenger_conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("business_id", biz.businessId)
+        .eq("channel", "messenger")
+        .gte("created_at", since),
+      supabase
+        .from("messenger_conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("business_id", biz.businessId)
+        .eq("channel", "messenger")
+        .eq("needs_attention", true),
+    ]);
+    messenger = { count: recentRes.count ?? 0, waiting: waitingRes.count ?? 0 };
+  }
   const newLeads = leads.filter((l) => l.status === "new").length;
   const openLeads = leads.filter((l) => ["new", "contacted", "scheduled"].includes(l.status)).length;
   const publicCount = (propsRes.data ?? []).filter((p) => p.is_public).length;
@@ -89,7 +112,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
     { label: "Show a listing to Home Finder buyers", done: publicCount > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
     { label: "Invite your team", done: members.length > 1 || invites.length > 0, href: canManageTeam ? "/app/team" : undefined },
     metaConfig()
-      ? { label: "Connect your Facebook Page", done: (await businessPages(biz.businessId)).length > 0, href: "/app/integrations" }
+      ? { label: "Connect your Facebook Page", done: pagesConnected, href: "/app/integrations" }
       : { label: "Connect your Facebook Page", done: false, soon: true },
   ];
 
@@ -139,6 +162,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       steps={steps}
       leads={canSeeLeads ? { newCount: newLeads, openCount: openLeads } : null}
       publicCount={publicCount}
+      messenger={messenger}
+      pagesConnected={pagesConnected}
       assistantLive={publicCount > 0 && (await aiEnabled(biz.businessId))}
       recent={recent}
     />

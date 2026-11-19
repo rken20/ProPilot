@@ -24,3 +24,8 @@ export function timeAgo(iso: string, now = new Date()): string {
   if (d < 7) return `${d} day${d === 1 ? "" : "s"} ago`;
   return new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", timeZone: TZ }).format(new Date(iso));
 }
+
+/** The moment `days` days before `now`, as an ISO string (for "in the last N days" queries). */
+export function daysAgoIso(days: number, now = new Date()): string {
+  return new Date(now.getTime() - days * 86_400_000).toISOString();
+}

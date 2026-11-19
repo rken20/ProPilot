@@ -36,6 +36,9 @@ export type DashboardData = {
   recent: Activity[];
   leads: { newCount: number; openCount: number } | null;
   publicCount: number;
+  /** New Messenger chats in the last 30 days and how many need the team; null when this role can't see chats. */
+  messenger: { count: number; waiting: number } | null;
+  pagesConnected: boolean;
   assistantLive: boolean;
   now?: Date;
 };
@@ -57,6 +60,8 @@ export function DashboardView({
   recent,
   leads,
   publicCount,
+  messenger,
+  pagesConnected,
   assistantLive,
   now,
 }: DashboardData) {
@@ -98,7 +103,14 @@ export function DashboardView({
         ) : (
           <Stat icon={Flame} tint="bg-hot-50 text-hot" label="Listings shown to buyers" value={<CountUp value={publicCount} />} note="Visible on Home Finder" />
         )}
-        <Stat icon={MessageCircle} tint="bg-brass-50 text-brass" label="Messenger inquiries" value="—" note="Starts when Facebook is connected" muted />
+        {messenger && (pagesConnected || messenger.count > 0) ? (
+          <Stat icon={MessageCircle} tint="bg-brass-50 text-brass" label="Messenger inquiries" value={<CountUp value={messenger.count} />} href="/app/inbox"
+            note={messenger.waiting ? `${messenger.waiting} waiting for your reply` : "New chats in the last 30 days"} />
+        ) : messenger ? (
+          <Stat icon={MessageCircle} tint="bg-brass-50 text-brass" label="Messenger inquiries" value="—" note="Starts when Facebook is connected" muted href="/app/integrations" />
+        ) : (
+          <Stat icon={MessageCircle} tint="bg-brass-50 text-brass" label="Messenger" value={pagesConnected ? "On" : "—"} note={pagesConnected ? "Your Facebook Page is connected" : "Not connected yet"} muted={!pagesConnected} />
+        )}
       </section>
 
       <div style={{ "--i": 2 } as React.CSSProperties} className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_1fr]">
