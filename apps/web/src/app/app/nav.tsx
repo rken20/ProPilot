@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   MessageCircle,
   Plug,
+  Settings,
   SquareKanban,
   Users,
   type LucideIcon,
@@ -28,9 +29,10 @@ const ICONS = {
   team: Users,
   billing: CreditCard,
   integrations: Plug,
+  settings: Settings,
 } satisfies Record<string, LucideIcon>;
 
-export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; soon?: boolean; count?: number };
+export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; soon?: boolean; count?: number; /** Other paths that belong to this item (its tabs). */ match?: string[] };
 
 export function Nav({ items }: { items: NavItem[] }) {
   const path = usePathname();
@@ -38,7 +40,8 @@ export function Nav({ items }: { items: NavItem[] }) {
     <nav className="flex gap-1 overflow-x-auto lg:flex-col" aria-label="Main">
       {items.map((item) => {
         const Icon = ICONS[item.icon];
-        const active = item.href === "/app" ? path === "/app" : path.startsWith(item.href);
+        const active =
+          (item.href === "/app" ? path === "/app" : path.startsWith(item.href)) || (item.match ?? []).some((m) => path.startsWith(m));
         if (item.soon) {
           return (
             <span

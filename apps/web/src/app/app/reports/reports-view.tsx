@@ -242,7 +242,7 @@ const Td = ({ value, strong }: { value: number; strong?: boolean }) => (
 );
 
 /** Stacked columns, Home Finder buyers under Messenger, with a 2px surface gap and a legend. */
-function SourceChart({ series }: { series: LeadsReport["series"] }) {
+export function SourceChart({ series }: { series: LeadsReport["series"] }) {
   const max = Math.max(1, ...series.map((s) => s.propilot + s.messenger));
   const top = niceMax(max);
   const ticks = [0, top / 2, top];
@@ -256,7 +256,7 @@ function SourceChart({ series }: { series: LeadsReport["series"] }) {
       </div>
       <div className="relative flex h-48 gap-[2px] pl-8" aria-hidden="true">
         {ticks.map((t) => (
-          <div key={t} className="absolute inset-x-8 border-t border-zinc-100" style={{ bottom: `${(t / top) * 100}%` }}>
+          <div key={t} className="absolute right-0 left-8 border-t border-zinc-100" style={{ bottom: `${(t / top) * 100}%` }}>
             <span className="absolute -left-8 -translate-y-1/2 text-xs tabular-nums text-muted">{t}</span>
           </div>
         ))}

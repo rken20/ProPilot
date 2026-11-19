@@ -7,8 +7,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCoverThumbs } from "@/lib/listings";
 import { mediaUrl } from "@/lib/media";
 import { daysAgoIso, greeting, longDate } from "@/lib/time";
-import { DashboardView, type Activity, type SetupStep } from "./dashboard-view";
+import { DashboardView, type Activity, type ReportSummary, type SetupStep } from "./dashboard-view";
 import { aiEnabled } from "@/lib/plan";
+import { loadReportData } from "@/lib/report-data";
+import { inRange, leadsReport, listingReport, messengerReport, parseRange } from "@/lib/reports";
 
 const NOTICES: Record<string, string> = {
   welcome: "Your business is set up. Add your first property so the assistant has something to talk about.",
@@ -144,6 +146,23 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
   activity.sort((a, b) => b.at.localeCompare(a.at));
   const recent = activity.slice(0, 5);
 
+  // ---- Report summary: the last 30 days, for roles that can see reports ------
+  let summary: ReportSummary | null = null;
+  if (can(biz.role, "analytics.view")) {
+    const range = parseRange({ range: "30" });
+    const d = await loadReportData(biz.businessId, range);
+    const convs = d.convs.filter((c) => inRange(c.created_at, range));
+    const chats = messengerReport(convs, d.msgs);
+    summary = {
+      leads: leadsReport(d.vr, convs, range),
+      topListings: listingReport(d.props, d.vr, convs, d.saves, d.questions, d.posts)
+        .filter((l) => l.viewingRequests + l.questions + l.saves > 0)
+        .slice(0, 3)
+        .map((l) => ({ id: l.id, name: l.name, viewingRequests: l.viewingRequests, questions: l.questions, saves: l.saves })),
+      chats: { conversations: chats.conversations, aiOnly: chats.aiOnly, afterHoursAnswered: chats.afterHoursAnswered },
+    };
+  }
+
   const firstName = String(user?.user_metadata?.full_name ?? "").split(" ")[0];
 
   return (
@@ -163,6 +182,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       leads={canSeeLeads ? { newCount: newLeads, openCount: openLeads } : null}
       publicCount={publicCount}
       messenger={messenger}
+      summary={summary}
       pagesConnected={pagesConnected}
       assistantLive={publicCount > 0 && (await aiEnabled(biz.businessId))}
       recent={recent}

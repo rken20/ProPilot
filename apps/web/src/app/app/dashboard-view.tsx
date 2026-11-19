@@ -15,9 +15,16 @@ import { CountUp } from "@/components/count-up";
 import { formatPeso } from "@/lib/money";
 import { timeAgo } from "@/lib/time";
 import { STATUS_LABEL } from "@/lib/property-labels";
+import { fmtDuration, type LeadsReport } from "@/lib/reports";
+import { SourceChart } from "./reports/reports-view";
 
 export type Activity = { at: string; icon: LucideIcon; tone: string; title: string; detail: string; href?: string };
 export type ListingRow = { id: string; name: string; location: string; price_minor: number; currency: string; status: string; coverUrl?: string | null };
+export type ReportSummary = {
+  leads: LeadsReport;
+  topListings: Array<{ id: string; name: string; viewingRequests: number; questions: number; saves: number }>;
+  chats: { conversations: number; aiOnly: number; afterHoursAnswered: number };
+};
 export type SetupStep = { label: string; done: boolean; href?: string; soon?: boolean };
 
 export type DashboardData = {
@@ -38,6 +45,8 @@ export type DashboardData = {
   publicCount: number;
   /** New Messenger chats in the last 30 days and how many need the team; null when this role can't see chats. */
   messenger: { count: number; waiting: number } | null;
+  /** Last 30 days at a glance; null for roles that can't see reports. */
+  summary: ReportSummary | null;
   pagesConnected: boolean;
   assistantLive: boolean;
   now?: Date;
@@ -61,6 +70,7 @@ export function DashboardView({
   leads,
   publicCount,
   messenger,
+  summary,
   pagesConnected,
   assistantLive,
   now,
@@ -113,7 +123,9 @@ export function DashboardView({
         )}
       </section>
 
-      <div style={{ "--i": 2 } as React.CSSProperties} className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_1fr]">
+      {summary ? <ReportSummaryCard summary={summary} /> : null}
+
+      <div style={{ "--i": 3 } as React.CSSProperties} className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_1fr]">
         {/* Assistant status */}
         <section className="rounded-2xl bg-brand-900 p-6 text-white sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -196,7 +208,7 @@ export function DashboardView({
         </section>
       </div>
 
-      <div style={{ "--i": 3 } as React.CSSProperties} className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_1fr]">
+      <div style={{ "--i": 4 } as React.CSSProperties} className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_1fr]">
         {/* Listings snapshot */}
         <section className="rounded-2xl border border-line bg-white p-6 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between">
@@ -258,6 +270,85 @@ export function DashboardView({
     </div>
   );
 }
+
+/** The last 30 days in one card: lead numbers, the inquiries chart, top listings and the AI chat. */
+function ReportSummaryCard({ summary }: { summary: ReportSummary }) {
+  const { leads, topListings, chats } = summary;
+  const reachedPct = leads.viewingRequests ? Math.round((leads.reachedViewing / leads.viewingRequests) * 100) : null;
+  return (
+    <section style={{ "--i": 2 } as React.CSSProperties} aria-labelledby="summary-title" className="rounded-2xl border border-line bg-white p-6 shadow-[var(--shadow-card)]">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <h2 id="summary-title" className="text-2xl font-bold tracking-tight">Last 30 days</h2>
+          <p className="mt-0.5 text-sm text-muted">How buyers found you and what happened next.</p>
+        </div>
+        <Link href="/app/reports" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+          Full reports
+        </Link>
+      </div>
+
+      <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+        <Figure label="Inquiries" value={leads.inquiries} note={`${leads.fromProPilot} Home Finder, ${leads.fromMessenger} Messenger`} />
+        <Figure label="Viewing requests" value={leads.viewingRequests} note={leads.viewingRequests ? `${leads.reachedViewing} reached a viewing${reachedPct !== null ? ` (${reachedPct}%)` : ""}` : "None yet"} />
+        <Figure label="Closed" value={leads.closed} note={leads.closed ? "Marked closed in this period" : "No closed deals yet"} />
+        <Figure label="Typical first reply" value={fmtDuration(leads.medianFirstResponseMs)} note="To viewing requests" />
+      </dl>
+
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_1fr]">
+        <div>
+          {leads.inquiries ? (
+            <SourceChart series={leads.series} />
+          ) : (
+            <p className="rounded-xl border border-dashed border-line px-4 py-10 text-center text-sm text-muted">
+              No inquiries in the last 30 days. Show a listing to buyers or connect Facebook to start.
+            </p>
+          )}
+        </div>
+        <div className="space-y-5">
+          <div>
+            <h3 className="text-sm font-semibold">Most interest</h3>
+            {topListings.length ? (
+              <ol className="mt-2 divide-y divide-line">
+                {topListings.map((l) => (
+                  <li key={l.id}>
+                    <Link href={`/app/properties/${l.id}`} className="-mx-2 block rounded-lg px-2 py-2 hover:bg-surface">
+                      <span className="block truncate text-sm font-medium">{l.name}</span>
+                      <span className="block text-xs text-muted tabular-nums">
+                        {plural(l.viewingRequests, "viewing request")}, {plural(l.questions, "question")}, {plural(l.saves, "save")}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-2 text-sm text-muted">No saves, questions or viewing requests on your listings yet.</p>
+            )}
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">AI chat</h3>
+            <p className="mt-1 text-sm text-muted">
+              {chats.conversations
+                ? `${plural(chats.conversations, "chat")}, ${chats.aiOnly} handled by the AI alone, ${plural(chats.afterHoursAnswered, "message")} answered after hours.`
+                : "No chats yet."}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Figure({ label, value, note }: { label: string; value: number | string; note: string }) {
+  return (
+    <div>
+      <dt className="text-sm text-muted">{label}</dt>
+      <dd className="mt-1 text-2xl font-bold tracking-tight tabular-nums">{typeof value === "number" ? <CountUp value={value} /> : value}</dd>
+      <dd className="mt-0.5 text-xs text-muted">{note}</dd>
+    </div>
+  );
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 function Stat({ icon: Icon, tint, label, value, note, muted, href }: { icon: LucideIcon; tint: string; label: string; value: ReactNode; note: string; muted?: boolean; href?: string }) {
   const className = cx("block rounded-2xl border border-line bg-white p-4 shadow-[var(--shadow-card)] sm:p-5", href && "pp-lift hover:border-brand-600");

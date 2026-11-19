@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMemberships, getUser, requireBusiness } from "@/lib/auth";
 import { switchBusiness } from "./actions";
 import type { NavItem } from "./nav";
+import { SectionTabs, type SectionTab } from "./section-tabs";
 import { AgentAssistant } from "./agent-assistant";
 import { AppShell } from "./shell";
 import { aiEnabled } from "@/lib/plan";
@@ -14,7 +15,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const [memberships, user] = await Promise.all([getMemberships(), getUser()]);
   const fullName = String(user?.user_metadata?.full_name ?? "") || (user?.email ?? "");
   const sales = can(current.role, "lead.viewAll") || can(current.role, "lead.viewAssigned");
-  // AI suggestions waiting for a decision, shown as a badge on "AI agents".
+  // AI suggestions waiting for a decision, shown as a badge on Pipeline and its "AI agents" tab.
   const waiting = sales
     ? ((
         await (await createClient())
@@ -25,31 +26,44 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
       ).count ?? 0)
     : 0;
 
-  const items: NavItem[] = [
-    { href: "/app", label: "Dashboard", icon: "dashboard" },
-    { href: "/app/properties", label: "Properties", icon: "properties" },
-    ...(sales
-      ? [
-          { href: "/app/pipeline", label: "Pipeline", icon: "pipeline" as const },
-          { href: "/app/agents", label: "AI agents", icon: "agents" as const, count: waiting },
-          { href: "/app/leads", label: "Viewing requests", icon: "leads" as const },
-        ]
-      : []),
-    ...(can(current.role, "conversation.reply")
-      ? [{ href: "/app/inbox", label: "Messages", icon: "inbox" as const }]
-      : []),
-    ...(can(current.role, "analytics.view") ? [{ href: "/app/reports", label: "Reports", icon: "reports" as const }] : []),
-    ...(can(current.role, "team.view") ? [{ href: "/app/team", label: "Team", icon: "team" as const }] : []),
+  const superAdmin = user ? await isSuperAdmin(user.id) : false;
+  const paymentsWaiting = superAdmin ? await pendingPayments() : 0;
+
+  // Pages that share a sidebar item are reached through tabs at the top of the page.
+  const homeTabs: SectionTab[] = [
+    { href: "/app", label: "Overview" },
+    ...(can(current.role, "analytics.view") ? [{ href: "/app/reports", label: "Reports" }] : []),
+  ];
+  const salesTabs: SectionTab[] = sales
+    ? [
+        { href: "/app/pipeline", label: "Pipeline" },
+        { href: "/app/leads", label: "Viewing requests" },
+        { href: "/app/agents", label: "AI agents", count: waiting },
+      ]
+    : [];
+  const settingsTabs: SectionTab[] = [
+    ...(can(current.role, "team.view") ? [{ href: "/app/team", label: "Team" }] : []),
     ...(can(current.role, "lead.viewAssigned") || can(current.role, "business.update")
-      ? [{ href: "/app/integrations", label: "Integrations", icon: "integrations" as const }]
+      ? [{ href: "/app/integrations", label: "Integrations" }]
       : []),
-    ...(can(current.role, "billing.view") ? [{ href: "/app/billing", label: "Billing", icon: "billing" as const }] : []),
+    ...(can(current.role, "billing.view") ? [{ href: "/app/billing", label: "Billing" }] : []),
     // Home Finder staff only: GCash payments waiting for a check.
-    ...(user && (await isSuperAdmin(user.id)) ? [{ href: "/admin/payments", label: "Payments to check", icon: "billing" as const, count: await pendingPayments() }] : []),
+    ...(superAdmin ? [{ href: "/admin/payments", label: "Payments to check", count: paymentsWaiting }] : []),
+  ];
+
+  const items: NavItem[] = [
+    { href: "/app", label: "Dashboard", icon: "dashboard", match: ["/app/reports"] },
+    { href: "/app/properties", label: "Properties", icon: "properties" },
+    ...(sales ? [{ href: "/app/pipeline", label: "Pipeline", icon: "pipeline" as const, count: waiting, match: ["/app/leads", "/app/agents"] }] : []),
+    ...(can(current.role, "conversation.reply") ? [{ href: "/app/inbox", label: "Messages", icon: "inbox" as const }] : []),
+    ...(settingsTabs.length
+      ? [{ href: settingsTabs[0]!.href, label: "Settings", icon: "settings" as const, count: paymentsWaiting, match: settingsTabs.map((t) => t.href) }]
+      : []),
   ];
 
   return (
     <AppShell current={current} memberships={memberships} fullName={fullName} items={items} switchBusiness={switchBusiness}>
+      <SectionTabs groups={[homeTabs, salesTabs, settingsTabs]} />
       {children}
       {(await aiEnabled(current.businessId)) ? <AgentAssistant /> : null}
     </AppShell>
