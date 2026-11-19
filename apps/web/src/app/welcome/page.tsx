@@ -2,18 +2,10 @@ import { redirect } from "next/navigation";
 import { Building2, House } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { getProfile, homePathFor, requireUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
-
-async function choose(type: "buyer" | "agent") {
-  "use server";
-  await requireUser();
-  const supabase = await createClient();
-  await supabase.rpc("choose_account_type", { p_type: type });
-  redirect(type === "buyer" ? "/buyer" : "/onboarding");
-}
 
 /** Shown once to people who signed in with Google without choosing buyer or agent. */
-export default async function WelcomePage() {
+export default async function WelcomePage({ searchParams }: PageProps<"/welcome">) {
+  const failed = (await searchParams).error === "1";
   await requireUser();
   const profile = await getProfile();
   if (profile?.account_type_chosen) redirect(await homePathFor());
@@ -27,8 +19,14 @@ export default async function WelcomePage() {
         <Logo />
         <h1 className="font-display mt-8 text-[2rem] leading-tight font-medium">{first ? `Welcome, ${first}.` : "Welcome."} How will you use ProPilot?</h1>
         <p className="mt-1 text-sm text-muted">You only need to choose once.</p>
+        {failed ? (
+          <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">
+            That didn&apos;t save. Please try again.
+          </p>
+        ) : null}
         <div className="mt-6 space-y-3">
-          <form action={choose.bind(null, "buyer")}>
+          <form action="/auth/choose" method="post">
+            <input type="hidden" name="type" value="buyer" />
             <button className={option}>
               <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
                 <House className="size-5" aria-hidden />
@@ -39,7 +37,8 @@ export default async function WelcomePage() {
               </span>
             </button>
           </form>
-          <form action={choose.bind(null, "agent")}>
+          <form action="/auth/choose" method="post">
+            <input type="hidden" name="type" value="agent" />
             <button className={option}>
               <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
                 <Building2 className="size-5" aria-hidden />
