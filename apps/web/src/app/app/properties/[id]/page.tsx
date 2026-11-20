@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { can } from "@propilot/shared";
-import { Alert, Card, PageHeader } from "@/components/ui";
+import { Alert, Card, PageHeader, buttonClass } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { getOrigin, getUser, requireBusiness } from "@/lib/auth";
 import { centavosToPesosInput } from "@/lib/money";
@@ -112,7 +112,17 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       <Link href="/app/properties" className="text-sm text-zinc-500 hover:text-zinc-800">
         ← Properties
       </Link>
-      <PageHeader title={p.name} description={p.location} />
+      <PageHeader
+        title={p.name}
+        description={p.location}
+        action={
+          canEdit && p.status !== "archived" ? (
+            <Link href={`/app/pricing?property=${p.id}`} className={buttonClass("secondary")}>
+              Check this price
+            </Link>
+          ) : null
+        }
+      />
       {sp.notice === "created" ? (
         <div className="mb-4">
           <Alert tone="success">Property saved. Add photos so buyers can see it.</Alert>
@@ -121,6 +131,10 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
         <div className="mb-4">
           <Alert tone="success">Property saved. The photos from your Facebook post are being added below.</Alert>
           <RefreshSoon />
+        </div>
+      ) : sp.notice === "price-updated" ? (
+        <div className="mb-4">
+          <Alert tone="success">Asking price updated. Buyers and the AI chat see the new price now.</Alert>
         </div>
       ) : null}
       {shareable ? <ShareListing url={publicUrl} views={views} inquiries={inquiries} /> : null}

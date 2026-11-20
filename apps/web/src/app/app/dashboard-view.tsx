@@ -14,6 +14,7 @@ import {
   Home,
   Megaphone,
   MessageCircle,
+  PhilippinePeso,
   Plus,
   Rocket,
   Users,
@@ -66,6 +67,8 @@ export type DashboardData = {
   /** Last 30 days as running totals, and the listing with the most interest; null for roles that can't see reports. */
   performance: { points: PerfPoint[]; top: { id: string; views: number; inquiries: number } | null } | null;
   facebookConnected: boolean;
+  /** Whether the plan includes the Pricing Advisor (Agency). The button shows either way. */
+  pricingAdvisor: boolean;
   now?: Date;
 };
 
@@ -105,6 +108,7 @@ export function DashboardView({
   aiActivity,
   performance,
   facebookConnected,
+  pricingAdvisor,
   now,
 }: DashboardData) {
   const doneCount = steps.filter((s) => s.done).length;
@@ -375,6 +379,19 @@ export function DashboardView({
 
         <Panel className={performance ? "xl:col-span-2" : "xl:col-span-5"} icon={<Rocket className="size-5" aria-hidden />} title="Quick actions">
           <div className="grid flex-1 auto-rows-fr grid-cols-2 gap-3 p-4">
+            <Link
+              href="/app/pricing"
+              className="pp-lift pp-bounce col-span-2 flex min-h-[4.5rem] items-center gap-3 rounded-2xl bg-gradient-to-br from-grape-700 to-grape-900 p-4 text-white"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/15">
+                <PhilippinePeso className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1 text-[15px] leading-tight font-bold">
+                Pricing Advisor
+                <span className="mt-0.5 block text-xs font-semibold text-white/80">AI price check with comparable listings</span>
+              </span>
+              {pricingAdvisor ? <ChevronRight className="size-5 shrink-0 text-white/80" aria-hidden /> : <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold">Agency plan</span>}
+            </Link>
             <Action
               href={canCreateProperty ? "/app/properties/new" : "/app/properties"}
               icon={canCreateProperty ? Plus : Home}

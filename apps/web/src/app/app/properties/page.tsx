@@ -28,11 +28,18 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
         title="Properties"
         description="The assistant answers buyers only from what's listed here."
         action={
-          can(biz.role, "property.create") ? (
-            <Link href="/app/properties/new" className={buttonClass()}>
-              Add property
-            </Link>
-          ) : null
+          <div className="flex flex-wrap gap-2">
+            {can(biz.role, "property.update") ? (
+              <Link href="/app/pricing" className={buttonClass("secondary")}>
+                Pricing Advisor
+              </Link>
+            ) : null}
+            {can(biz.role, "property.create") ? (
+              <Link href="/app/properties/new" className={buttonClass()}>
+                Add property
+              </Link>
+            ) : null}
+          </div>
         }
       />
       {sp.notice === "archived" ? (

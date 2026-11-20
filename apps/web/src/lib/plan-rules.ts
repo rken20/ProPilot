@@ -65,6 +65,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Everything in Pro, for 15 team members",
       "Buyer Finder: 60 AI-found potential buyers a month",
       "Up to 25,000 AI replies a month",
+      "Pricing Advisor: 20 AI price checks a month, with comparable listings",
       "AI listing videos, 30 a month (coming soon)",
     ],
   },

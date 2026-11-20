@@ -252,6 +252,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
           : null
       }
       facebookConnected={pagesConnected}
+      pricingAdvisor={plan.priceChecks !== 0}
       recent={recent}
     />
   );
