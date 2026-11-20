@@ -8,6 +8,7 @@ export type Lead = {
   id: string;
   buyer_name: string;
   buyer_phone: string;
+  buyer_email?: string | null;
   preferred_date: string | null;
   budget_note: string | null;
   message: string | null;
@@ -85,7 +86,7 @@ export function googleCalendarUrl(lead: Lead, property: { name: string; location
       `Mobile: ${lead.buyer_phone}`,
       lead.budget_note ? `Budget: ${lead.budget_note}` : "",
       lead.message ? `Message: ${lead.message}` : "",
-      "From Home Finder AI",
+      "From HomeFinder AI",
     ]
       .filter(Boolean)
       .join("\n"),
@@ -136,36 +137,37 @@ export function toCsv(rows: ReadonlyArray<ReadonlyArray<string>>): string {
   return "﻿" + rows.map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
 }
 
-/** The email an agent gets when a buyer requests a viewing. */
+/** The email an agent gets when a buyer sends an inquiry or asks for a viewing. */
 export function newLeadEmail(lead: Lead, property: { name: string; location: string }, businessName: string, leadsUrl: string) {
   const lines: Array<[string, string]> = [
     ["Buyer", lead.buyer_name],
     ["Mobile", lead.buyer_phone],
+    ...(lead.buyer_email ? ([["Email", lead.buyer_email]] as Array<[string, string]>) : []),
     ["Property", `${property.name}, ${property.location}`],
     ["Preferred date", lead.preferred_date ? prettyDate(lead.preferred_date) : "Not given"],
     ...(lead.budget_note ? ([["Budget", lead.budget_note]] as Array<[string, string]>) : []),
     ...(lead.message ? ([["Message", lead.message]] as Array<[string, string]>) : []),
   ];
   // Line breaks in a subject could add email headers.
-  const subject = `New viewing request: ${property.name}`.replace(/[\r\n]+/g, " ").slice(0, 200);
+  const subject = `New inquiry: ${property.name}`.replace(/[\r\n]+/g, " ").slice(0, 200);
   const text = [
-    `${lead.buyer_name} wants to view ${property.name}.`,
+    `${lead.buyer_name} is interested in ${property.name}.`,
     "",
     ...lines.map(([k, v]) => `${k}: ${v}`),
     "",
     `Call or text them to confirm, then update the lead: ${leadsUrl}`,
     "",
-    `Sent by Home Finder AI to the team at ${businessName}.`,
+    `Sent by HomeFinder AI to the team at ${businessName}.`,
   ].join("\n");
-  const html = `<!doctype html><html><body style="margin:0;background:#f5f7fb;font-family:Arial,Helvetica,sans-serif;color:#0e1726">
+  const html = `<!doctype html><html><body style="margin:0;background:#f6f4fb;font-family:Arial,Helvetica,sans-serif;color:#0e1726">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e3e8f0;border-radius:12px">
-<tr><td style="padding:24px 24px 8px"><p style="margin:0;font-size:13px;color:#5b6577">Home Finder AI</p>
-<h1 style="margin:8px 0 0;font-size:20px;line-height:1.3">${esc(lead.buyer_name)} wants to view ${esc(property.name)}</h1></td></tr>
+<tr><td style="padding:24px 24px 8px"><p style="margin:0;font-size:13px;color:#5b6577">HomeFinder AI</p>
+<h1 style="margin:8px 0 0;font-size:20px;line-height:1.3">${esc(lead.buyer_name)} is interested in ${esc(property.name)}</h1></td></tr>
 <tr><td style="padding:16px 24px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 ${lines.map(([k, v]) => `<tr><td style="padding:6px 0;width:130px;font-size:13px;color:#5b6577;vertical-align:top">${esc(k)}</td><td style="padding:6px 0;font-size:14px">${esc(v)}</td></tr>`).join("")}
 </table></td></tr>
-<tr><td style="padding:8px 24px 24px"><a href="${esc(leadsUrl)}" style="display:inline-block;background:#1f5bd8;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 16px;border-radius:8px">Open buyer leads</a>
+<tr><td style="padding:8px 24px 24px"><a href="${esc(leadsUrl)}" style="display:inline-block;background:#0b8a47;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 18px;border-radius:999px">Open inquiries</a>
 <p style="margin:16px 0 0;font-size:12px;color:#5b6577">Sent to the team at ${esc(businessName)}.</p></td></tr>
 </table></td></tr></table></body></html>`;
   return { subject, text, html };

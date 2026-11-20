@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-/** Whether a user is a Home Finder super admin (set in the database only; users can't set it themselves). */
+/** Whether a user is a HomeFinder super admin (set in the database only; users can't set it themselves). */
 export async function isSuperAdmin(userId: string): Promise<boolean> {
   const admin = createAdminClient();
   if (!admin) return false;

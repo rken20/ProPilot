@@ -64,7 +64,7 @@ export function messengerSystemPrompt(
   today: string,
   opts: { channel?: Channel; focus?: MessengerListing } = {},
 ): string {
-  const where = opts.channel === "app" ? "messages sent through the Home Finder app to" : "Facebook Messenger messages for";
+  const where = opts.channel === "app" ? "messages sent through the HomeFinder app to" : "Facebook Messenger messages for";
   return `You answer ${where} "${pageName}", a real estate business in the Philippines. Today is ${today}.
 
 You help people who message the business with questions about its property listings, and you collect viewing requests.

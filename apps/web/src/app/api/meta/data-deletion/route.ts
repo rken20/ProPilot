@@ -5,7 +5,7 @@ import { metaOrigin } from "@/lib/meta-oauth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * Meta's data deletion callback. When someone removes Home Finder from their
+ * Meta's data deletion callback. When someone removes HomeFinder from their
  * Facebook account and asks for their data to be deleted, Meta posts a signed
  * request here. We delete every Page token that person connected and return a
  * link where they can check the status.

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { can } from "@propilot/shared";
 import { Alert, Card, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
-import { getUser, requireBusiness } from "@/lib/auth";
+import { getOrigin, getUser, requireBusiness } from "@/lib/auth";
 import { centavosToPesosInput } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { archiveProperty, updateProperty } from "../actions";
@@ -17,6 +17,9 @@ import { canPublish, metaConfig } from "@/lib/meta";
 import { aiEnabled, businessPlan } from "@/lib/plan";
 import { buyerFinder, type ListingForMatch } from "@/lib/buyer-finder";
 import { BuyerFinder, BuyerFinderUpgrade } from "./buyer-finder";
+import { ShareListing } from "./share-listing";
+import { publicListingPath } from "@/lib/public-listing";
+import { daysAgoIso } from "@/lib/time";
 
 export default async function PropertyPage({ params, searchParams }: PageProps<"/app/properties/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
@@ -63,6 +66,26 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
     ? await buyerFinder(supabase, { ...p, price_minor: Number(p.price_minor) } as ListingForMatch, plan.homeFinderBuyers)
     : null;
 
+  // The public page: its link, and how it's doing over the last 30 days.
+  const shareable = p.is_public && (p.status === "available" || p.status === "reserved");
+  const [views, inquiries] = shareable
+    ? await Promise.all([
+        supabase
+          .from("listing_views")
+          .select("views")
+          .eq("property_id", p.id)
+          .gte("day", daysAgoIso(30).slice(0, 10))
+          .then((r) => (r.data ?? []).reduce((n, v) => n + (v.views as number), 0)),
+        supabase
+          .from("viewing_requests")
+          .select("id", { count: "exact", head: true })
+          .eq("property_id", p.id)
+          .gte("created_at", daysAgoIso(30))
+          .then((r) => r.count ?? 0),
+      ])
+    : [0, 0];
+  const publicUrl = `${await getOrigin()}${publicListingPath(p.id)}`;
+
   const financing = (p.financing ?? {}) as Record<string, unknown>;
   const initial = {
     name: p.name,
@@ -100,6 +123,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
           <RefreshSoon />
         </div>
       ) : null}
+      {shareable ? <ShareListing url={publicUrl} views={views} inquiries={inquiries} /> : null}
       <div className="mb-6">
         <PhotoManager
           businessId={biz.businessId}
@@ -113,7 +137,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       </Card>
 
       {finder ? (
-        <BuyerFinder propertyId={p.id} data={finder} isPublic={p.is_public} canSend={sales} />
+        <BuyerFinder propertyId={p.id} data={finder} />
       ) : sales && !aiOn && p.status === "available" ? (
         <BuyerFinderUpgrade canUpgrade={can(biz.role, "billing.manage")} />
       ) : null}

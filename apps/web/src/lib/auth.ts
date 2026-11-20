@@ -28,7 +28,7 @@ export async function requireUser() {
   return user;
 }
 
-/** The signed-in user's profile (name, phone, buyer or agent). */
+/** The signed-in user's profile (name, phone). */
 export const getProfile = cache(async () => {
   const user = await getUser();
   if (!user) return null;
@@ -49,13 +49,9 @@ export const getProfile = cache(async () => {
 
 type Profile = { full_name: string; phone: string | null; email: string | null; account_type: AccountType; account_type_chosen: boolean };
 
-/** Where a signed-in person belongs: buyers browse, agents work in their business. */
+/** Where a signed-in person belongs: their business, or setting one up. */
 export async function homePathFor(): Promise<string> {
-  const profile = await getProfile();
-  const hasBusiness = (await getMemberships()).length > 0;
-  if (hasBusiness) return "/app";
-  if (profile && !profile.account_type_chosen) return "/welcome";
-  return profile?.account_type === "buyer" ? "/buyer" : "/onboarding";
+  return (await getMemberships()).length > 0 ? "/app" : "/onboarding";
 }
 
 /** Businesses the current user is an active member of. RLS returns only theirs. */
@@ -84,11 +80,7 @@ export const getMemberships = cache(async (): Promise<Membership[]> => {
 export const requireBusiness = cache(async (): Promise<Membership> => {
   await requireUser();
   const memberships = await getMemberships();
-  if (memberships.length === 0) {
-    const profile = await getProfile();
-    if (profile && !profile.account_type_chosen) redirect("/welcome");
-    redirect(profile?.account_type === "buyer" ? "/buyer" : "/onboarding");
-  }
+  if (memberships.length === 0) redirect("/onboarding");
   const chosen = (await cookies()).get(BUSINESS_COOKIE)?.value;
   return memberships.find((m) => m.businessId === chosen) ?? memberships[0]!;
 });

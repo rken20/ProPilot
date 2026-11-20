@@ -78,9 +78,9 @@ describe("CSV export", () => {
 });
 
 describe("new-lead email", () => {
-  it("escapes the buyer's words in HTML and links to Buyer leads", () => {
+  it("escapes the buyer's words in HTML and links to Inquiries", () => {
     const m = newLeadEmail(lead, property, "Cruz Realty", "https://app.example/app/leads");
-    expect(m.subject).toBe("New viewing request: 2BR Unit 12A");
+    expect(m.subject).toBe("New inquiry: 2BR Unit 12A");
     expect(m.html).toContain("Ana &lt;Santos&gt;");
     expect(m.html).not.toContain("<Santos>");
     expect(m.text).toContain("Mobile: 0917 123 4567");
@@ -129,6 +129,6 @@ describe("email subject", () => {
   it("can't carry line breaks into the headers", () => {
     const m = newLeadEmail(lead, { name: "Unit 1\r\nBcc: victim@example.com", location: "Iloilo" }, "Cruz Realty", "https://x/app/leads");
     expect(m.subject).not.toMatch(/[\r\n]/);
-    expect(m.subject).toBe("New viewing request: Unit 1 Bcc: victim@example.com");
+    expect(m.subject).toBe("New inquiry: Unit 1 Bcc: victim@example.com");
   });
 });

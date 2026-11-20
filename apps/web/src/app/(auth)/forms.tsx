@@ -7,12 +7,11 @@ import { SubmitButton } from "@/components/submit-button";
 import { initialFormState } from "@/lib/form";
 import { requestPasswordReset, signIn, signUp, updatePassword } from "./actions";
 
-export function SignUpForm({ next, accountType }: { next?: string; accountType: "agent" | "buyer" }) {
+export function SignUpForm({ next }: { next?: string }) {
   const [state, action] = useActionState(signUp, initialFormState);
   if (state.ok) return <Alert tone="success">{state.message}</Alert>;
   return (
     <form action={action} className="space-y-4">
-      <input type="hidden" name="accountType" value={accountType} />
       {next ? <input type="hidden" name="next" value={next} /> : null}
       {state.error ? <Alert>{state.error}</Alert> : null}
       <Field label="Full name" htmlFor="fullName" error={state.fieldErrors?.fullName}>
@@ -59,7 +58,7 @@ export function SignInForm({ next, notice }: { next?: string; notice?: string })
         Log in
       </SubmitButton>
       <p className="text-center text-sm text-zinc-600">
-        New to Home Finder?{" "}
+        New to HomeFinder?{" "}
         <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-medium text-brand-700">
           Create an account
         </Link>

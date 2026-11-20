@@ -6,8 +6,16 @@ import { buttonClass } from "@/components/ui";
 import { Photo } from "@/components/photo";
 import { getUser, homePathFor } from "@/lib/auth";
 import { env } from "@/lib/env";
+import { Icon3d, type Icon3dName } from "@/components/icon-3d";
 import { HeroChat } from "./_home/hero-chat";
-import { HomeEstimator } from "./_home/home-estimator";
+
+/** The plans as the Billing page sells them (prices match the plans table). */
+const PLANS: Array<{ name: string; for: string; price: string; icon: Icon3dName; tile: string; lines: string[] }> = [
+  { name: "Free", for: "To try it out", price: "₱0", icon: "key", tile: "bg-white border border-line", lines: ["Listings with public pages", "Inquiries, Pipeline and inbox", "1 team member, no AI"] },
+  { name: "Basic", for: "Property owners", price: "₱499", icon: "house", tile: "bg-tile-mint", lines: ["AI replies, up to 3,000 a month", "Buyer Finder: 5 buyers a month", "Lead scoring and AI writing", "2 team members"] },
+  { name: "Pro", for: "Agents", price: "₱999", icon: "rocket", tile: "bg-tile-lavender", lines: ["AI replies, up to 10,000 a month", "Buyer Finder: 20 buyers a month", "AI listing videos (coming soon)", "5 team members"] },
+  { name: "Agency", for: "Brokerages and teams", price: "₱2,499", icon: "trophy", tile: "bg-tile-peach", lines: ["AI replies, up to 25,000 a month", "Buyer Finder: 60 buyers a month", "AI listing videos (coming soon)", "15 team members"] },
+];
 
 const wrap = "mx-auto w-full max-w-6xl px-6 lg:px-8";
 const screen = "flex min-h-svh flex-col justify-center py-20 lg:py-24";
@@ -17,7 +25,7 @@ export default async function Home() {
   if (configured && (await getUser())) redirect(await homePathFor());
 
   return (
-    <div className="bg-surface">
+    <div className="bg-[var(--pp-ground)]">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">
         Skip to content
       </a>
@@ -26,7 +34,7 @@ export default async function Home() {
         {/* Hero: alone on the first screen. */}
         <section className="flex min-h-svh flex-col">
           <header className={`${wrap} flex items-center justify-between py-5`}>
-            <Link href="/" aria-label="Home Finder AI home">
+            <Link href="/" aria-label="HomeFinder AI home">
               <Logo />
             </Link>
             <nav className="flex items-center gap-2">
@@ -43,25 +51,27 @@ export default async function Home() {
 
           <div className={`${wrap} grid flex-1 items-center gap-14 pb-16 pt-8 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pb-24`}>
             <div className="pp-stagger">
-              <h1 style={{ "--i": 0 } as React.CSSProperties} className="font-display text-[2.6rem] leading-[1.05] font-medium text-ink sm:text-6xl lg:text-[4.1rem]">
-                The listing assistant for real estate agents in the Philippines
+              <p style={{ "--i": 0 } as React.CSSProperties} className="inline-flex items-center gap-2 rounded-full bg-tile-mint px-3 py-1 text-sm font-bold text-brand-700">
+                <Icon3d name="sparkles" size={20} /> Free to start, Basic from ₱499 a month
+              </p>
+              <h1 style={{ "--i": 1 } as React.CSSProperties} className="font-display mt-5 text-[2.6rem] leading-[1.05] font-extrabold text-ink sm:text-6xl lg:text-[4rem]">
+                The AI sales assistant for property owners and agents
               </h1>
-              <p style={{ "--i": 1 } as React.CSSProperties} className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-                Buyers ask about the price, the reservation fee or a Pag-IBIG loan and get an answer in seconds, taken only
-                from the details you entered. When they want to see the unit, you get their name, mobile number and
-                preferred date.
+              <p style={{ "--i": 2 } as React.CSSProperties} className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
+                It answers buyers on Messenger and on your listing&apos;s page day and night, using only the details you entered. Then
+                it sizes up each buyer and shows you who fits each property.
               </p>
               {configured ? (
-                <div style={{ "--i": 2 } as React.CSSProperties}>
+                <div style={{ "--i": 3 } as React.CSSProperties}>
                   <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                    <Link href="/signup?as=agent" className={buttonClass("primary", "min-h-12 px-6 text-[15px]")}>
-                      List your properties
+                    <Link href="/signup" className={buttonClass("primary", "min-h-12 px-7 text-[15px]")}>
+                      Create your free account
                     </Link>
-                    <Link href="/signup?as=buyer" className={buttonClass("secondary", "min-h-12 px-6 text-[15px]")}>
-                      Find a property
+                    <Link href="#plans" className={buttonClass("secondary", "min-h-12 px-7 text-[15px]")}>
+                      See the plans
                     </Link>
                   </div>
-                  <p className="mt-5 text-sm text-muted">Free for agents and buyers while Home Finder is in beta.</p>
+                  <p className="mt-5 text-sm text-muted">Made in the Philippines, for Pag-IBIG, bank and in-house financing.</p>
                 </div>
               ) : (
                 <p className="mt-9 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
@@ -78,67 +88,77 @@ export default async function Home() {
         <section className="border-t border-line bg-white">
           <div className={`${wrap} ${screen}`}>
             <div className="max-w-2xl">
-              <h2 className="font-display text-4xl leading-tight font-medium sm:text-5xl">From listing to viewing in three steps</h2>
-              <p className="mt-4 text-lg text-muted">You do the first step. The other two run while you&apos;re showing another unit.</p>
+              <h2 className="font-display text-4xl leading-tight font-extrabold sm:text-5xl">From listing to buyer in three steps</h2>
+              <p className="mt-4 text-lg text-muted">You do the first step. The AI does the other two while you&apos;re showing another unit.</p>
             </div>
             <ol className="mt-14 grid gap-5 lg:grid-cols-3">
-              <Step n={1} title="Add the listing once" text="Price, floor area, financing, reservation fee and up to 20 photos. You decide whether buyers can see it.">
+              <Step n={1} icon="houses" tile="bg-tile-lavender" title="Add the listing, share its link" text="Price, financing, reservation fee and up to 20 photos. Each listing gets a public page to post on Facebook or send by text.">
                 <FormFragment />
               </Step>
-              <Step n={2} title="The assistant answers buyers" text="It answers from your listing and nothing else. Loan figures are calculated, never guessed.">
+              <Step n={2} icon="robot" tile="bg-tile-mint" title="The AI answers every inquiry" text="On Messenger and on the listing page, from your details only. It notes each buyer's budget, area and timing.">
                 <ChatFragment />
               </Step>
-              <Step n={3} title="Viewing requests reach you" text="Each request lands in Viewing requests with the buyer's mobile number and the date they prefer.">
+              <Step n={3} icon="target" tile="bg-tile-peach" title="Buyer Finder shows who fits" text="Every lead is scored and matched to your listings, so you call the right buyer first.">
                 <LeadFragment />
               </Step>
             </ol>
           </div>
         </section>
 
-        {/* For buyers: a working estimator. */}
-        <section className="border-t border-line">
+        {/* Plans: what each costs and includes. Prices match the plans table. */}
+        <section id="plans" className="border-t border-line">
           <div className={`${wrap} ${screen}`}>
-            <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.05fr] lg:gap-16">
-              <div>
-                <h2 className="font-display text-4xl leading-tight font-medium sm:text-5xl">Know the monthly payment before you visit</h2>
-                <p className="mt-5 max-w-lg text-lg leading-relaxed text-muted">
-                  Every listing has this estimator, worked out from the listed price. Move the sliders to try your own
-                  numbers.
-                </p>
-                <ul className="mt-8 space-y-4 text-[15px] text-ink">
-                  <BuyerPoint>Search by city and budget, with photos on every card.</BuyerPoint>
-                  <BuyerPoint>Save the units you like and compare them later.</BuyerPoint>
-                  <BuyerPoint>Ask to see a unit. The agent gets your request right away.</BuyerPoint>
-                </ul>
-                {configured ? (
-                  <Link href="/signup?as=buyer" className={buttonClass("primary", "mt-10 min-h-12 px-6 text-[15px]")}>
-                    Find a property
-                  </Link>
-                ) : null}
-              </div>
-              <HomeEstimator />
+            <div className="max-w-2xl">
+              <h2 className="font-display text-4xl leading-tight font-extrabold sm:text-5xl">Plans for owners, agents and teams</h2>
+              <p className="mt-4 text-lg text-muted">Start free with no card. Pay by GCash when you want the AI.</p>
             </div>
+            <ul className="mt-12 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {PLANS.map((p) => (
+                <li key={p.name} className={`pp-bounce flex flex-col rounded-[1.5rem] p-6 ${p.tile}`}>
+                  <Icon3d name={p.icon} size={52} />
+                  <h3 className="mt-4 text-xl font-extrabold">{p.name}</h3>
+                  <p className="text-sm font-semibold text-muted">{p.for}</p>
+                  <p className="mt-3">
+                    <span className="text-3xl font-extrabold tabular-nums">{p.price}</span>
+                    <span className="text-muted"> / month</span>
+                  </p>
+                  <ul className="mt-4 space-y-2 text-[15px]">
+                    {p.lines.map((l) => (
+                      <li key={l} className="flex gap-2">
+                        <span className="mt-2 size-1.5 shrink-0 rounded-full bg-brand-600" aria-hidden="true" />
+                        <span>{l}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+            {configured ? (
+              <Link href="/signup" className={buttonClass("primary", "mt-10 min-h-12 self-start px-7 text-[15px]")}>
+                Create your free account
+              </Link>
+            ) : null}
           </div>
         </section>
 
         {/* Close and footer on the dark frame colour. */}
-        <section className="relative isolate overflow-hidden bg-brand-900 text-white">
+        <section className="relative isolate overflow-hidden bg-grape-900 text-white">
           <Photo
             name="manila-skyline"
             widths={[1000, 1600, 2400]}
             sizes="100vw"
             className="absolute inset-0 -z-10 size-full object-cover object-[50%_45%]"
           />
-          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-brand-900/90 via-brand-900/60 to-brand-900/20" aria-hidden="true" />
-          <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-brand-900 to-transparent" aria-hidden="true" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-grape-900/90 via-grape-800/65 to-grape-700/25" aria-hidden="true" />
+          <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-grape-900 to-transparent" aria-hidden="true" />
           <div className={`${wrap} flex min-h-[70svh] flex-col justify-center py-20`}>
-            <h2 className="font-display max-w-3xl text-4xl leading-tight font-medium sm:text-6xl">
-              Put your first listing up this week, while Home Finder is free.
+            <h2 className="font-display max-w-3xl text-4xl leading-tight font-extrabold sm:text-6xl">
+              Put your first listing up today. The AI starts answering tonight.
             </h2>
             {configured ? (
               <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-                <Link href="/signup?as=agent" className={buttonClass("inverse", "min-h-12 px-6 text-[15px]")}>
-                  List your properties
+                <Link href="/signup" className={buttonClass("primary", "min-h-12 px-7 text-[15px]")}>
+                  Create your free account
                 </Link>
                 <Link href="/login" className={buttonClass("inverseGhost", "min-h-12 px-6 text-[15px]")}>
                   Log in
@@ -148,7 +168,7 @@ export default async function Home() {
           </div>
           <footer className={`${wrap} flex flex-col gap-4 border-t border-white/10 py-8 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between`}>
             <Logo className="text-white" tone="dark" />
-            <p>Beta, Philippines</p>
+            <p>Philippines · 3D icons by Microsoft Fluent Emoji (MIT)</p>
           </footer>
         </section>
       </main>
@@ -191,11 +211,14 @@ function ListingFrame() {
   );
 }
 
-function Step({ n, title, text, children }: { n: number; title: string; text: string; children: ReactNode }) {
+function Step({ n, icon, tile, title, text, children }: { n: number; icon: Icon3dName; tile: string; title: string; text: string; children: ReactNode }) {
   return (
-    <li className="flex flex-col rounded-[1.5rem] border border-line bg-surface p-6">
-      <span className="font-display text-2xl text-brass">{n}</span>
-      <h3 className="mt-3 text-lg font-semibold text-ink">{title}</h3>
+    <li className={`pp-bounce flex flex-col rounded-[1.5rem] p-6 ${tile}`}>
+      <div className="flex items-center justify-between">
+        <Icon3d name={icon} size={52} />
+        <span className="grid size-9 place-items-center rounded-full bg-white text-sm font-extrabold text-grape-700">{n}</span>
+      </div>
+      <h3 className="mt-4 text-lg font-extrabold text-ink">{title}</h3>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">{text}</p>
       <div className="mt-6 flex-1 content-end">{children}</div>
     </li>
@@ -208,7 +231,7 @@ function FormFragment() {
       <Row k="Price" v="₱4,800,000" />
       <Row k="Reservation fee" v="₱20,000" />
       <div className="flex items-center justify-between gap-3 pt-1">
-        <span className="text-muted">Show to Home Finder buyers</span>
+        <span className="text-muted">Public page</span>
         <span className="relative inline-flex h-6 w-10 items-center rounded-full bg-brand-600">
           <span className="absolute right-0.5 size-5 rounded-full bg-white shadow" />
         </span>
@@ -231,10 +254,10 @@ function LeadFragment() {
     <div className="rounded-2xl border border-line bg-white p-4 text-sm" aria-hidden="true">
       <div className="flex items-center justify-between gap-3">
         <span className="font-semibold text-ink">Ana Reyes</span>
-        <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">New</span>
+        <span className="rounded-full bg-hot-50 px-2.5 py-0.5 text-xs font-bold text-hot">Hot</span>
       </div>
-      <p className="mt-1.5 text-muted">Wants to view on Saturday, 10:00 AM</p>
-      <p className="mt-0.5 text-muted">2-bedroom corner unit, 64 m²</p>
+      <p className="mt-1.5 text-muted">Budget ₱5M, Pasig, Pag-IBIG</p>
+      <p className="mt-0.5 font-semibold text-brand-700">92% match: 2-bedroom corner unit</p>
     </div>
   );
 }
@@ -245,14 +268,5 @@ function Row({ k, v }: { k: string; v: string }) {
       <span className="text-muted">{k}</span>
       <span className="font-semibold tabular-nums text-ink">{v}</span>
     </div>
-  );
-}
-
-function BuyerPoint({ children }: { children: ReactNode }) {
-  return (
-    <li className="flex gap-3">
-      <span className="mt-2 size-1.5 shrink-0 rounded-full bg-brass" aria-hidden="true" />
-      <span>{children}</span>
-    </li>
   );
 }

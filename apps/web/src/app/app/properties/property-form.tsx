@@ -105,10 +105,10 @@ export function PropertyForm({
         <Label className="flex items-start gap-3 rounded-xl border border-line bg-surface p-4 font-normal">
           <input type="checkbox" name="isPublic" defaultChecked={v.isPublic === "on"} className="mt-0.5 size-4 accent-brand-600" />
           <span>
-            <span className="block font-semibold text-ink">Show to Home Finder buyers</span>
+            <span className="block font-semibold text-ink">Give it a public page</span>
             <span className="block text-sm text-muted">
-              Buyers signed in to Home Finder can find this listing, ask the AI about it and request viewings. Sold and
-              archived listings are always hidden.
+              Anyone with the link can see the listing and send you an inquiry, no account needed. Share the link on Facebook,
+              Messenger or by text. Sold and archived listings are always hidden.
             </span>
           </span>
         </Label>

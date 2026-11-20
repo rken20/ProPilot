@@ -32,7 +32,7 @@ export type QualificationData = Facts & {
 
 const TONE: Record<Temperature, string> = {
   hot: "bg-hot text-white",
-  warm: "bg-brass-50 text-[#7d5f26]",
+  warm: "bg-brass-50 text-brass-700",
   cold: "bg-zinc-100 text-zinc-600",
 };
 
@@ -108,7 +108,7 @@ export function QualificationCard({
 
       {prefs ? (
         <div className="rounded-xl border border-line p-3">
-          <p className="mb-2 text-xs font-medium text-muted">What the buyer told Home Finder, {timeAgo(prefs.updated_at)}</p>
+          <p className="mb-2 text-xs font-medium text-muted">What the buyer told HomeFinder, {timeAgo(prefs.updated_at)}</p>
           <FactRows
             f={prefs}
             extra={[

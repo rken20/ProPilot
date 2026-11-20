@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DEFAULT_AGENT_SETTINGS } from "@/lib/agent-info";
 import { keeperProposals, keeperSummary, OPEN_STAGES, type KeeperRequest } from "@/lib/pipeline";
-import { runMatchAlerts, runMatcher } from "@/lib/matcher-run";
+import { runMatcher } from "@/lib/matcher-run";
 import { runQualifier } from "@/lib/qualifier-run";
 
 /**
@@ -93,9 +93,8 @@ export async function runPipelineKeeper(
 /** The daily run for every business that has its agents switched on. */
 export async function runScheduledAgents(
   admin: SupabaseClient,
-  origin: string,
   startedAt = Date.now(),
-): Promise<{ businesses: number; proposed: number; failed: number; qualified: number; alerts: number }> {
+): Promise<{ businesses: number; proposed: number; failed: number; qualified: number }> {
   const [{ data: businesses }, { data: off }] = await Promise.all([
     admin.from("businesses").select("id").limit(5000),
     admin.from("agent_settings").select("business_id").eq("enabled", false),
@@ -127,12 +126,5 @@ export async function runScheduledAgents(
     if (!res.ok) failed++;
   }
   await admin.rpc("prune_pipeline");
-  // Match alert emails for buyers on Basic who asked for them.
-  let alerts = 0;
-  try {
-    alerts = await runMatchAlerts(admin, origin);
-  } catch (e) {
-    console.error("[agents] match alerts failed:", e instanceof Error ? e.message : String(e));
-  }
-  return { businesses: active.length, proposed, failed, qualified, alerts };
+  return { businesses: active.length, proposed, failed, qualified };
 }

@@ -2,75 +2,40 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Bot,
-  Building2,
-  ChartColumn,
-  CreditCard,
-  Flame,
-  LayoutDashboard,
-  MessageCircle,
-  Plug,
-  Settings,
-  SquareKanban,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
 import { cx } from "@/components/ui";
+import { Icon3d, type Icon3dName } from "@/components/icon-3d";
 
 const ICONS = {
-  dashboard: LayoutDashboard,
-  properties: Building2,
-  leads: Flame,
-  pipeline: SquareKanban,
-  agents: Bot,
-  inbox: MessageCircle,
-  reports: ChartColumn,
-  team: Users,
-  billing: CreditCard,
-  integrations: Plug,
-  settings: Settings,
-} satisfies Record<string, LucideIcon>;
+  dashboard: "house",
+  properties: "houses",
+  pipeline: "handshake",
+  inbox: "chat",
+  settings: "gear",
+} satisfies Record<string, Icon3dName>;
 
-export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; soon?: boolean; count?: number; /** Other paths that belong to this item (its tabs). */ match?: string[] };
+export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; count?: number; /** Other paths that belong to this item (its tabs). */ match?: string[] };
 
 export function Nav({ items }: { items: NavItem[] }) {
   const path = usePathname();
   return (
     <nav className="flex gap-1 overflow-x-auto lg:flex-col" aria-label="Main">
       {items.map((item) => {
-        const Icon = ICONS[item.icon];
         const active =
           (item.href === "/app" ? path === "/app" : path.startsWith(item.href)) || (item.match ?? []).some((m) => path.startsWith(m));
-        if (item.soon) {
-          return (
-            <span
-              key={item.href}
-              className="flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/35"
-              title="Available later in the beta"
-            >
-              <Icon className="size-[18px]" aria-hidden />
-              <span className="flex-1">{item.label}</span>
-              <span className="hidden rounded bg-white/10 px-1.5 py-0.5 text-xs font-medium text-white/50 lg:inline">
-                Soon
-              </span>
-            </span>
-          );
-        }
         return (
           <Link
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cx(
-              "flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-[background-color,color] duration-200",
-              active ? "bg-white/[0.09] font-semibold text-white shadow-[inset_2px_0_0_#c9a463]" : "text-white/70 hover:bg-white/[0.06] hover:text-white",
+              "pp-bounce flex shrink-0 items-center gap-3 rounded-2xl px-3 py-2 text-[15px] transition-[background-color,color] duration-200",
+              active ? "bg-[#fff] font-bold text-[#2a1760] shadow-[0_6px_18px_-8px_rgb(0_0_0/0.5)]" : "font-medium text-white/80 hover:bg-white/10 hover:text-white",
             )}
           >
-            <Icon className="size-[18px]" aria-hidden />
+            <Icon3d name={ICONS[item.icon]} size={30} />
             <span className="flex-1">{item.label}</span>
             {item.count ? (
-              <span className="rounded-full bg-[#c9a463] px-1.5 py-px text-xs font-semibold text-brand-900 tabular-nums" aria-label={`${item.count} waiting`}>
+              <span className="rounded-full bg-hot px-2 py-px text-xs font-bold text-white tabular-nums" aria-label={`${item.count} waiting`}>
                 {item.count > 99 ? "99+" : item.count}
               </span>
             ) : null}

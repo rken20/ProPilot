@@ -11,7 +11,7 @@ export function leadsCsv(r: LeadsReport, range: Range): string {
     ["Report", "Leads and conversions"],
     ["Period", range.label],
     [],
-    ["Period", "Home Finder viewing requests", "Messenger conversations", "Total inquiries"],
+    ["Period", "HomeFinder viewing requests", "Messenger conversations", "Total inquiries"],
     ...r.series.map((s) => [s.label, String(s.propilot), String(s.messenger), String(s.propilot + s.messenger)]),
     [],
     ["Stage", "Leads"],
@@ -45,7 +45,7 @@ export function listingsCsv(rows: ListingPerf[], range: Range): string {
 
 export function messengerCsv(r: MessengerReport, range: Range): string {
   return toCsv([
-    ["Report", "AI chat performance (Home Finder chat and Messenger)"],
+    ["Report", "AI chat performance (HomeFinder chat and Messenger)"],
     ["Period", range.label],
     [],
     ["Conversations started", String(r.conversations)],

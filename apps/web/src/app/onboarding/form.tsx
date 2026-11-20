@@ -19,7 +19,7 @@ export function CreateBusinessForm() {
   return (
     <form action={action} className="space-y-4">
       {state.error ? <Alert>{state.error}</Alert> : null}
-      <Field label="Business name" htmlFor="name" error={state.fieldErrors?.name} hint="What buyers know you as">
+      <Field label="Business name" htmlFor="name" error={state.fieldErrors?.name} hint="Your name, or your agency's, as buyers know it">
         <Input id="name" name="name" defaultValue={state.data?.name} placeholder="e.g. Cruz Realty Iloilo" required />
       </Field>
       <Field label="Type of business" htmlFor="type" error={state.fieldErrors?.type}>

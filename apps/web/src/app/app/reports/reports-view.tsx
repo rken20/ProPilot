@@ -6,8 +6,8 @@ import { formatPeso } from "@/lib/money";
 import { STATUS_LABEL } from "@/lib/property-labels";
 import { fmtDuration, PRESETS, type LeadsReport, type ListingPerf, type MessengerReport, type Range, type TeamRow } from "@/lib/reports";
 
-/** Validated pair (dataviz validator, light surface): Home Finder buyers, Messenger. */
-const SOURCE = { propilot: "#0b8a70", messenger: "#c97a10" } as const;
+/** Validated pair per theme (dataviz validator), from globals.css: listing pages, Messenger. */
+const SOURCE = { propilot: "var(--chart-listing)", messenger: "var(--chart-messenger)" } as const;
 
 export function ReportsView({
   range,
@@ -37,14 +37,14 @@ export function ReportsView({
 
       <Section i={1} title="Leads and conversions" csv={csv("leads")}>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Tile label="New inquiries" value={<CountUp value={leads.inquiries} />} note={`${leads.fromProPilot} from Home Finder buyers, ${leads.fromMessenger} on Messenger`} />
+          <Tile label="New inquiries" value={<CountUp value={leads.inquiries} />} note={`${leads.fromProPilot} from listing pages, ${leads.fromMessenger} on Messenger`} />
           <Tile label="Viewing requests" value={<CountUp value={leads.viewingRequests} />} note="From both sources" />
           <Tile
             label="Reached a viewing"
             value={leads.conversion === null ? "—" : `${leads.conversion}%`}
             note={`${leads.reachedViewing} scheduled or done, ${leads.closed} closed`}
           />
-          <Tile label="First response" value={fmtDuration(leads.medianFirstResponseMs)} note="Median time to first contact a Home Finder buyer" />
+          <Tile label="First response" value={fmtDuration(leads.medianFirstResponseMs)} note="Median time to first contact a HomeFinder buyer" />
         </div>
         <div className="mt-5 grid gap-5 lg:grid-cols-[1.6fr_1fr]">
           <Panel title="Inquiries over time">
@@ -114,7 +114,7 @@ export function ReportsView({
             />
           </div>
         ) : (
-          <Empty text="When buyers message you in Home Finder or on Messenger, the AI chat results show here." />
+          <Empty text="When buyers message you in HomeFinder or on Messenger, the AI chat results show here." />
         )}
       </Section>
 
@@ -241,7 +241,7 @@ const Td = ({ value, strong }: { value: number; strong?: boolean }) => (
   <td className={cx("px-4 py-3 text-right tabular-nums", value ? (strong ? "font-semibold text-ink" : "text-ink") : "text-zinc-500")}>{value}</td>
 );
 
-/** Stacked columns, Home Finder buyers under Messenger, with a 2px surface gap and a legend. */
+/** Stacked columns, listing pages under Messenger, with a 2px surface gap and a legend. */
 export function SourceChart({ series }: { series: LeadsReport["series"] }) {
   const max = Math.max(1, ...series.map((s) => s.propilot + s.messenger));
   const top = niceMax(max);
@@ -251,7 +251,7 @@ export function SourceChart({ series }: { series: LeadsReport["series"] }) {
   return (
     <figure>
       <div className="mb-3 flex flex-wrap gap-4 text-xs text-muted">
-        <Legend color={SOURCE.propilot} label="Home Finder buyers" />
+        <Legend color={SOURCE.propilot} label="Listing pages" />
         <Legend color={SOURCE.messenger} label="Messenger" />
       </div>
       <div className="relative flex h-48 gap-[2px] pl-8" aria-hidden="true">
@@ -265,7 +265,7 @@ export function SourceChart({ series }: { series: LeadsReport["series"] }) {
           return (
             <div
               key={s.label}
-              title={`${s.label}: ${s.propilot} Home Finder, ${s.messenger} Messenger`}
+              title={`${s.label}: ${s.propilot} HomeFinder, ${s.messenger} Messenger`}
               className="group relative flex h-full flex-1 flex-col justify-end"
             >
               <div className="mx-auto flex w-full max-w-6 flex-col justify-end gap-[2px] transition-opacity group-hover:opacity-80" style={{ height: `${(total / top) * 100}%` }}>
@@ -292,7 +292,7 @@ export function SourceChart({ series }: { series: LeadsReport["series"] }) {
         <thead>
           <tr>
             <th>Period</th>
-            <th>Home Finder buyers</th>
+            <th>Listing pages</th>
             <th>Messenger</th>
           </tr>
         </thead>

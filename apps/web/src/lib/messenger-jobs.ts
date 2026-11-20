@@ -14,7 +14,8 @@ import {
   type MessengerEvent,
 } from "./meta";
 import { createAdminClient } from "./supabase/admin";
-import { aiEnabled } from "@/lib/plan";
+import { aiEnabled, businessPlan } from "@/lib/plan";
+import { aiRepliesThisMonth } from "@/lib/plan-limits";
 
 /** Cost guards: AI replies per conversation per day, and per business per day. */
 export const AI_REPLIES_PER_CONVERSATION_DAY = 25;
@@ -105,7 +106,12 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
     return;
   }
   if (!(await aiEnabled(businessId))) {
-    await flag(admin, conv.id as string, "AI replies are part of the Basic plan, so this needs a person.");
+    await flag(admin, conv.id as string, "AI replies are part of the paid plans, so this needs a person.");
+    return;
+  }
+  const plan = await businessPlan(businessId);
+  if (plan.aiReplies !== null && (await aiRepliesThisMonth(admin, businessId)) >= plan.aiReplies) {
+    await flag(admin, conv.id as string, `This month's ${plan.aiReplies.toLocaleString()} AI replies on ${plan.name} are used up, so this needs a person.`);
     return;
   }
 
@@ -131,7 +137,7 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
   } catch (e) {
     log("send", e);
     if (e instanceof GraphError && e.tokenInvalid) {
-      await flag(admin, conv.id as string, "Home Finder couldn't reply: reconnect the Page in Integrations.");
+      await flag(admin, conv.id as string, "HomeFinder couldn't reply: reconnect the Page in Integrations.");
     }
     return;
   }

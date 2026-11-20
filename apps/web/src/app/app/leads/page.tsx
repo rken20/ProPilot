@@ -12,7 +12,7 @@ import { updateLead } from "./actions";
 
 const STATUS = {
   new: { label: "New", tone: "bg-orange-50 text-hot" },
-  contacted: { label: "Contacted", tone: "bg-brass-50 text-[#7d5f26]" },
+  contacted: { label: "Contacted", tone: "bg-brass-50 text-brass-700" },
   scheduled: { label: "Viewing scheduled", tone: "bg-brand-50 text-good" },
   completed: { label: "Viewed", tone: "bg-slate-100 text-slate-600" },
   closed: { label: "Closed", tone: "bg-slate-100 text-slate-500" },
@@ -35,7 +35,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
   const supabase = await createClient();
   let query = supabase
     .from("viewing_requests")
-    .select("id, property_id, buyer_name, buyer_phone, preferred_date, budget_note, message, status, agent_note, scheduled_at, calendar_event_id, created_at")
+    .select("id, property_id, buyer_name, buyer_phone, buyer_email, preferred_date, budget_note, message, status, agent_note, scheduled_at, calendar_event_id, created_at")
     .eq("business_id", biz.businessId)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -59,8 +59,8 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
   return (
     <>
       <PageHeader
-        title="Viewing requests"
-        description="Buyers on Home Finder asking to see a listing. Call or text them to confirm. Each one is also a lead in your Pipeline."
+        title="Inquiries"
+        description="People who asked about a listing from its public page. Call or text them to confirm a viewing. Each one is also a lead in your Pipeline."
         action={
           <div className="flex flex-wrap gap-2">
             {integ?.spreadsheet_url ? (
@@ -96,7 +96,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
           <CalendarDays className="mx-auto size-8 text-muted" aria-hidden />
           <p className="mt-3 font-semibold">{filter === "open" ? "No open leads" : "Nothing here"}</p>
           <p className="mt-1 text-sm text-muted">
-            Turn on <span className="font-medium text-ink">Show to Home Finder buyers</span> on a property so buyers can find it
+            Turn on <span className="font-medium text-ink">Show to HomeFinder buyers</span> on a property so buyers can find it
             and request viewings.
           </p>
         </div>
@@ -126,6 +126,11 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
                   <a href={`tel:${l.buyer_phone.replace(/\s/g, "")}`} className="flex items-center gap-1.5 font-medium text-brand-600 hover:text-brand-700">
                     <Phone className="size-4" aria-hidden /> {l.buyer_phone}
                   </a>
+                  {l.buyer_email ? (
+                    <a href={`mailto:${l.buyer_email}`} className="font-medium text-brand-600 hover:text-brand-700">
+                      {l.buyer_email}
+                    </a>
+                  ) : null}
                   <span className="flex items-center gap-1.5 text-muted">
                     <CalendarDays className="size-4" aria-hidden />
                     {l.preferred_date ? `Prefers ${prettyDate(l.preferred_date)}` : "No preferred date"}

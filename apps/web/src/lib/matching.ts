@@ -6,7 +6,7 @@
  */
 import { formatPeso } from "./money";
 import { TYPE_LABEL } from "./property-labels";
-import { FINANCING, TIMELINES, type Facts } from "./qualification";
+import { FINANCING, type Facts } from "./qualification";
 
 export type MatchListing = {
   type: string;
@@ -116,19 +116,6 @@ export function rankMatches<T>(items: T[], score: (item: T) => Match | null, lim
     if (match) out.push({ item, match });
   }
   return out.sort((a, b) => b.match.score - a.match.score).slice(0, limit);
-}
-
-/** A buyer's search without anything that identifies them, for Buyer Finder cards. */
-export function describeSearch(f: Facts): string[] {
-  const parts: string[] = [];
-  if (f.property_types.length) parts.push(f.property_types.map((t) => TYPE_LABEL[t as keyof typeof TYPE_LABEL] ?? t).join(" or "));
-  if (f.areas.length) parts.push(f.areas.join(", "));
-  if (f.budget_max_minor !== null) {
-    parts.push(f.budget_min_minor ? `${formatPeso(f.budget_min_minor)} to ${formatPeso(f.budget_max_minor)}` : `Up to ${formatPeso(f.budget_max_minor)}`);
-  }
-  if (f.financing && f.financing !== "unsure") parts.push(FINANCING[f.financing]);
-  if (f.timeline) parts.push(TIMELINES[f.timeline]);
-  return parts;
 }
 
 /** The first-of-month in Manila for `now`, as an ISO instant (Buyer Finder's monthly limit resets then). */

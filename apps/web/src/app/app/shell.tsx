@@ -29,12 +29,12 @@ export type ShellProps = {
 export function AppShell({ current, memberships, fullName, items, switchBusiness, children }: ShellProps) {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[256px_1fr]">
-      <aside className="flex flex-col gap-6 bg-brand-900 px-3 py-4 text-white lg:sticky lg:top-0 lg:h-screen lg:px-4 lg:py-6">
+      <aside className="flex flex-col gap-6 bg-gradient-to-b from-grape-800 to-grape-900 px-3 py-4 text-white lg:sticky lg:top-0 lg:h-screen lg:px-4 lg:py-6">
         <Link href="/app" className="px-2">
           <Logo tone="dark" />
         </Link>
 
-        <div className="rounded-xl bg-white/[0.06] px-3 py-3">
+        <div className="rounded-2xl bg-white/10 px-3 py-3">
           {memberships.length > 1 ? (
             <form action={switchBusiness} className="flex items-center gap-2">
               <label htmlFor="businessId" className="sr-only">

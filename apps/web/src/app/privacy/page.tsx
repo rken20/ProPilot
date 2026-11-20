@@ -3,9 +3,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/logo";
 
-export const metadata: Metadata = { title: "Privacy policy · Home Finder AI" };
+export const metadata: Metadata = { title: "Privacy policy · HomeFinder AI" };
 
-const UPDATED = "11 November 2026";
+const UPDATED = "20 November 2026";
 
 /** Public privacy policy (also the URL registered with Meta and Google). */
 export default function PrivacyPage() {
@@ -13,33 +13,38 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-svh bg-surface">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
-        <Link href="/" aria-label="Home Finder AI home">
+        <Link href="/" aria-label="HomeFinder AI home">
           <Logo />
         </Link>
       </header>
       <main className="mx-auto max-w-3xl px-6 pb-24">
         <h1 className="font-display text-[2.6rem] leading-tight font-medium">Privacy policy</h1>
-        <p className="mt-2 text-sm text-muted">Last updated {UPDATED}. Home Finder AI is in beta in the Philippines.</p>
+        <p className="mt-2 text-sm text-muted">Last updated {UPDATED}. HomeFinder AI is in beta in the Philippines.</p>
 
         <div className="mt-10 space-y-10 text-[15px] leading-relaxed text-ink/90">
-          <Section title="What Home Finder is">
+          <Section title="What HomeFinder is">
             <p>
-              Home Finder AI helps real estate agents and brokers list properties and answer buyers, and helps buyers find
-              properties, ask about them and request viewings. This policy explains what personal data Home Finder handles,
+              HomeFinder AI helps property owners, agents and brokers list properties, answer the people who ask about them
+              and follow up. Each listing can have a public page where anyone can send an inquiry. This policy explains what personal data HomeFinder handles,
               why, and what you can do about it under the Data Privacy Act of 2012 (Republic Act 10173).
             </p>
           </Section>
 
           <Section title="What we collect">
             <ul className="list-disc space-y-2 pl-5">
-              <li>Your account: name, email address, and whether you joined as a buyer or an agent.</li>
-              <li>For agents: your business name, team members and their roles, your listings and their photos.</li>
+              <li>Your account: name and email address.</li>
+              <li>For businesses: your business name, team members and their roles, your listings and their photos.</li>
               <li>
-                For buyers: the listings you save, the questions you ask the listing assistant, and viewing requests (your
-                name, mobile number, preferred date and message), which go to the agent of that listing.
+                Inquiries sent from a listing&apos;s public page: your name, mobile number, email if you give it, preferred
+                viewing date, budget note and message. They go only to the business that listed the property. You don&apos;t
+                need an account to send one.
               </li>
               <li>
-                If you connect Google: your Google email address and an encrypted token that lets Home Finder use only the
+                Visits to a listing&apos;s public page are counted per day, with no personal data. To stop spam, we keep a
+                one-way scrambled form of your internet address for up to 2 days when you send an inquiry.
+              </li>
+              <li>
+                If you connect Google: your Google email address and an encrypted token that lets HomeFinder use only the
                 spreadsheet and calendar it creates.
               </li>
               <li>
@@ -47,30 +52,17 @@ export default function PrivacyPage() {
                 Page, and your app-specific Facebook user ID. We don&apos;t keep your personal Facebook login token.
               </li>
               <li>
-                Chats in Home Finder between a buyer and a business: the messages, the listing it started from, and any viewing
-                details you give. The business&apos;s team can read them.
-              </li>
-              <li>
                 Messenger conversations with a business&apos;s Facebook Page, if that business switched on AI replies: the
                 messages, your Messenger name if Facebook shares it, and any viewing details you give (name, mobile number,
                 preferred date).
-              </li>
-              <li>
-                What a buyer is looking for, if they fill in My search: budget, areas, property type, bedrooms, timing,
-                how they plan to pay and must-haves. It&apos;s shared only with businesses the buyer has contacted, and only
-                while sharing is on. Buyers can change or clear it any time.
               </li>
               <li>
                 For plan payments: the GCash reference number, the name on the GCash account used, the amount and the plan.
                 We use these only to find and confirm the payment.
               </li>
               <li>
-                For businesses: a sales pipeline of the people they&apos;re selling to, built from viewing requests and chats
-                with them or added by the team, with notes, stage and an AI lead score.
-              </li>
-              <li>
-                Listings found on other property sites: the listing&apos;s facts (title, price, location, type, size) and
-                a link to the original page. We don&apos;t store their photos or the seller&apos;s contact details.
+                For businesses: a sales pipeline of the people they&apos;re selling to, built from inquiries and chats with
+                them or added by the team, with notes, stage, an AI lead score and which listings they may fit.
               </li>
             </ul>
           </Section>
@@ -78,21 +70,21 @@ export default function PrivacyPage() {
           <Section title="How we use it">
             <ul className="list-disc space-y-2 pl-5">
               <li>To run your account and show you the right screens.</li>
-              <li>To pass a buyer&apos;s viewing request to the listing&apos;s agent, by app and, if set up, by email.</li>
+              <li>To pass an inquiry to the business that listed the property, in the app and, if set up, by email.</li>
               <li>To answer questions about a listing using only that listing&apos;s details.</li>
               <li>
                 On Facebook, only when you ask: to read your Page&apos;s posts so you can turn one into a listing, and to
                 publish a listing to your Page when someone on your team presses Post.
               </li>
               <li>
-                In Home Finder chats and on Messenger: to answer questions about the business&apos;s listings with an automated assistant, which says
+                On Messenger: to answer questions about the business&apos;s listings with an automated assistant, which says
                 it&apos;s automated, and to pass the conversation to a person on the business&apos;s team when you ask or when it
                 can&apos;t help. The team can read the conversation and reply.
               </li>
               <li>
                 For a business&apos;s team: to score how ready each lead is (hot, warm or cold) from what the lead said and
-                shared, and to suggest next steps. Scores are only suggestions, are never based on personal traits, and are
-                never shown to buyers. Nothing is sent to a buyer until a person on the team approves it.
+                shared, to suggest which listings may fit them, and to suggest next steps. Scores and matches are only
+                suggestions, are never based on personal traits, and are never shown to the people they&apos;re about. Nothing is sent to anyone until a person on the team approves it.
               </li>
               <li>To keep the service secure, for example limiting how often a feature can be used.</li>
             </ul>
@@ -101,9 +93,9 @@ export default function PrivacyPage() {
 
           <Section title="Who processes it for us">
             <ul className="list-disc space-y-2 pl-5">
-              <li>Supabase: database, sign-in and photo storage (Singapore region).</li>
-              <li>Vercel: hosting the app.</li>
-              <li>Anthropic: the AI that answers listing questions and chats, reads pasted posts, searches property sites and scores leads. Lead scoring isn&apos;t sent names, phone numbers or emails.</li>
+              <li>Supabase: database, sign-in and photo storage (Tokyo region).</li>
+              <li>Vercel: hosting the app (Tokyo region).</li>
+              <li>Anthropic: the AI that answers listing questions and chats, reads pasted posts, writes listing text and scores leads. Lead scoring isn&apos;t sent names, phone numbers or emails.</li>
               <li>Google and Meta (Facebook): only if you connect them, for the features above.</li>
               <li>An email provider, if email alerts are switched on.</li>
             </ul>
@@ -112,16 +104,16 @@ export default function PrivacyPage() {
           <Section title="How long we keep it">
             <ul className="list-disc space-y-2 pl-5">
               <li>Your account and listings: until you delete them or ask us to delete your account.</li>
-              <li>Listings from other sites: 30 days after last seen, unless a buyer saved them. Search results: 7 days.</li>
-              <li>Home Finder chats and Messenger conversations: deleted 12 months after the last message.</li>
+              <li>Inquiries from public pages: with the business&apos;s leads, until the business deletes them.</li>
+              <li>Messenger conversations: deleted 12 months after the last message.</li>
               <li>Pipeline leads that never got past the early stages, or were marked lost: deleted after 12 months with no activity.</li>
-              <li>Google and Facebook tokens: until you disconnect, or remove Home Finder in your Google or Facebook settings.</li>
+              <li>Google and Facebook tokens: until you disconnect, or remove HomeFinder in your Google or Facebook settings.</li>
             </ul>
           </Section>
 
           <Section title="Facebook data and how to delete it">
             <p>
-              You can disconnect a Page any time under Integrations, which deletes its token. You can also remove Home Finder
+              You can disconnect a Page any time under Integrations, which deletes its token. You can also remove HomeFinder
               AI in Facebook under Settings and privacy, then Settings, then Business integrations (or Apps and websites).
               When you do and ask for your data to be deleted, Facebook tells us and we delete every Page token you
               connected. You&apos;ll get a confirmation code you can check on our deletion status page.

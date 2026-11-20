@@ -16,14 +16,10 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      // Google sign-ups: apply the buyer/agent choice made before leaving for Google.
-      // The database ignores this if the account already has a type.
-      const jar = await cookies();
-      const as = jar.get("pp_signup_as")?.value;
-      if (as === "buyer" || as === "agent") {
-        await supabase.rpc("choose_account_type", { p_type: as });
-        jar.delete("pp_signup_as");
-      }
+      // Every account is an owner or agent account. Older Google sign-ups that
+      // never picked a type are marked as agents (the database ignores a second choice).
+      await supabase.rpc("choose_account_type", { p_type: "agent" });
+      (await cookies()).delete("pp_signup_as");
       return NextResponse.redirect(new URL(next, origin));
     }
   }

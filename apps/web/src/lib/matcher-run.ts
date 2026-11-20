@@ -1,10 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { basicBuyers, FACT_COLUMNS, factsOf } from "@/lib/buyer-finder";
-import { emailUser } from "@/lib/billing-email";
-import { rankMatches, scoreMatch } from "@/lib/matching";
+import { FACT_COLUMNS, factsOf } from "@/lib/buyer-finder";
 import { matcherProposals, matcherSummary, type MatcherChat, type MatcherLead, type MatcherListing } from "@/lib/matcher";
-import { formatPeso } from "@/lib/money";
 import { OPEN_STAGES } from "@/lib/pipeline";
 import { aiEnabled } from "@/lib/plan";
 
@@ -63,46 +60,4 @@ export async function runMatcher(
     console.error("[agents] matcher failed:", e instanceof Error ? e.message : String(e));
     return finish("error", "The run stopped with an error. It will try again tomorrow.");
   }
-}
-
-/**
- * Match alert emails for buyers on Basic who turned them on: new Home Finder
- * listings that fit their search since the last email (or the last week).
- */
-export async function runMatchAlerts(admin: SupabaseClient, origin: string, now = new Date()): Promise<number> {
-  const { data: prefs } = await admin
-    .from("buyer_preferences")
-    .select(`user_id, match_alerts_sent_at, ${FACT_COLUMNS}`)
-    .eq("match_alerts", true)
-    .limit(2000);
-  if (!prefs?.length) return 0;
-  const paid = await basicBuyers(admin, prefs.map((p) => p.user_id as string));
-  const weekAgo = new Date(now.getTime() - 7 * 86_400_000).toISOString();
-  const { data: listings } = await admin
-    .from("properties")
-    .select("id, name, type, location, price_minor, financing, created_at")
-    .eq("is_public", true)
-    .eq("status", "available")
-    .gte("created_at", weekAgo)
-    .limit(2000);
-  if (!listings?.length) return 0;
-
-  let sent = 0;
-  for (const p of prefs) {
-    if (!paid.has(p.user_id as string)) continue;
-    const since = (p.match_alerts_sent_at as string | null) ?? weekAgo;
-    const fresh = listings.filter((l) => (l.created_at as string) > since).map((l) => ({ ...l, price_minor: Number(l.price_minor) }));
-    const top = rankMatches(fresh, (l) => scoreMatch(l as MatcherListing, factsOf(p)), 5);
-    if (!top.length) continue;
-    await emailUser(
-      admin,
-      p.user_id as string,
-      top.length === 1 ? "A new listing fits your search" : `${top.length} new listings fit your search`,
-      top.map(({ item, match }) => [item.name as string, `${formatPeso(item.price_minor)}, ${item.location}. ${match.score}% match`]),
-      { label: "See them on Home Finder", url: `${origin}/buyer/my-search` },
-    );
-    await admin.from("buyer_preferences").update({ match_alerts_sent_at: now.toISOString() }).eq("user_id", p.user_id);
-    sent++;
-  }
-  return sent;
 }

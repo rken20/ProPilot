@@ -42,7 +42,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const salesTabs: SectionTab[] = sales
     ? [
         { href: "/app/pipeline", label: "Pipeline" },
-        { href: "/app/leads", label: "Viewing requests" },
+        { href: "/app/leads", label: "Inquiries" },
         { href: "/app/agents", label: "AI agents", count: waiting },
       ]
     : [];
@@ -52,7 +52,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
       ? [{ href: "/app/integrations", label: "Integrations" }]
       : []),
     ...(can(current.role, "billing.view") ? [{ href: "/app/billing", label: "Billing" }] : []),
-    // Home Finder staff only: GCash payments waiting for a check.
+    // HomeFinder staff only: GCash payments waiting for a check.
     ...(superAdmin ? [{ href: "/admin/payments", label: "Payments to check", count: paymentsWaiting }] : []),
   ];
 

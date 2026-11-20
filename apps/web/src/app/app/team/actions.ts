@@ -6,6 +6,8 @@ import { BUSINESS_ROLES, can, canAssignRole, inviteMemberSchema, type BusinessRo
 import { getOrigin, requireBusiness, requireUser } from "@/lib/auth";
 import { fieldErrorsFrom, str, type FormState } from "@/lib/form";
 import { createClient } from "@/lib/supabase/server";
+import { businessPlan } from "@/lib/plan";
+import { teamSeatsUsed } from "@/lib/plan-limits";
 
 export async function inviteMember(_prev: FormState, form: FormData): Promise<FormState> {
   const user = await requireUser();
@@ -19,11 +21,20 @@ export async function inviteMember(_prev: FormState, form: FormData): Promise<Fo
     return { fieldErrors: { role: "You can't invite someone with this role." }, data };
   }
 
+  // The plan sets how many people a business can have (owner and open invitations included).
+  const supabase = await createClient();
+  const plan = await businessPlan(biz.businessId);
+  if (plan.teamMembers !== null && (await teamSeatsUsed(supabase, biz.businessId)) >= plan.teamMembers) {
+    return {
+      error: `${plan.name} includes ${plan.teamMembers} team member${plan.teamMembers === 1 ? "" : "s"}. Remove someone or upgrade in Billing to invite more.`,
+      data,
+    };
+  }
+
   // The raw token only lives in the link; the database stores its SHA-256 hash.
   const token = randomBytes(24).toString("base64url");
   const tokenHash = createHash("sha256").update(token).digest("hex");
 
-  const supabase = await createClient();
   const { error } = await supabase.from("invitations").insert({
     business_id: biz.businessId,
     email: parsed.data.email,
@@ -64,6 +75,10 @@ export async function setMemberActive(userId: string, active: boolean) {
   const biz = await requireBusiness();
   if (!can(biz.role, "team.remove")) return;
   const supabase = await createClient();
+  if (active) {
+    const plan = await businessPlan(biz.businessId);
+    if (plan.teamMembers !== null && (await teamSeatsUsed(supabase, biz.businessId)) >= plan.teamMembers) return;
+  }
   await supabase
     .from("business_members")
     .update({ status: active ? "active" : "deactivated" })

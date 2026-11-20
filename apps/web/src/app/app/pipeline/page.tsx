@@ -30,7 +30,7 @@ type Row = {
 
 const TEMP = {
   hot: { label: "Hot", tone: "bg-hot text-white" },
-  warm: { label: "Warm", tone: "bg-brass-50 text-[#7d5f26]" },
+  warm: { label: "Warm", tone: "bg-brass-50 text-brass-700" },
   cold: { label: "Cold", tone: "bg-zinc-100 text-zinc-500" },
 } as const;
 // Hot leads first in each column, then warm, unscored and cold.
@@ -38,7 +38,7 @@ const TEMP_ORDER = { hot: 0, warm: 1, cold: 3 } as const;
 const tempRank = (t: Row["temperature"]) => (t ? TEMP_ORDER[t] : 2);
 
 const SOURCE_ICON = { viewing_request: CalendarDays, messenger: MessageCircle, app_chat: Smartphone, manual: Hand } as const;
-const SOURCE_SHORT: Record<string, string> = { viewing_request: "Request", messenger: "Messenger", app_chat: "Home Finder chat", manual: "Added" };
+const SOURCE_SHORT: Record<string, string> = { viewing_request: "Request", messenger: "Messenger", app_chat: "HomeFinder chat", manual: "Added" };
 
 const VIEWS = [
   ["open", "Open"],
@@ -226,7 +226,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
                             ) : null}
                             {r.deal_value_minor ? <p className="mt-1 text-xs font-medium tabular-nums">{formatPeso(r.deal_value_minor)}</p> : null}
                             {due ? (
-                              <p className="mt-2 truncate rounded-md bg-brass-50 px-2 py-1 text-xs text-[#7d5f26]">Due: {r.next_step || "next step"}</p>
+                              <p className="mt-2 truncate rounded-md bg-brass-50 px-2 py-1 text-xs text-brass-700">Due: {r.next_step || "next step"}</p>
                             ) : null}
                             <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted">
                               <span className="flex items-center gap-1">

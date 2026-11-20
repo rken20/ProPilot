@@ -1,7 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { runScheduledAgents } from "@/lib/agent-runs";
-import { getOrigin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const maxDuration = 60;
@@ -20,6 +19,6 @@ export async function GET(request: NextRequest) {
   }
   const admin = createAdminClient();
   if (!admin) return new NextResponse("not configured", { status: 503 });
-  const result = await runScheduledAgents(admin, await getOrigin());
+  const result = await runScheduledAgents(admin);
   return NextResponse.json(result);
 }

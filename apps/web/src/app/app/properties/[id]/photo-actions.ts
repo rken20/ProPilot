@@ -12,7 +12,7 @@ function refresh(propertyId: string) {
   revalidatePath(`/app/properties/${propertyId}`);
   revalidatePath("/app/properties");
   revalidatePath("/app");
-  revalidatePath("/buyer", "layout");
+  revalidatePath(`/l/${propertyId}`);
 }
 
 /** Record a photo the browser has just uploaded to storage. */

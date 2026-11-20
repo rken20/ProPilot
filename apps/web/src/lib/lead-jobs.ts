@@ -23,7 +23,7 @@ import { createAdminClient } from "./supabase/admin";
  */
 
 const LEAD_COLUMNS =
-  "id, business_id, property_id, buyer_name, buyer_phone, preferred_date, budget_note, message, status, agent_note, scheduled_at, calendar_event_id, created_at";
+  "id, business_id, property_id, buyer_name, buyer_phone, buyer_email, preferred_date, budget_note, message, status, agent_note, scheduled_at, calendar_event_id, created_at";
 
 type LeadRecord = Lead & { business_id: string; property_id: string; calendar_event_id: string | null };
 
@@ -40,7 +40,7 @@ async function accessTokenFor(admin: SupabaseClient, userId: string) {
   return { token: tokens.access_token, scopes: (data.scopes ?? []) as string[], calendarId: (data.calendar_id ?? null) as string | null };
 }
 
-/** Email the business's owner, admins and agents about a new viewing request. */
+/** Email the business's owner, admins and agents about a new inquiry. */
 export async function notifyNewLead(requestId: string, appOrigin: string) {
   try {
     const admin = createAdminClient();

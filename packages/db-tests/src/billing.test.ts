@@ -39,7 +39,7 @@ beforeAll(async () => {
 });
 
 describe("plans", () => {
-  it("offers Free, Basic and Pro, with AI only on the paid plans", async () => {
+  it("offers Free, Basic, Pro and Agency, with AI only on the paid plans", async () => {
     const plans = await as(db, OWNER, () =>
       db.query<{ code: string; price_minor: number }>(`select code, price_minor from public.plans where is_active order by sort_order`),
     );
@@ -47,21 +47,29 @@ describe("plans", () => {
       { code: "free", price_minor: 0 },
       { code: "basic", price_minor: 49900 },
       { code: "pro", price_minor: 99900 },
+      { code: "agency", price_minor: 249900 },
     ]);
     const limits = await db.query<{ code: string; feature_key: string; limit: number | null }>(
       `select p.code, e.feature_key, e."limit" from public.plan_entitlements e join public.plans p on p.id = e.plan_id
-       where p.is_active and e.feature_key in ('ai', 'home_finder_buyers', 'online_searches_day') order by p.sort_order, e.feature_key`,
+       where p.is_active and e.feature_key in ('ai', 'home_finder_buyers', 'team_members', 'ai_replies') order by p.sort_order, e.feature_key`,
     );
     expect(limits.rows).toEqual([
       { code: "free", feature_key: "ai", limit: 0 },
+      { code: "free", feature_key: "ai_replies", limit: 0 },
       { code: "free", feature_key: "home_finder_buyers", limit: 0 },
-      { code: "free", feature_key: "online_searches_day", limit: 0 },
+      { code: "free", feature_key: "team_members", limit: 1 },
       { code: "basic", feature_key: "ai", limit: null },
+      { code: "basic", feature_key: "ai_replies", limit: 3000 },
       { code: "basic", feature_key: "home_finder_buyers", limit: 5 },
-      { code: "basic", feature_key: "online_searches_day", limit: 15 },
+      { code: "basic", feature_key: "team_members", limit: 2 },
       { code: "pro", feature_key: "ai", limit: null },
+      { code: "pro", feature_key: "ai_replies", limit: 10000 },
       { code: "pro", feature_key: "home_finder_buyers", limit: 20 },
-      { code: "pro", feature_key: "online_searches_day", limit: 45 },
+      { code: "pro", feature_key: "team_members", limit: 5 },
+      { code: "agency", feature_key: "ai", limit: null },
+      { code: "agency", feature_key: "ai_replies", limit: 25000 },
+      { code: "agency", feature_key: "home_finder_buyers", limit: 60 },
+      { code: "agency", feature_key: "team_members", limit: 15 },
     ]);
   });
 });

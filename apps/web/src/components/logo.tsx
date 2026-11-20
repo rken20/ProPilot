@@ -1,15 +1,16 @@
-/** Home Finder mark: a roofline that doubles as a navigation chevron. */
+/** HomeFinder AI mark: a white tile with a grape roofline and a green door. */
 export function Logo({ className = "", tone = "light" }: { className?: string; tone?: "light" | "dark" }) {
-  const tile = tone === "dark" ? "#f6f5f2" : "#24543f";
-  const roof = tone === "dark" ? "#24543f" : "#ffffff";
+  const tile = tone === "dark" ? "#ffffff" : "#4c2da9";
+  const roof = tone === "dark" ? "#4c2da9" : "#ffffff";
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <svg viewBox="0 0 32 32" className="size-8" aria-hidden="true">
-        <rect width="32" height="32" rx="9" fill={tile} />
-        <path d="M8 17.5 16 10l8 7.5" fill="none" stroke={roof} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M11.5 16v6.5h9V16" fill="none" stroke="#c9a463" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <svg viewBox="0 0 32 32" className="size-9" aria-hidden="true">
+        <rect width="32" height="32" rx="10" fill={tile} />
+        <path d="M7.5 16.5 16 9l8.5 7.5" fill="none" stroke={roof} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M10.5 15v8h11v-8" fill="none" stroke={roof} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="14.2" y="17.5" width="3.6" height="5.5" rx="1.2" fill="#12a356" />
       </svg>
-      <span className="whitespace-nowrap text-[17px] font-bold tracking-tight">Home Finder AI</span>
+      <span className="whitespace-nowrap text-[18px] font-extrabold tracking-tight">HomeFinder AI</span>
     </span>
   );
 }

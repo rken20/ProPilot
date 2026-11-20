@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { areaMatch, describeSearch, manilaMonthStart, rankMatches, scoreMatch, type MatchListing } from "./matching";
+import { areaMatch, manilaMonthStart, rankMatches, scoreMatch, type MatchListing } from "./matching";
 import type { Facts } from "./qualification";
 
 const facts = (f: Partial<Facts>): Facts => ({
@@ -68,14 +68,6 @@ describe("rankMatches", () => {
     ];
     const ranked = rankMatches(listings, (l) => scoreMatch(l, f), 5);
     expect(ranked.map((r) => r.item.price_minor)).toEqual([800_000_000, 950_000_000]);
-  });
-});
-
-describe("describeSearch", () => {
-  it("summarises without identifying anyone", () => {
-    expect(
-      describeSearch(facts({ property_types: ["condominium", "townhouse"], areas: ["BGC"], budget_min_minor: 400_000_000, budget_max_minor: 600_000_000, financing: "bank", timeline: "1_3_months" })),
-    ).toEqual(["Condominium or Townhouse", "BGC", "₱4,000,000 to ₱6,000,000", "Bank loan", "In 1 to 3 months"]);
   });
 });
 

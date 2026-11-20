@@ -23,7 +23,7 @@ export default async function NewProspectPage() {
       <Link href="/app/pipeline" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
         <ArrowLeft className="size-4" aria-hidden /> Pipeline
       </Link>
-      <PageHeader title="Add a lead" description="For people who reach you outside Home Finder: walk-ins, calls, referrals and past clients." />
+      <PageHeader title="Add a lead" description="For people who reach you outside HomeFinder: walk-ins, calls, referrals and past clients." />
       <Card>
         <NewProspectForm listings={listings ?? []} />
       </Card>

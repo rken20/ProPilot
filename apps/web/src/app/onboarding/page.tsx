@@ -1,15 +1,12 @@
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui";
-import { getMemberships, getProfile, requireUser } from "@/lib/auth";
+import { getMemberships, requireUser } from "@/lib/auth";
 import { CreateBusinessForm } from "./form";
 
 export default async function OnboardingPage() {
   const user = await requireUser();
   const memberships = await getMemberships();
   if (memberships.length > 0) redirect("/app");
-  const profile = await getProfile();
-  if (profile && !profile.account_type_chosen) redirect("/welcome");
-  if (profile?.account_type === "buyer") redirect("/buyer");
 
   const firstName = String(user.user_metadata?.full_name ?? "").split(" ")[0];
   return (

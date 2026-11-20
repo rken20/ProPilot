@@ -8,9 +8,10 @@ import { getCoverThumbs } from "@/lib/listings";
 import { mediaUrl } from "@/lib/media";
 import { daysAgoIso, greeting, longDate } from "@/lib/time";
 import { DashboardView, type Activity, type ReportSummary, type SetupStep } from "./dashboard-view";
-import { aiEnabled } from "@/lib/plan";
+import { aiEnabled, businessPlan } from "@/lib/plan";
+import { buyerFinderUsed } from "@/lib/buyer-finder";
 import { loadReportData } from "@/lib/report-data";
-import { inRange, leadsReport, listingReport, messengerReport, parseRange } from "@/lib/reports";
+import { inRange, leadsReport, messengerReport, parseRange } from "@/lib/reports";
 
 const NOTICES: Record<string, string> = {
   welcome: "Your business is set up. Add your first property so the assistant has something to talk about.",
@@ -60,40 +61,40 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
   const members = membersRes.data ?? [];
   const invites = invitesRes.data ?? [];
   const memberIds = members.map((m) => m.user_id);
-  const canSeeChats = can(biz.role, "conversation.reply");
   const since = daysAgoIso(30);
-  const messengerCount = (filter: "recent" | "waiting") => {
-    const q = supabase.from("messenger_conversations").select("id", { count: "exact", head: true }).eq("business_id", biz.businessId).eq("channel", "messenger");
-    return (filter === "recent" ? q.gte("created_at", since) : q.eq("needs_attention", true)).then((r) => r.count ?? 0);
-  };
+  const prospectCount = (build: (q: ReturnType<typeof countProspects>) => ReturnType<typeof countProspects>) =>
+    build(countProspects()).then((r) => r.count ?? 0);
+  const countProspects = () => supabase.from("prospects").select("id", { count: "exact", head: true }).eq("business_id", biz.businessId);
 
   // Everything below depends only on the lookups above, so it all runs side by side.
-  const [pagesConnected, messenger, profiles, covers, summary, aiOn] = await Promise.all([
+  const [pagesConnected, profiles, covers, summary, aiOn, plan, finderUsed, interested, newLeads, messengerLeads, viewRows] = await Promise.all([
     metaConfig() ? businessPages(biz.businessId).then((pages) => pages.length > 0) : Promise.resolve(false),
-    // Messenger inquiries: new Messenger chats in the last 30 days, and how many wait for the team.
-    canSeeChats
-      ? Promise.all([messengerCount("recent"), messengerCount("waiting")]).then(([count, waiting]) => ({ count, waiting }))
-      : Promise.resolve(null),
     memberIds.length
       ? supabase.from("profiles").select("id, full_name, email").in("id", memberIds).then((r) => r.data ?? [])
       : Promise.resolve([] as Array<{ id: string; full_name: string | null; email: string | null }>),
     getCoverThumbs(properties.map((p) => p.id)),
     can(biz.role, "analytics.view") ? reportSummary(biz.businessId) : Promise.resolve(null),
     aiEnabled(biz.businessId),
+    businessPlan(biz.businessId),
+    canSeeLeads ? buyerFinderUsed(supabase, biz.businessId) : Promise.resolve(0),
+    canSeeLeads ? prospectCount((q) => q.in("stage", ["qualified", "viewing", "offer", "reservation"])) : Promise.resolve(null),
+    canSeeLeads ? prospectCount((q) => q.gte("created_at", since)) : Promise.resolve(null),
+    canSeeLeads ? prospectCount((q) => q.gte("created_at", since).eq("source", "messenger")) : Promise.resolve(0),
+    supabase
+      .from("listing_views")
+      .select("views")
+      .eq("business_id", biz.businessId)
+      .gte("day", since.slice(0, 10))
+      .then((r) => r.data ?? []),
   ]);
-  const newLeads = leads.filter((l) => l.status === "new").length;
-  const openLeads = leads.filter((l) => ["new", "contacted", "scheduled"].includes(l.status)).length;
   const publicCount = properties.filter((p) => p.is_public).length;
+  const views = viewRows.reduce((n, r) => n + (r.views as number), 0);
+  const { data: planRow } = await supabase.from("plans").select("price_minor").eq("code", plan.code).maybeSingle();
   const nameOf = (id: string) => {
     if (id === user?.id) return "You";
     const p = profiles?.find((x) => x.id === id);
     return p?.full_name || p?.email || "A teammate";
   };
-
-  // ---- Headline numbers: only what we actually know -------------------------
-  const available = properties.filter((p) => p.status === "available");
-  const reserved = properties.filter((p) => p.status === "reserved").length;
-  const inventoryValue = available.reduce((sum, p) => sum + Number(p.price_minor), 0);
 
   // ---- Setup progress for the assistant --------------------------------------
   const hasFinancing = properties.some((p) => {
@@ -104,7 +105,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
     { label: "Add your first property", done: properties.length > 0, href: "/app/properties/new" },
     { label: "Add price and financing details", done: hasFinancing, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
     { label: "Add photos to a listing", done: covers.size > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
-    { label: "Show a listing to Home Finder buyers", done: publicCount > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
+    { label: "Give a listing a public page and share it", done: publicCount > 0, href: properties[0] ? `/app/properties/${properties[0].id}` : "/app/properties/new" },
     { label: "Invite your team", done: members.length > 1 || invites.length > 0, href: canManageTeam ? "/app/team" : undefined },
     metaConfig()
       ? { label: "Connect your Facebook Page", done: pagesConnected, href: "/app/integrations" }
@@ -134,7 +135,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
   }
   const nameOfProp = (id: string) => properties.find((p) => p.id === id)?.name ?? "a listing";
   for (const l of leads.slice(0, 10)) {
-    activity.push({ at: l.created_at, icon: CalendarDays, tone: "bg-orange-50 text-hot", title: `${l.buyer_name} requested a viewing`, detail: nameOfProp(l.property_id), href: "/app/leads" });
+    activity.push({ at: l.created_at, icon: CalendarDays, tone: "bg-orange-50 text-hot", title: `${l.buyer_name} sent an inquiry`, detail: nameOfProp(l.property_id), href: "/app/leads" });
   }
   activity.sort((a, b) => b.at.localeCompare(a.at));
   const recent = activity.slice(0, 5);
@@ -150,17 +151,15 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       notice={notice}
       canCreateProperty={can(biz.role, "property.create")}
       canManageTeam={canManageTeam}
+      plan={{ code: plan.code, name: plan.name, priceMinor: Number(planRow?.price_minor ?? 0) }}
       properties={properties.map((p) => ({ ...p, price_minor: Number(p.price_minor), coverUrl: mediaUrl(covers.get(p.id)) }))}
-      availableCount={available.length}
-      reservedCount={reserved}
-      inventoryValue={inventoryValue}
       steps={steps}
-      leads={canSeeLeads ? { newCount: newLeads, openCount: openLeads } : null}
-      publicCount={publicCount}
-      messenger={messenger}
+      finder={canSeeLeads && plan.ai && plan.homeFinderBuyers !== 0 ? { used: finderUsed, limit: plan.homeFinderBuyers } : null}
+      interested={interested}
+      views={views}
+      inquiries={newLeads === null ? null : { total: newLeads, messenger: messengerLeads }}
       summary={summary}
-      pagesConnected={pagesConnected}
-      assistantLive={publicCount > 0 && aiOn}
+      assistantLive={(publicCount > 0 || pagesConnected) && aiOn}
       recent={recent}
     />
   );
@@ -169,15 +168,24 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
 /** The last 30 days at a glance, for roles that can see reports. */
 async function reportSummary(businessId: string): Promise<ReportSummary> {
   const range = parseRange({ range: "30" });
-  const d = await loadReportData(businessId, range);
+  const supabase = await createClient();
+  const [d, viewRows] = await Promise.all([
+    loadReportData(businessId, range),
+    supabase.from("listing_views").select("property_id, views").eq("business_id", businessId).gte("day", daysAgoIso(30).slice(0, 10)),
+  ]);
   const convs = d.convs.filter((c) => inRange(c.created_at, range));
   const chats = messengerReport(convs, d.msgs);
+  const views = new Map<string, number>();
+  for (const v of viewRows.data ?? []) views.set(v.property_id as string, (views.get(v.property_id as string) ?? 0) + (v.views as number));
+  const inquiries = new Map<string, number>();
+  for (const r of d.vr) if (inRange(r.created_at, range)) inquiries.set(r.property_id, (inquiries.get(r.property_id) ?? 0) + 1);
   return {
     leads: leadsReport(d.vr, convs, range),
-    topListings: listingReport(d.props, d.vr, convs, d.saves, d.questions, d.posts)
-      .filter((l) => l.viewingRequests + l.questions + l.saves > 0)
-      .slice(0, 3)
-      .map((l) => ({ id: l.id, name: l.name, viewingRequests: l.viewingRequests, questions: l.questions, saves: l.saves })),
+    topListings: d.props
+      .map((p) => ({ id: p.id, name: p.name, views: views.get(p.id) ?? 0, inquiries: inquiries.get(p.id) ?? 0 }))
+      .filter((l) => l.views + l.inquiries > 0)
+      .sort((a, b) => b.inquiries - a.inquiries || b.views - a.views)
+      .slice(0, 3),
     chats: { conversations: chats.conversations, aiOnly: chats.aiOnly, afterHoursAnswered: chats.afterHoursAnswered },
   };
 }

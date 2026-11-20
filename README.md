@@ -1,4 +1,4 @@
-# Home Finder AI
+# HomeFinder AI
 
 AI assistant for real estate agents: answers Facebook Messenger inquiries from the agent's own listings, qualifies buyers, and routes hot leads to the agent's phone.
 

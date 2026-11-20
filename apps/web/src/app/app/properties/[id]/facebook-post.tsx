@@ -139,7 +139,7 @@ export function FacebookPost({
 
       {history.length ? (
         <div className="mt-6 border-t border-line pt-5">
-          <h3 className="text-sm font-semibold text-ink">Posted from Home Finder</h3>
+          <h3 className="text-sm font-semibold text-ink">Posted from HomeFinder</h3>
           <ul className="mt-3 space-y-2 text-sm">
             {history.map((h) => (
               <li key={h.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">

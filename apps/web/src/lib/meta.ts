@@ -126,7 +126,7 @@ export async function meId(f: Fetch, cfg: MetaConfig, userToken: string): Promis
 
 export type ManagedPage = { id: string; name: string; access_token: string; tasks?: string[] };
 
-/** Pages the person granted Home Finder, each with its own Page token. */
+/** Pages the person granted HomeFinder, each with its own Page token. */
 export async function managedPages(f: Fetch, cfg: MetaConfig, userToken: string): Promise<ManagedPage[]> {
   const out: ManagedPage[] = [];
   let after: string | undefined;
@@ -147,7 +147,7 @@ export async function managedPages(f: Fetch, cfg: MetaConfig, userToken: string)
   return out;
 }
 
-/** Remove Home Finder's permissions from the person's Facebook account. */
+/** Remove HomeFinder's permissions from the person's Facebook account. */
 export async function revokeApp(f: Fetch, cfg: MetaConfig, userToken: string): Promise<void> {
   const q = new URLSearchParams({ access_token: userToken, appsecret_proof: appSecretProof(userToken, cfg.appSecret) });
   await call(f, `${graph(cfg, "me/permissions")}?${q}`, { method: "DELETE" });
@@ -331,7 +331,7 @@ export type MessengerEvent = {
   text?: string;
   /** "photo", "audio" etc. when the message is an attachment without text. */
   attachment?: string;
-  /** A message the Page sent; appId says whether Home Finder or Facebook's inbox sent it. */
+  /** A message the Page sent; appId says whether HomeFinder or Facebook's inbox sent it. */
   echo?: { appId: string };
   postback?: string;
 };

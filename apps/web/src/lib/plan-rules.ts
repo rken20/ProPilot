@@ -5,7 +5,7 @@
  */
 
 export const FREE_PLAN = "free";
-export const PAID_PLANS = ["basic", "pro"] as const;
+export const PAID_PLANS = ["basic", "pro", "agency"] as const;
 
 /** GCash reference numbers are 13 digits. People often type them with spaces. */
 export function cleanGcashReference(raw: string): string | null {
@@ -25,66 +25,47 @@ export function daysLeft(periodEnd: string | null, now: Date): number | null {
 }
 
 export const UPGRADE_MESSAGE = "AI features are part of the Basic plan. An owner can upgrade in Billing.";
-export const BUYER_UPGRADE_MESSAGE = "AI answers and AI search are part of the Basic plan. You can upgrade in My plan.";
-
-/** What each plan says to buyers on My plan. */
-export const BUYER_PLAN_COPY: Record<string, { tagline: string; includes: string[]; excludes?: string }> = {
-  free: {
-    tagline: "Browse and contact agents, free.",
-    includes: ["Browse and save Home Finder listings", "Message agents and request viewings", "My search: tell agents what you want"],
-    excludes: "No AI or matching: search Home Finder listings yourself, and agents reply in person.",
-  },
-  basic: {
-    tagline: "AI help while you look for a home",
-    includes: [
-      "Everything in Free",
-      "Ask the AI about any listing whose agent has AI on",
-      "AI search of other property sites",
-      "Instant AI replies when you message an agent",
-      "Listings that fit your search, and emails when new ones are posted",
-      "Agents with matching listings can send them to you, if you allow it",
-    ],
-  },
-  pro: {
-    tagline: "For serious home hunters",
-    includes: [
-      "Everything in Basic",
-      "45 AI searches of other property sites a day (Basic: 15)",
-      "Listed first to agents with a matching listing, if you allow it",
-    ],
-  },
-};
 
 /** What each plan says on the Billing page. */
 export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; excludes?: string }> = {
   free: {
-    tagline: "For getting started: list and follow up, without AI.",
+    tagline: "For trying HomeFinder: list and follow up by hand.",
     includes: [
-      "Property listing management",
-      "Buyer inquiries and viewing requests",
-      "Pipeline and Messages inbox",
-      "Listing reports",
+      "1 team member",
+      "Listings with a public page to share",
+      "Inquiries, Pipeline and Messages inbox",
+      "Reports and follow-up reminders",
     ],
-    excludes: "No AI features: no AI chat replies, lead scoring, matching, Buyer Finder or AI writing.",
+    excludes: "No AI: no AI replies, lead scoring, matching, Buyer Finder or AI writing.",
   },
   basic: {
     tagline: "Para sa individual property owners",
     includes: [
-      "Everything in Free",
-      "Buyer Finder: send a listing to up to 5 matching Home Finder buyers a month",
+      "Everything in Free, for 2 team members",
+      "Buyer Finder: 5 AI-found potential buyers a month",
       "Property matcher and lead scoring",
-      "AI replies in Home Finder chat and Messenger",
+      "AI replies in Messenger and chats, up to 3,000 a month",
       "AI-written listing descriptions and captions",
-      "Ask Home Finder and the reply helper",
+      "Ask HomeFinder and the reply helper",
     ],
     excludes: "Walay AI video creation. Limited buyer finder.",
   },
   pro: {
-    tagline: "Para sa mga agent at broker",
+    tagline: "Para sa mga agent",
     includes: [
-      "Everything in Basic",
-      "Buyer Finder: send a listing to up to 20 matching Home Finder buyers a month",
-      "AI video creation (coming soon)",
+      "Everything in Basic, for 5 team members",
+      "Buyer Finder: 20 AI-found potential buyers a month",
+      "Up to 10,000 AI replies a month",
+      "AI listing videos, 10 a month (coming soon)",
+    ],
+  },
+  agency: {
+    tagline: "Para sa mga brokerage at team",
+    includes: [
+      "Everything in Pro, for 15 team members",
+      "Buyer Finder: 60 AI-found potential buyers a month",
+      "Up to 25,000 AI replies a month",
+      "AI listing videos, 30 a month (coming soon)",
     ],
   },
 };

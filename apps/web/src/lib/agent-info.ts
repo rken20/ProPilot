@@ -27,7 +27,7 @@ export const AGENT_INFO = [
   {
     key: "discovery",
     name: "Buyer Finder",
-    does: "On each listing, shows the leads in your pipeline who fit it and Home Finder buyers on Basic who asked for matching listings. Send it to up to 5 of them a month. Lead Ads forms and client lists come later.",
+    does: "On each listing, shows which leads fit it, from Messenger, listing inquiries and leads you add. The AI reads each chat for budget and area. Add up to 5 a month as potential buyers on Basic, 20 on Pro, 60 on Agency.",
     live: true,
   },
 ] as const;

@@ -6,6 +6,15 @@ import { requireBusiness } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
 import { businessPlan } from "@/lib/plan";
 import { daysLeft, FREE_PLAN, PLAN_COPY } from "@/lib/plan-rules";
+import { Icon3d, type Icon3dName } from "@/components/icon-3d";
+
+/** How each plan's card looks. */
+const PLAN_LOOK: Record<string, { icon: Icon3dName; tile: string; badge?: string }> = {
+  free: { icon: "key", tile: "bg-white" },
+  basic: { icon: "house", tile: "bg-tile-mint", badge: "For owners" },
+  pro: { icon: "rocket", tile: "bg-tile-lavender", badge: "For agents" },
+  agency: { icon: "trophy", tile: "bg-tile-peach", badge: "For teams" },
+};
 import { createClient } from "@/lib/supabase/server";
 import { GcashPayForm } from "./pay-form";
 
@@ -13,7 +22,7 @@ const dateFmt = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", mont
 const date = (iso: string) => dateFmt.format(new Date(iso));
 
 const STATUS = {
-  pending: { label: "Being checked", icon: Clock, tone: "text-[#7d5f26]" },
+  pending: { label: "Being checked", icon: Clock, tone: "text-brass-700" },
   confirmed: { label: "Confirmed", icon: Check, tone: "text-good" },
   rejected: { label: "Not found", icon: X, tone: "text-hot" },
 } as const;
@@ -78,18 +87,27 @@ export default async function BillingPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {(plans ?? []).map((p) => {
           const copy = PLAN_COPY[p.code as string];
           const current = p.code === plan.code;
+          const look = PLAN_LOOK[p.code as string] ?? PLAN_LOOK.free!;
           return (
-            <section key={p.id} className={cx("rounded-2xl border bg-white p-6 shadow-[var(--shadow-card)]", current ? "border-brand-600" : "border-line")}>
+            <section
+              key={p.id}
+              className={cx("pp-bounce rounded-[1.5rem] border-2 p-6 shadow-[var(--shadow-card)]", look.tile, current ? "border-brand-600" : "border-transparent")}
+            >
               <div className="flex items-start justify-between gap-3">
-                <h2 className="text-xl font-bold tracking-tight text-brand-700">{p.name}</h2>
-                {current ? <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">Your plan</span> : null}
+                <Icon3d name={look.icon} size={48} />
+                {current ? (
+                  <span className="rounded-full bg-brand-600 px-2.5 py-1 text-xs font-bold text-white">Your plan</span>
+                ) : look.badge ? (
+                  <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-bold text-grape-700">{look.badge}</span>
+                ) : null}
               </div>
-              <p className="mt-2">
-                <span className="text-3xl font-bold tabular-nums">{p.price_minor ? formatPeso(p.price_minor as number) : "₱0"}</span>
+              <h2 className="mt-3 text-xl font-extrabold tracking-tight">{p.name}</h2>
+              <p className="mt-1">
+                <span className="text-3xl font-extrabold tabular-nums">{p.price_minor ? formatPeso(p.price_minor as number) : "₱0"}</span>
                 <span className="text-muted"> / month</span>
               </p>
               {copy ? (

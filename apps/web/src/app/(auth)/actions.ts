@@ -1,6 +1,5 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { emailSchema, passwordSchema, signInSchema, signUpSchema } from "@propilot/shared";
 import { getOrigin } from "@/lib/auth";
@@ -13,18 +12,18 @@ export async function signUp(_prev: FormState, form: FormData): Promise<FormStat
     fullName: str(form, "fullName"),
     email: str(form, "email"),
     password: str(form, "password"),
-    accountType: str(form, "accountType") === "buyer" ? "buyer" : "agent",
+    accountType: "agent",
   });
   const data = { fullName: str(form, "fullName"), email: str(form, "email") };
   if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error), data };
 
-  const next = safeNext(str(form, "next"), parsed.data.accountType === "buyer" ? "/buyer" : "/onboarding");
+  const next = safeNext(str(form, "next"), "/onboarding");
   const supabase = await createClient();
   const { data: result, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: { full_name: parsed.data.fullName, account_type: parsed.data.accountType },
+      data: { full_name: parsed.data.fullName, account_type: "agent" },
       emailRedirectTo: `${await getOrigin()}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });
@@ -93,16 +92,9 @@ function friendlyAuthError(message: string): string {
   return "Couldn't create your account. Please check your details and try again.";
 }
 
-const SIGNUP_AS_COOKIE = "pp_signup_as";
-
-/** Start Google sign-in. Remembers the buyer/agent choice for the callback. */
+/** Start Google sign-in. Every account is an owner or agent account. */
 export async function signInWithGoogle(form: FormData) {
-  const as = str(form, "as");
   const next = str(form, "next");
-  const jar = await cookies();
-  if (as === "buyer" || as === "agent") {
-    jar.set(SIGNUP_AS_COOKIE, as, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: 600 });
-  }
   if (!(await isGoogleEnabled())) redirect("/login?notice=google-unavailable");
   const supabase = await createClient();
   const callback = new URL(`${await getOrigin()}/auth/callback`);

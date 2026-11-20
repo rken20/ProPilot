@@ -24,7 +24,7 @@ export const maxDuration = 60;
 
 const STAGE_TONE: Record<Stage, string> = {
   inquiry: "bg-zinc-100 text-zinc-700",
-  qualified: "bg-brass-50 text-[#7d5f26]",
+  qualified: "bg-brass-50 text-brass-700",
   viewing: "bg-brand-50 text-brand-700",
   offer: "bg-brand-50 text-brand-700",
   reservation: "bg-brand-100 text-brand-900",
@@ -192,7 +192,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
                     <Link href={`/app/inbox?c=${c.id}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-zinc-50">
                       <span className="flex items-center gap-2.5">
                         {c.channel === "app" ? <Smartphone className="size-4 text-muted" aria-hidden /> : <MessageCircle className="size-4 text-muted" aria-hidden />}
-                        {c.channel === "app" ? "Home Finder chat" : "Messenger chat"}
+                        {c.channel === "app" ? "HomeFinder chat" : "Messenger chat"}
                         <span className="text-xs text-muted">{c.mode === "ai" ? "AI answering" : "Team answering"}</span>
                       </span>
                       <span className="text-xs text-muted">{timeAgo(c.last_message_at)}</span>
@@ -237,7 +237,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
                   />
                   <p className={cx("text-sm", e.kind === "note" && "rounded-lg bg-white px-3 py-2 ring-1 ring-line")}>{e.body}</p>
                   <p className="mt-0.5 text-xs text-muted">
-                    {e.actor ? nameOf.get(e.actor) ?? "Teammate" : "Home Finder"} · {timeAgo(e.created_at)}
+                    {e.actor ? nameOf.get(e.actor) ?? "Teammate" : "HomeFinder"} · {timeAgo(e.created_at)}
                   </p>
                 </li>
               ))}

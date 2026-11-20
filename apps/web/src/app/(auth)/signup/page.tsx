@@ -1,78 +1,16 @@
-import Link from "next/link";
-import { Building2, House } from "lucide-react";
 import { GoogleButton } from "@/components/google-button";
 import { safeNext } from "@/lib/form";
 import { SignUpForm } from "../forms";
 
-const COPY = {
-  buyer: { title: "Create your buyer account", sub: "Save the listings you like and ask agents for viewings." },
-  agent: { title: "Create your agent account", sub: "Free during the beta, and no card needed." },
-} as const;
-
 export default async function SignUpPage({ searchParams }: PageProps<"/signup">) {
   const sp = await searchParams;
   const next = typeof sp.next === "string" ? safeNext(sp.next) : undefined;
-  // Team invitations are always for agent accounts.
-  const as = next?.startsWith("/invite/") ? "agent" : sp.as === "buyer" || sp.as === "agent" ? sp.as : undefined;
-  const keep = next ? `&next=${encodeURIComponent(next)}` : "";
-
-  if (!as) {
-    return (
-      <>
-        <h1 className="font-display mb-2 text-[2rem] leading-tight font-medium">Create your account</h1>
-        <p className="mb-6 text-sm text-muted">How will you use Home Finder?</p>
-        <div className="space-y-3">
-          <Choice
-            href={`/signup?as=buyer${keep}`}
-            icon={<House className="size-5" aria-hidden />}
-            title="I'm looking for a property"
-            text="Search listings, ask questions and request viewings."
-          />
-          <Choice
-            href={`/signup?as=agent${keep}`}
-            icon={<Building2 className="size-5" aria-hidden />}
-            title="I sell or manage properties"
-            text="For agents, brokers and developers who want buyer questions answered for them."
-          />
-        </div>
-        <p className="mt-6 text-center text-sm text-muted">
-          Already have an account?{" "}
-          <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-brand-700">
-            Log in
-          </Link>
-        </p>
-      </>
-    );
-  }
-
   return (
     <>
-      <h1 className="font-display mb-2 text-[2rem] leading-tight font-medium">{COPY[as].title}</h1>
-      <p className="mb-6 text-sm text-muted">
-        {COPY[as].sub}{" "}
-        {next?.startsWith("/invite/") ? null : (
-          <Link href={`/signup${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="text-brand-700">
-            Change
-          </Link>
-        )}
-      </p>
-      <GoogleButton as={as} next={next} />
-      <SignUpForm next={next} accountType={as} />
+      <h1 className="font-display mb-2 text-[2rem] leading-tight font-medium">Create your account</h1>
+      <p className="mb-6 text-sm text-muted">For property owners and agents. Start free, no card needed.</p>
+      <GoogleButton next={next} />
+      <SignUpForm next={next} />
     </>
-  );
-}
-
-function Choice({ href, icon, title, text }: { href: string; icon: React.ReactNode; title: string; text: string }) {
-  return (
-    <Link
-      href={href}
-      className="pp-lift flex items-start gap-4 rounded-2xl border border-line bg-white p-4 shadow-[var(--shadow-card)] hover:border-brand-600"
-    >
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600">{icon}</span>
-      <span>
-        <span className="block font-semibold">{title}</span>
-        <span className="mt-0.5 block text-sm text-muted">{text}</span>
-      </span>
-    </Link>
   );
 }
