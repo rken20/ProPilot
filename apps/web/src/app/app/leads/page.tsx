@@ -96,8 +96,8 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
           <CalendarDays className="mx-auto size-8 text-muted" aria-hidden />
           <p className="mt-3 font-semibold">{filter === "open" ? "No open leads" : "Nothing here"}</p>
           <p className="mt-1 text-sm text-muted">
-            Turn on <span className="font-medium text-ink">Show to HomeFinder buyers</span> on a property so buyers can find it
-            and request viewings.
+            Turn on <span className="font-medium text-ink">Give it a public page</span> on a property, then share its link on
+            Facebook or Messenger. Inquiries sent from it show up here.
           </p>
         </div>
       ) : (
