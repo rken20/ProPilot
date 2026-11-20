@@ -20,6 +20,7 @@ from (values
   (17, 'Buyer plans', to_regclass('public.buyer_subscriptions') is not null, 'Run 20261119010000_buyer_plans.sql'),
   (18, 'Owners and agents focus (public listing pages, Buyer Finder, Pro and Agency plans)', to_regclass('public.listing_matches') is not null and exists (select 1 from public.plans where code = 'agency' and is_active), 'Run 20261120000000_owner_focus.sql'),
   (19, 'Pricing Advisor, AI negotiation and chat language', to_regclass('public.listing_offers') is not null and to_regclass('public.price_checks') is not null, 'Run 20261120010000_pricing_and_negotiation.sql'),
-  (20, 'Match alerts (buyer preferences with consent)', to_regclass('public.match_alerts') is not null and to_regclass('public.match_alert_sends') is not null, 'Run 20261120020000_match_alerts.sql')
+  (20, 'Match alerts (buyer preferences with consent)', to_regclass('public.match_alerts') is not null and to_regclass('public.match_alert_sends') is not null, 'Run 20261120020000_match_alerts.sql'),
+  (21, 'Profile photos', exists (select 1 from storage.buckets where id = 'avatars'), 'Run 20261120030000_profile_photos.sql')
 ) as t(n, item, ok, fix)
 order by n;

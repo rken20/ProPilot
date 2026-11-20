@@ -9,14 +9,14 @@ import { AppShell } from "./shell";
 import { aiEnabled } from "@/lib/plan";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { avatarUrl } from "@/lib/media";
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const current = await requireBusiness();
   const [memberships, user] = await Promise.all([getMemberships(), getUser()]);
-  const fullName = String(user?.user_metadata?.full_name ?? "") || (user?.email ?? "");
   const sales = can(current.role, "lead.viewAll") || can(current.role, "lead.viewAssigned");
   // Independent lookups run side by side: each is a round trip to the database.
-  const [waiting, superAdmin, aiOn] = await Promise.all([
+  const [waiting, superAdmin, aiOn, profile] = await Promise.all([
     // AI suggestions waiting for a decision, shown as a badge on Pipeline and its "AI agents" tab.
     sales
       ? createClient().then(async (supabase) =>
@@ -31,7 +31,12 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
       : Promise.resolve(0),
     user ? isSuperAdmin(user.id) : Promise.resolve(false),
     aiEnabled(current.businessId),
+    // The name and photo the person set on their Account page.
+    user
+      ? createClient().then(async (supabase) => (await supabase.from("profiles").select("full_name, avatar_path").eq("id", user.id).maybeSingle()).data)
+      : Promise.resolve(null),
   ]);
+  const fullName = profile?.full_name || String(user?.user_metadata?.full_name ?? "") || (user?.email ?? "");
   const paymentsWaiting = superAdmin ? await pendingPayments() : 0;
 
   // Pages that share a sidebar item are reached through tabs at the top of the page.
@@ -67,7 +72,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   ];
 
   return (
-    <AppShell current={current} memberships={memberships} fullName={fullName} items={items} switchBusiness={switchBusiness}>
+    <AppShell current={current} memberships={memberships} fullName={fullName} avatarUrl={avatarUrl(profile?.avatar_path)} items={items} switchBusiness={switchBusiness}>
       <SectionTabs groups={[homeTabs, salesTabs, settingsTabs]} />
       {children}
       {aiOn ? <AgentAssistant /> : null}

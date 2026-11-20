@@ -1,3 +1,5 @@
+import { Avatar } from "@/components/avatar";
+import { avatarUrl } from "@/lib/media";
 import { redirect } from "next/navigation";
 import { BUSINESS_ROLES, can, canAssignRole, type BusinessRole } from "@propilot/shared";
 import { Badge, Card, PageHeader } from "@/components/ui";
@@ -34,7 +36,7 @@ export default async function TeamPage() {
   ]);
   const ids = (members ?? []).map((m) => m.user_id);
   const { data: profiles } = ids.length
-    ? await supabase.from("profiles").select("id, full_name, email").in("id", ids)
+    ? await supabase.from("profiles").select("id, full_name, email, avatar_path").in("id", ids)
     : { data: [] };
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
 
@@ -62,11 +64,14 @@ export default async function TeamPage() {
             const manageable = !isMe && role !== "owner" && canAssignRole(biz.role, role) && can(biz.role, "team.changeRole");
             return (
               <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar name={p?.full_name || p?.email || ""} url={avatarUrl(p?.avatar_path)} className="size-10 bg-grape-100 text-sm text-grape-700" />
+                  <div className="min-w-0">
                   <p className="font-medium">
                     {p?.full_name || p?.email || "Team member"} {isMe ? <span className="text-sm font-normal text-zinc-500">(you)</span> : null}
                   </p>
                   <p className="truncate text-sm text-zinc-500">{p?.email}</p>
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {m.status === "deactivated" ? <Badge>Deactivated</Badge> : null}

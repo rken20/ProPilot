@@ -8,6 +8,8 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { InstallCard } from "@/components/install-app";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { avatarUrl } from "@/lib/media";
+import { AvatarEditor } from "./avatar-editor";
 
 async function saveProfile(form: FormData) {
   "use server";
@@ -16,17 +18,20 @@ async function saveProfile(form: FormData) {
   const phone = str(form, "phone").trim().slice(0, 30);
   const supabase = await createClient();
   await supabase.from("profiles").update({ full_name: fullName, phone: phone || null, updated_at: new Date().toISOString() }).eq("id", user.id);
-  revalidatePath("/app/account");
+  revalidatePath("/app", "layout");
 }
 
 export default async function AccountPage() {
   const user = await requireUser();
   const supabase = await createClient();
-  const { data: profile } = await supabase.from("profiles").select("full_name, phone").eq("id", user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("full_name, phone, avatar_path").eq("id", user.id).single();
 
   return (
     <>
       <PageHeader title="Account" description="Your personal details. Business settings are separate." />
+      <Card className="mb-6 max-w-xl">
+        <AvatarEditor userId={user.id} name={profile?.full_name || user.email || ""} url={avatarUrl(profile?.avatar_path)} />
+      </Card>
       <Card className="max-w-xl">
         <form action={saveProfile} className="space-y-4">
           <Field label="Email" htmlFor="email" hint="Used to sign in. Changing it comes later in the beta.">

@@ -1,25 +1,19 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LogOut, Smartphone, UserRound } from "lucide-react";
+import { LogOut, Smartphone } from "lucide-react";
+import { Avatar } from "@/components/avatar";
 import { Logo } from "@/components/logo";
 import { Nav, type NavItem } from "./nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const ROLE_LABEL = { owner: "Owner", admin: "Admin", agent: "Agent", marketing: "Marketing" } as const;
 
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
-    .join("");
-}
-
 export type ShellProps = {
   current: { businessId: string; businessName: string; role: keyof typeof ROLE_LABEL };
   memberships: Array<{ businessId: string; businessName: string }>;
   fullName: string;
+  /** The person's profile photo; initials show when there is none. */
+  avatarUrl?: string | null;
   items: NavItem[];
   switchBusiness?: (form: FormData) => Promise<void>;
   children: ReactNode;
@@ -61,8 +55,7 @@ function Business({ current, memberships, switchBusiness, id }: Pick<ShellProps,
  * navigation and account. On phones: an app bar on top and a tab bar at the
  * bottom, so it feels like an app when installed on the home screen.
  */
-export function AppShell({ current, memberships, fullName, items, switchBusiness, children }: ShellProps) {
-  const avatar = initials(fullName) || <UserRound className="size-4" aria-hidden />;
+export function AppShell({ current, memberships, fullName, avatarUrl = null, items, switchBusiness, children }: ShellProps) {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[256px_minmax(0,1fr)]">
       <header className="sticky top-[env(safe-area-inset-top,0px)] z-30 flex items-center gap-3 bg-frame-1 px-4 py-2.5 text-white lg:hidden">
@@ -75,9 +68,9 @@ export function AppShell({ current, memberships, fullName, items, switchBusiness
         <Link
           href="/app/account"
           aria-label="Your account"
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-white/15 text-sm font-bold transition-colors active:bg-white/25"
+          className="shrink-0 rounded-full transition-opacity active:opacity-80"
         >
-          {avatar}
+          <Avatar name={fullName} url={avatarUrl} className="size-10 bg-white/15 text-sm ring-2 ring-white/25" />
         </Link>
       </header>
 
@@ -94,7 +87,7 @@ export function AppShell({ current, memberships, fullName, items, switchBusiness
 
         <div className="mt-auto border-t border-white/10 pt-4">
           <div className="flex items-center gap-3 px-2">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 text-sm font-semibold">{avatar}</span>
+            <Avatar name={fullName} url={avatarUrl} className="size-9 bg-white/10 text-sm ring-2 ring-white/20" />
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{fullName}</p>
               <Link href="/app/account" className="text-xs text-white/60 hover:text-white">

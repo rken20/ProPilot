@@ -26,3 +26,32 @@ export function fitWithin(width: number, height: number, edge: number) {
   const scale = Math.min(1, edge / Math.max(width, height));
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
+
+// ---------------------------------------------------------------------------
+// Profile photos
+// ---------------------------------------------------------------------------
+
+export const AVATAR_BUCKET = "avatars";
+/** Stored square size in pixels: sharp at twice the largest size shown. */
+export const AVATAR_EDGE = 256;
+
+/** Where a person's new profile photo is stored. The database checks this shape. */
+export function avatarPath(userId: string, id: string): string {
+  return `${userId}/${id}.jpg`;
+}
+
+/** Public URL for a stored profile photo. */
+export function avatarUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) return null;
+  return `${base}/storage/v1/object/public/${AVATAR_BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+/** The centred square to cut from a photo, so faces in portrait or landscape shots stay in frame. */
+export function squareCrop(width: number, height: number): { sx: number; sy: number; size: number } {
+  const size = Math.min(width, height);
+  // Portrait photos: favour the top third, where a face usually is.
+  const sy = height > width ? Math.round((height - size) / 3) : Math.round((height - size) / 2);
+  return { sx: Math.round((width - size) / 2), sy, size };
+}
