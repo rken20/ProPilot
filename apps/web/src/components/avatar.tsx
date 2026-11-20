@@ -21,8 +21,8 @@ export function Avatar({
   className?: string;
 }) {
   if (url) {
-    // eslint-disable-next-line @next/next/no-img-element -- small square JPEG from storage, already sized
     return (
+      // eslint-disable-next-line @next/next/no-img-element -- small square JPEG from storage, already sized
       <img
         src={url}
         alt=""
