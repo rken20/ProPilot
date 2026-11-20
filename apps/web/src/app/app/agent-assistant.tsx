@@ -55,6 +55,8 @@ export function AgentAssistant() {
 
   return (
     <>
+      {/* On phones the button floats above the tab bar; this leaves room so it never covers the end of a page. */}
+      <div aria-hidden className="h-14 lg:hidden" />
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

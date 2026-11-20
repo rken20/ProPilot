@@ -53,7 +53,7 @@ export default async function TeamPage() {
         </Card>
       ) : null}
 
-      <Card className="overflow-hidden p-0">
+      <Card className="overflow-hidden p-0!">
         <ul className="divide-y divide-zinc-100">
           {(members ?? []).map((m) => {
             const p = profileById.get(m.user_id);
@@ -111,7 +111,7 @@ export default async function TeamPage() {
       {invites.length > 0 ? (
         <>
           <h2 className="mb-3 mt-8 font-medium">Pending invitations</h2>
-          <Card className="overflow-hidden p-0">
+          <Card className="overflow-hidden p-0!">
             <ul className="divide-y divide-zinc-100">
               {invites.map((inv) => (
                 <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">

@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { can } from "@propilot/shared";
-import { Alert, Badge, Card, PageHeader, buttonClass } from "@/components/ui";
+import { Alert, Card, PageHeader, buttonClass } from "@/components/ui";
 import { requireBusiness } from "@/lib/auth";
-import { formatPeso } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { getCoverThumbs } from "@/lib/listings";
 import { mediaUrl } from "@/lib/media";
-import { Building2 } from "lucide-react";
-import { STATUS_LABEL, TYPE_LABEL } from "@/lib/property-labels";
+import { PropertiesList } from "./properties-list";
 
 export default async function PropertiesPage({ searchParams }: PageProps<"/app/properties">) {
   const sp = await searchParams;
@@ -39,7 +37,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
       />
       {sp.notice === "archived" ? (
         <div className="mb-4">
-          <Alert tone="success">Property archived. The assistant won&apos;t mention it to buyers.</Alert>
+          <Alert tone="success">Property archived. Its public page is off and the assistant won&apos;t mention it.</Alert>
         </div>
       ) : null}
       {error ? <Alert>Couldn&apos;t load properties. Refresh to try again.</Alert> : null}
@@ -59,53 +57,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
           {!showArchived ? <p className="mt-1 text-sm text-zinc-600">Add a listing with its price, location and financing.</p> : null}
         </Card>
       ) : (
-        <Card className="overflow-hidden p-0">
-          <table className="w-full text-sm">
-            <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Property</th>
-                <th className="hidden px-4 py-3 font-medium sm:table-cell">Type</th>
-                <th className="px-4 py-3 text-right font-medium">Price</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {rows?.map((p) => (
-                <tr key={p.id} className="hover:bg-zinc-50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {covers.get(p.id) ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- pre-sized thumbnail
-                        <img src={mediaUrl(covers.get(p.id)) ?? ""} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
-                      ) : (
-                        <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
-                          <Building2 className="size-5" aria-hidden />
-                        </span>
-                      )}
-                      <div className="min-w-0">
-                        <Link href={`/app/properties/${p.id}`} className="font-medium text-zinc-900 hover:text-brand-700">
-                          {p.name}
-                        </Link>
-                        <p className="text-xs text-zinc-500">
-                          {p.location}
-                          {p.is_public ? <span className="ml-2 font-medium text-brand-600">Visible to buyers</span> : null}
-                          {covers.get(p.id) ? null : <span className="ml-2 text-amber-700">No photos</span>}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="hidden px-4 py-3 text-zinc-600 sm:table-cell">{TYPE_LABEL[p.type as keyof typeof TYPE_LABEL]}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{formatPeso(p.price_minor, p.currency)}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone={p.status === "available" ? "brand" : "neutral"}>
-                      {STATUS_LABEL[p.status as keyof typeof STATUS_LABEL]}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+        <PropertiesList rows={(rows ?? []).map((r) => ({ ...r, coverUrl: mediaUrl(covers.get(r.id)) ?? null }))} />
       )}
     </>
   );

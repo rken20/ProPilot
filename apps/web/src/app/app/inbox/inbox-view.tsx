@@ -75,8 +75,8 @@ export function InboxView({
         title="Messages"
         description={
           live.length
-            ? `Chats from HomeFinder buyers and from ${live.map((p) => p.name).join(" and ")} on Messenger. The AI answers until someone takes over.`
-            : "Chats from HomeFinder buyers. The AI answers until someone takes over."
+            ? `Chats from ${live.map((p) => p.name).join(" and ")} on Messenger. The AI answers until someone takes over.`
+            : "Chats from your Facebook Page on Messenger show up here. The AI answers until someone takes over."
         }
       />
       <RefreshSoon every={8000} times={150} />
