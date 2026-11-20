@@ -276,6 +276,14 @@ body::before {
     outline: 2px solid var(--color-brand-600);
     outline-offset: 2px;
   }
+  /*
+   * A grid with no column setting (most are one column on phones) would grow
+   * as wide as its longest unbroken line, e.g. a long property name, and push
+   * the page off the side of a phone. Its column now never exceeds the screen.
+   */
+  .grid {
+    grid-auto-columns: minmax(0, 1fr);
+  }
 }
 
 ::selection {

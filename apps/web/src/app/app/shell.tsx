@@ -64,7 +64,7 @@ function Business({ current, memberships, switchBusiness, id }: Pick<ShellProps,
 export function AppShell({ current, memberships, fullName, items, switchBusiness, children }: ShellProps) {
   const avatar = initials(fullName) || <UserRound className="size-4" aria-hidden />;
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[256px_1fr]">
+    <div className="min-h-screen lg:grid lg:grid-cols-[256px_minmax(0,1fr)]">
       <header className="sticky top-[env(safe-area-inset-top,0px)] z-30 flex items-center gap-3 bg-frame-1 px-4 py-2.5 text-white lg:hidden">
         <Link href="/app" aria-label="Dashboard" className="shrink-0">
           <Logo tone="dark" wordmark={false} />
@@ -114,8 +114,8 @@ export function AppShell({ current, memberships, fullName, items, switchBusiness
         </div>
       </aside>
 
-      {/* On phones the page ends above the tab bar (and the home indicator on iPhones). */}
-      <main className="px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] pt-5 sm:px-8 lg:px-10 lg:py-9">
+      {/* On phones the page ends above the tab bar (and the home indicator on iPhones). Nothing may slide the page sideways. */}
+      <main className="overflow-x-clip px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] pt-5 sm:px-8 lg:px-10 lg:py-9">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>
 
