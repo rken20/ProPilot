@@ -15,13 +15,55 @@ const ICONS = {
 
 export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; count?: number; /** Other paths that belong to this item (its tabs). */ match?: string[] };
 
-export function Nav({ items }: { items: NavItem[] }) {
+function isActive(item: NavItem, path: string) {
+  return (item.href === "/app" ? path === "/app" : path.startsWith(item.href)) || (item.match ?? []).some((m) => path.startsWith(m));
+}
+
+/** Main navigation: the sidebar list on computers ("side"), the bottom tab bar on phones ("tabs"). */
+export function Nav({ items, variant = "side" }: { items: NavItem[]; variant?: "side" | "tabs" }) {
   const path = usePathname();
+
+  if (variant === "tabs") {
+    return (
+      <nav
+        aria-label="Main"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-10px_30px_-18px_rgb(42_23_96/0.35)] lg:hidden"
+      >
+        <ul className="mx-auto grid max-w-xl" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+          {items.map((item) => {
+            const active = isActive(item, path);
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className="pp-tab flex flex-col items-center gap-0.5 px-1 pb-1.5 pt-2 text-[11px] leading-tight"
+                >
+                  <span className={cx("relative grid h-8 w-14 place-items-center rounded-full transition-colors duration-200", active && "bg-grape-100")}>
+                    <Icon3d name={ICONS[item.icon]} size={24} />
+                    {item.count ? (
+                      <span
+                        className="absolute -top-0.5 right-0 min-w-4 rounded-full bg-hot px-1 text-center text-[10px] font-bold leading-4 text-white tabular-nums"
+                        aria-label={`${item.count} waiting`}
+                      >
+                        {item.count > 99 ? "99+" : item.count}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className={cx("max-w-full truncate", active ? "font-bold text-grape-700" : "font-medium text-muted")}>{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    );
+  }
+
   return (
-    <nav className="flex gap-1 overflow-x-auto lg:flex-col" aria-label="Main">
+    <nav className="flex flex-col gap-1" aria-label="Main">
       {items.map((item) => {
-        const active =
-          (item.href === "/app" ? path === "/app" : path.startsWith(item.href)) || (item.match ?? []).some((m) => path.startsWith(m));
+        const active = isActive(item, path);
         return (
           <Link
             key={item.href}

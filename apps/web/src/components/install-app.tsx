@@ -1,0 +1,158 @@
+"use client";
+
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { EllipsisVertical, Share, SquarePlus, X } from "lucide-react";
+import { Icon3d } from "@/components/icon-3d";
+import { buttonClass, cx } from "@/components/ui";
+
+/** Chrome's "this site can be installed" event. The root layout keeps it on window until it's needed. */
+type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
+type InstallWindow = Window & { __ppInstall?: InstallEvent | null };
+
+const DISMISSED = "pp-install-hidden";
+
+function subscribe(onChange: () => void) {
+  const mq = window.matchMedia("(display-mode: standalone)");
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+/** "installed" when opened from the home-screen icon; otherwise which steps to show. */
+function platform(): "installed" | "ios" | "other" {
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  if (standalone) return "installed";
+  const ua = navigator.userAgent;
+  // iPads report themselves as Macs; a Mac has no touch screen.
+  return /iPad|iPhone|iPod/.test(ua) || (ua.includes("Macintosh") && navigator.maxTouchPoints > 1) ? "ios" : "other";
+}
+
+function wasDismissed() {
+  try {
+    return localStorage.getItem(DISMISSED) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function useInstall() {
+  const where = useSyncExternalStore(subscribe, platform, () => null);
+  const [event, setEvent] = useState<InstallEvent | null>(null);
+  useEffect(() => {
+    const read = () => setEvent((window as InstallWindow).__ppInstall ?? null);
+    read();
+    window.addEventListener("pp-install", read);
+    return () => window.removeEventListener("pp-install", read);
+  }, []);
+
+  async function install() {
+    if (!event) return;
+    try {
+      await event.prompt();
+      await event.userChoice;
+    } catch {
+      // The browser already showed its own prompt; the written steps still work.
+    }
+    (window as InstallWindow).__ppInstall = null;
+    setEvent(null);
+  }
+  return { where, canPrompt: event !== null, install };
+}
+
+function IosSteps() {
+  return (
+    <>
+      In Safari, tap <Share className="mx-0.5 inline size-4 align-[-3px]" aria-label="Share" />, then{" "}
+      <span className="font-semibold text-ink">
+        Add to Home Screen <SquarePlus className="inline size-4 align-[-3px]" aria-hidden />
+      </span>
+      .
+    </>
+  );
+}
+
+function AndroidSteps() {
+  return (
+    <>
+      In Chrome, tap <EllipsisVertical className="inline size-4 align-[-3px]" aria-label="the menu" />, then{" "}
+      <span className="font-semibold text-ink">Install app</span> or <span className="font-semibold text-ink">Add to Home screen</span>.
+    </>
+  );
+}
+
+/** A dismissible nudge on the dashboard, on phones only, until the app is installed. */
+export function InstallBanner() {
+  const { where, canPrompt, install } = useInstall();
+  const dismissed = useSyncExternalStore(
+    () => () => {},
+    wasDismissed,
+    () => true,
+  );
+  const [hidden, setHidden] = useState(false);
+  if (!where || where === "installed" || dismissed || hidden) return null;
+
+  function hide() {
+    try {
+      localStorage.setItem(DISMISSED, "1");
+    } catch {
+      // Private windows may block storage; it stays hidden for this visit.
+    }
+    setHidden(true);
+  }
+
+  return (
+    <section aria-label="Install the app" className="relative flex items-start gap-3 rounded-[1.5rem] bg-tile-lavender p-4 pr-11 lg:hidden">
+      <Icon3d name="phone" size={40} className="shrink-0" />
+      <div className="min-w-0">
+        <p className="font-bold">Put HomeFinder on your phone</p>
+        <p className="mt-0.5 text-sm text-muted">{canPrompt ? "One tap to open, full screen. No app store needed." : where === "ios" ? <IosSteps /> : <AndroidSteps />}</p>
+        {canPrompt ? (
+          <button type="button" onClick={install} className={buttonClass("primary", "mt-3")}>
+            Install app
+          </button>
+        ) : null}
+      </div>
+      <button type="button" onClick={hide} aria-label="Hide" className="absolute right-2 top-2 grid size-9 place-items-center rounded-full text-muted hover:bg-white/60 hover:text-ink">
+        <X className="size-4" aria-hidden />
+      </button>
+    </section>
+  );
+}
+
+/** The same help, always available on the Account page. */
+export function InstallCard({ className }: { className?: string }) {
+  const { where, canPrompt, install } = useInstall();
+  return (
+    <div className={cx("rounded-[1.5rem] border border-line bg-white p-6 shadow-[var(--shadow-card)]", className)}>
+      <div className="flex items-start gap-3">
+        <Icon3d name="phone" size={40} className="shrink-0" />
+        <div className="min-w-0">
+          <p className="font-medium">HomeFinder on your phone</p>
+          {where === "installed" ? (
+            <p className="mt-1 text-sm text-muted">You&apos;re using the installed app. It updates by itself.</p>
+          ) : (
+            <>
+              <p className="mt-1 text-sm text-muted">Add it to your home screen: its own icon, full screen, no app store needed.</p>
+              {canPrompt ? (
+                <button type="button" onClick={install} className={buttonClass("primary", "mt-3")}>
+                  Install app
+                </button>
+              ) : null}
+              <ul className="mt-3 space-y-1.5 text-sm text-muted">
+                {where !== "ios" ? (
+                  <li>
+                    <span className="font-semibold text-ink">Android:</span> <AndroidSteps />
+                  </li>
+                ) : null}
+                {where !== "other" || !canPrompt ? (
+                  <li>
+                    <span className="font-semibold text-ink">iPhone:</span> <IosSteps />
+                  </li>
+                ) : null}
+              </ul>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

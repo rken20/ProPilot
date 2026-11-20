@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Alert, buttonClass, cx } from "@/components/ui";
 import { CountUp } from "@/components/count-up";
 import { Icon3d, type Icon3dName } from "@/components/icon-3d";
+import { InstallBanner } from "@/components/install-app";
 import { formatPeso } from "@/lib/money";
 import { timeAgo } from "@/lib/time";
 import { STATUS_LABEL } from "@/lib/property-labels";
@@ -72,6 +73,7 @@ export function DashboardView({
   return (
     <div className="pp-stagger space-y-8">
       {notice ? <Alert tone="success">{notice}</Alert> : null}
+      <InstallBanner />
 
       {/* Hero: the promise, and the assistant's state */}
       <section

@@ -5,6 +5,9 @@ import { requireUser } from "@/lib/auth";
 import { str } from "@/lib/form";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { LogOut } from "lucide-react";
+import { InstallCard } from "@/components/install-app";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 async function saveProfile(form: FormData) {
   "use server";
@@ -46,6 +49,16 @@ export default async function AccountPage() {
             Change password
           </Link>
         </p>
+      </Card>
+      <InstallCard className="mt-6 max-w-xl" />
+      {/* On computers these two live in the sidebar. */}
+      <Card className="mt-6 flex max-w-xl flex-wrap items-center justify-between gap-4 lg:hidden">
+        <ThemeToggle className="text-sm font-medium text-ink" />
+        <form action="/auth/signout" method="post">
+          <button className="flex items-center gap-2 text-sm font-medium text-hot">
+            <LogOut className="size-4" aria-hidden /> Sign out
+          </button>
+        </form>
       </Card>
     </>
   );

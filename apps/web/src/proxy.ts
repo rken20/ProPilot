@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // /privacy and the data deletion callback must be reachable without signing in (Meta checks them).
 // /l/<id> is a listing's public page, for anyone with the link.
-const PUBLIC_PATHS = ["/", "/l", "/login", "/signup", "/forgot-password", "/auth", "/privacy", "/api/meta/data-deletion", "/api/meta/webhook", "/api/cron"];
+// /manifest.webmanifest lets a phone install the app; browsers fetch it without the session cookie.
+const PUBLIC_PATHS = ["/", "/l", "/manifest.webmanifest", "/login", "/signup", "/forgot-password", "/auth", "/privacy", "/api/meta/data-deletion", "/api/meta/webhook", "/api/cron"];
 
 /**
  * Refreshes the Supabase session cookie on every request and sends signed-out

@@ -61,7 +61,7 @@ export function AgentAssistant() {
         aria-expanded={open}
         aria-controls="ask-propilot"
         className={cx(
-          "fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-brand-900 px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-lift)] transition-[transform,background-color] duration-200 hover:bg-brand-700 active:scale-95",
+          "fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 z-40 inline-flex lg:bottom-5 lg:right-5 items-center gap-2 rounded-full bg-brand-900 px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-lift)] transition-[transform,background-color] duration-200 hover:bg-brand-700 active:scale-95",
           open && "max-sm:hidden",
         )}
       >
@@ -73,7 +73,7 @@ export function AgentAssistant() {
         <section
           id="ask-propilot"
           aria-label="Ask HomeFinder"
-          className="pp-enter fixed inset-x-3 bottom-3 top-16 z-50 flex flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-[var(--shadow-lift)] sm:inset-x-auto sm:bottom-20 sm:right-5 sm:top-auto sm:h-[min(36rem,calc(100vh-7rem))] sm:w-[25rem]"
+          className="pp-enter fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] top-[calc(4rem+env(safe-area-inset-top,0px))] z-50 flex flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-[var(--shadow-lift)] sm:inset-x-auto sm:bottom-20 sm:right-5 sm:top-auto sm:h-[min(36rem,calc(100vh-7rem))] sm:w-[25rem]"
         >
           <header className="flex items-center gap-2.5 border-b border-line px-4 py-3">
             <span className="grid size-8 place-items-center rounded-lg bg-brand-50 text-brand-600">
