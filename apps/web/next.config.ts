@@ -42,6 +42,11 @@ const nextConfig: NextConfig = {
   // on request rather than using Cache Components' static shells.
   cacheComponents: false,
   poweredByHeader: false,
+  experimental: {
+    // Build from scratch every time. With the saved build cache, a deploy that
+    // changed globals.css shipped the previous theme's stylesheet (20 Nov 2026).
+    turbopackFileSystemCacheForBuild: false,
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
