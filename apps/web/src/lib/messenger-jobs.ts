@@ -4,6 +4,8 @@ import { sendEmail, esc } from "./email";
 import { pageWithToken } from "./facebook-pages";
 import { DEFAULT_MODEL } from "./listing-assistant";
 import { messengerReply, type Channel, type MessengerListing, type Turn } from "./messenger-assistant";
+import type { NegotiationContext, PriorOffer } from "./negotiation";
+import { formatPeso } from "./money";
 import {
   GraphError,
   messengerName,
@@ -128,7 +130,7 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
   if (latest && ev.mid && latest.mid !== ev.mid) return;
 
   await typingOn(fetch, cfg, page.pageId, page.token, ev.psid);
-  const turn = await aiTurn(admin, { id: conv.id as string, business_id: businessId, property_id: null }, { name: page.name, channel: "messenger", apiKey });
+  const turn = await aiTurn(admin, { id: conv.id as string, business_id: businessId, property_id: null }, { name: page.name, channel: "messenger", apiKey, negotiate: plan.negotiation });
   if (!turn) return;
 
   try {
@@ -153,7 +155,7 @@ export type Turn2 = { result: Awaited<ReturnType<typeof messengerReply>>; props:
  * history and listings, writes the reply. Returns null when it shouldn't reply
  * (someone took over, or a cap was reached). Sending is the caller's job.
  */
-export async function aiTurn(admin: Admin, conv: ConvRef, opts: { name: string; channel: Channel; apiKey: string }): Promise<Turn2 | null> {
+export async function aiTurn(admin: Admin, conv: ConvRef, opts: { name: string; channel: Channel; apiKey: string; negotiate?: boolean }): Promise<Turn2 | null> {
   // Re-read the mode: someone may have taken over in the meantime.
   const { data: fresh } = await admin.from("messenger_conversations").select("mode").eq("id", conv.id).single();
   if (fresh?.mode !== "ai") return null;
@@ -180,6 +182,18 @@ export async function aiTurn(admin: Admin, conv: ConvRef, opts: { name: string; 
       .limit(40),
     admin.from("agent_settings").select("chat_language").eq("business_id", conv.business_id).maybeSingle(),
   ]);
+  // Negotiation (Pro, Agency): the owner's lowest prices stay on the server. The model only gets the result of each check.
+  let negotiation: NegotiationContext | undefined;
+  if (opts.negotiate) {
+    const [{ data: floors }, { data: offers }] = await Promise.all([
+      admin.from("listing_floors").select("property_id, min_price_minor").eq("business_id", conv.business_id),
+      admin.from("listing_offers").select("property_id, outcome, amount_minor").eq("conversation_id", conv.id).eq("business_id", conv.business_id),
+    ]);
+    negotiation = {
+      floors: Object.fromEntries((floors ?? []).map((f) => [f.property_id as string, Number(f.min_price_minor)])),
+      prior: (offers ?? []).map((o) => ({ listingId: o.property_id as string, outcome: o.outcome as PriorOffer["outcome"], amountMinor: Number(o.amount_minor) })),
+    };
+  }
   const turns: Turn[] = (history ?? []).reverse().map((m) => ({ from: m.sender as Turn["from"], text: m.body as string }));
   const listings = (props ?? []) as MessengerListing[];
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
@@ -191,6 +205,7 @@ export async function aiTurn(admin: Admin, conv: ConvRef, opts: { name: string; 
     channel: opts.channel,
     focusListingId: conv.property_id,
     language: settings?.chat_language === "english" ? "english" : "taglish",
+    negotiation,
   });
 
   // A takeover may have happened while the AI was writing; don't talk over a person.
@@ -222,7 +237,43 @@ export async function applyTurn(
     });
   }
   if (result.handover) Object.assign(updates, { mode: "human", needs_attention: true, attention_reason: result.handover });
+
+  // Put this turn's offers on record. One the owner could accept waits for their answer.
+  let pending: { amount: string; listing: MessengerListing } | null = null;
+  for (const o of result.offers ?? []) {
+    const { data: offerId, error } = await admin.rpc("record_offer", {
+      p_property: o.listingId,
+      p_conversation: conversationId,
+      p_amount: o.amountMinor,
+      p_counter: o.counterMinor,
+      p_outcome: o.outcome,
+      p_name: o.name ?? null,
+    });
+    if (error) log("offer", error.message);
+    const listing = props.find((p) => p.id === o.listingId);
+    if (o.outcome === "pending" && offerId && listing) pending = { amount: formatPeso(o.amountMinor), listing };
+  }
+  if (pending) {
+    Object.assign(updates, {
+      property_id: pending.listing.id,
+      needs_attention: true,
+      attention_reason: `Offer of ${pending.amount} for ${pending.listing.name}. It waits for the owner to confirm or decline.`,
+    });
+  }
   await admin.from("messenger_conversations").update(updates).eq("id", conversationId);
+
+  if (pending) {
+    await alertTeam(admin, businessId, {
+      subject: `Offer to confirm: ${pending.amount} for ${pending.listing.name}`,
+      lines: [
+        ["Offer", pending.amount],
+        ["Asking price", formatPeso(pending.listing.price_minor)],
+        ["Property", `${pending.listing.name}, ${pending.listing.location}`],
+        ["Next", "The owner or an admin confirms or declines it. Nothing is final until then."],
+      ],
+      url: `${opts.appOrigin}/app/inbox?c=${conversationId}`,
+    });
+  }
 
   if (result.viewing || result.handover) {
     const listing = props.find((p) => p.id === result.viewing?.listingId);

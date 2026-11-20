@@ -18,6 +18,8 @@ import { aiEnabled, businessPlan } from "@/lib/plan";
 import { buyerFinder, type ListingForMatch } from "@/lib/buyer-finder";
 import { BuyerFinder, BuyerFinderUpgrade } from "./buyer-finder";
 import { ShareListing } from "./share-listing";
+import { loadOffers } from "@/lib/offers";
+import { LowestPrice, Offers } from "../../offers";
 import { publicListingPath } from "@/lib/public-listing";
 import { daysAgoIso } from "@/lib/time";
 
@@ -65,6 +67,14 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
   const finder = finderOn
     ? await buyerFinder(supabase, { ...p, price_minor: Number(p.price_minor) } as ListingForMatch, plan.homeFinderBuyers)
     : null;
+
+  // AI negotiation (Pro, Agency): the private lowest price (owners and admins) and the offers so far.
+  const manager = biz.role === "owner" || biz.role === "admin";
+  const [offers, { data: floorRow }] = await Promise.all([
+    sales ? loadOffers(supabase, biz.businessId, { propertyId: p.id }) : Promise.resolve([]),
+    manager ? supabase.from("listing_floors").select("min_price_minor").eq("property_id", p.id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const lowestMinor = floorRow ? Number(floorRow.min_price_minor) : null;
 
   // The public page: its link, and how it's doing over the last 30 days.
   const shareable = p.is_public && (p.status === "available" || p.status === "reserved");
@@ -155,6 +165,21 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       ) : sales && !aiOn && p.status === "available" ? (
         <BuyerFinderUpgrade canUpgrade={can(biz.role, "billing.manage")} />
       ) : null}
+
+      {manager && plan.negotiation && p.status === "available" ? (
+        <LowestPrice propertyId={p.id} askingMinor={Number(p.price_minor)} currentPesos={centavosToPesosInput(lowestMinor)} />
+      ) : manager && aiOn && !plan.negotiation && p.status === "available" ? (
+        <Card className="mt-6">
+          <h3 className="text-xl font-bold tracking-tight">AI negotiation</h3>
+          <p className="mt-1 max-w-2xl text-sm text-muted">
+            On Pro and Agency, the AI negotiates price offers in the chat down to a lowest price you set privately, and you confirm every deal.{" "}
+            <Link href="/app/billing" className="font-bold text-grape-700 hover:underline">
+              See the plans
+            </Link>
+          </p>
+        </Card>
+      ) : null}
+      <Offers offers={offers} canDecide={manager} linkToChat title="Offers on this listing" />
 
       {showFacebook && fbPages.length && p.status !== "archived" && p.status !== "sold" ? (
         <FacebookPost

@@ -100,6 +100,81 @@ describe("Messenger tools", () => {
   });
 });
 
+describe("negotiation", () => {
+  // Asking ₱4,800,000; the owner would take ₱4,400,000.
+  const floors = { [listing.id]: 440000000 };
+  const check = (amount: number, r: AssistantResult, prior: Array<{ listingId: string; outcome: "too_low" | "countered" | "pending"; amountMinor: number }> = []) =>
+    runMessengerTool([listing], "check_offer", { listing_id: listing.id, amount_php: amount, name: "Ana" }, r, { floors, prior });
+
+  it("is only in the prompt and the tools when the plan includes it", async () => {
+    const off = messengerSystemPrompt("Santos Realty", [listing], false, "2026-11-20");
+    expect(off).toContain("want to negotiate price or terms");
+    expect(off).not.toContain("check_offer");
+    const on = messengerSystemPrompt("Santos Realty", [listing], false, "2026-11-20", { negotiate: true });
+    expect(on).toContain("check_offer");
+    expect(on).toContain("You can't accept a price");
+    expect(runMessengerTool([listing], "check_offer", { listing_id: listing.id, amount_php: 4500000 }, { reply: "" })).toMatch(/unknown tool/);
+
+    const create = vi.fn().mockResolvedValue({ stop_reason: "end_turn", content: [{ type: "text", text: "ok" }] });
+    const ctx = { pageName: "Santos Realty", listings: [listing], history: [{ from: "buyer" as const, text: "4.5M?" }], today: "2026-11-20" };
+    await messengerReply({ messages: { create } } as unknown as Anthropic, "m", ctx);
+    await messengerReply({ messages: { create } } as unknown as Anthropic, "m", { ...ctx, negotiation: { floors, prior: [] } });
+    const names = (n: number) => (create.mock.calls[n]![0] as { tools: Array<{ name: string }> }).tools.map((t) => t.name);
+    expect(names(0)).not.toContain("check_offer");
+    expect(names(1)).toContain("check_offer");
+  });
+
+  it("never tells the AI the owner's lowest price", () => {
+    const prompt = messengerSystemPrompt("Santos Realty", [listing], false, "2026-11-20", { negotiate: true });
+    const outputs = [4000000, 4300000, 4450000, 4800000].map((a) => check(a, { reply: "" }));
+    for (const text of [prompt, ...outputs]) {
+      expect(text).not.toContain("4,400,000");
+      expect(text).not.toContain("440000000");
+    }
+  });
+
+  it("turns down a low offer, asks once for more on a fair one, then sends it to the owner", () => {
+    const r: AssistantResult = { reply: "" };
+    expect(JSON.parse(check(4000000, r)).status).toBe("too_low");
+    expect(r.offers).toEqual([{ listingId: listing.id, amountMinor: 400000000, counterMinor: null, outcome: "too_low", name: "Ana" }]);
+    expect(r.handover).toBeUndefined();
+
+    // ₱4,500,000 is acceptable: the AI asks for the midpoint with ₱4,800,000 first.
+    const ask = JSON.parse(check(4500000, r));
+    expect(ask.status).toBe("ask_for_more");
+    expect(ask.say).toContain("₱4,650,000");
+    expect(r.offers!.at(-1)).toMatchObject({ outcome: "countered", counterMinor: 465000000 });
+
+    // Their final offer goes to the owner, and the AI says it isn't final.
+    const sent = JSON.parse(check(4500000, r));
+    expect(sent.status).toBe("sent_to_owner");
+    expect(sent.say).toContain("isn't final until the owner confirms");
+    expect(r.offers!.at(-1)).toMatchObject({ outcome: "pending", amountMinor: 450000000 });
+    // A fourth try in the same chat changes nothing.
+    expect(JSON.parse(check(4400000, r)).status).toBe("with_owner");
+    expect(r.offers).toHaveLength(3);
+  });
+
+  it("hands over to a person after three low offers, counting earlier ones", () => {
+    const r: AssistantResult = { reply: "" };
+    const earlier = [
+      { listingId: listing.id, outcome: "too_low" as const, amountMinor: 380000000 },
+      { listingId: listing.id, outcome: "too_low" as const, amountMinor: 400000000 },
+    ];
+    expect(JSON.parse(check(4200000, r, earlier)).say).toContain("an agent will reply");
+    expect(r.handover).toContain("stopped negotiating");
+  });
+
+  it("doesn't negotiate a listing with no lowest price, or one that's reserved", () => {
+    const r: AssistantResult = { reply: "" };
+    expect(JSON.parse(runMessengerTool([listing], "check_offer", { listing_id: listing.id, amount_php: 4500000 }, r, { floors: {}, prior: [] })).status).toBe("handed_to_agent");
+    expect(r.handover).toContain("No lowest price is set");
+    expect(r.offers).toBeUndefined();
+    const reserved = { ...listing, status: "reserved" };
+    expect(JSON.parse(runMessengerTool([reserved], "check_offer", { listing_id: listing.id, amount_php: 4500000 }, { reply: "" }, { floors, prior: [] })).status).toBe("not_open");
+  });
+});
+
 describe("toModelMessages", () => {
   it("starts with the buyer, merges runs, and marks team replies", () => {
     expect(

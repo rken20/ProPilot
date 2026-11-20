@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { InboxView, type Conversation, type Message } from "./inbox-view";
 import { aiEnabled } from "@/lib/plan";
+import { loadOffers, type OfferRow } from "@/lib/offers";
 
 export default async function InboxPage({ searchParams }: PageProps<"/app/inbox">) {
   const sp = await searchParams;
@@ -47,8 +48,9 @@ export default async function InboxPage({ searchParams }: PageProps<"/app/inbox"
 
   let thread: Message[] = [];
   let listingName: string | null = null;
+  let offers: OfferRow[] = [];
   if (selected) {
-    const [{ data: msgs }, { data: prop }] = await Promise.all([
+    const [{ data: msgs }, { data: prop }, convOffers] = await Promise.all([
       supabase
         .from("messenger_messages")
         .select("id, conversation_id, sender, body, created_at")
@@ -58,7 +60,9 @@ export default async function InboxPage({ searchParams }: PageProps<"/app/inbox"
       selected.property_id
         ? supabase.from("properties").select("name, location").eq("id", selected.property_id).maybeSingle()
         : Promise.resolve({ data: null }),
+      loadOffers(supabase, biz.businessId, { conversationId: selected.id }),
     ]);
+    offers = convOffers;
     thread = (msgs ?? []) as Message[];
     listingName = prop ? `${prop.name}, ${prop.location}` : null;
     // Opening a conversation marks it read.
@@ -74,6 +78,8 @@ export default async function InboxPage({ searchParams }: PageProps<"/app/inbox"
       selected={selected ?? null}
       thread={thread}
       listingName={listingName}
+      offers={offers}
+      canDecideOffers={biz.role === "owner" || biz.role === "admin"}
       pageNames={Object.fromEntries(pageName)}
       helperOn={await aiEnabled(biz.businessId)}
     />

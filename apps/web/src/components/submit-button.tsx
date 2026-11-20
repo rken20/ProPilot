@@ -9,11 +9,12 @@ export function SubmitButton({
   pendingText,
   variant = "primary",
   className,
+  disabled,
   ...props
 }: ComponentProps<"button"> & { pendingText?: string; variant?: "primary" | "secondary" | "danger" | "ghost" }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className={buttonClass(variant, className)} {...props}>
+    <button type="submit" disabled={pending || disabled} className={buttonClass(variant, className)} {...props}>
       {pending ? (pendingText ?? "Working…") : children}
     </button>
   );

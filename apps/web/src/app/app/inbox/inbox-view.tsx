@@ -8,6 +8,7 @@ import { timeAgo } from "@/lib/time";
 import { setConversationMode, setLeadStatus } from "./actions";
 import { ChatSummary } from "./chat-summary";
 import { Composer } from "./composer";
+import { Offers, type Offer } from "../offers";
 
 export type Conversation = {
   id: string;
@@ -48,6 +49,8 @@ export function InboxView({
   selected,
   thread,
   listingName,
+  offers = [],
+  canDecideOffers = false,
   pageNames,
   helperOn = false,
 }: {
@@ -58,6 +61,9 @@ export function InboxView({
   selected: Conversation | null;
   thread: Message[];
   listingName: string | null;
+  /** Offers the AI collected in the open conversation. */
+  offers?: Offer[];
+  canDecideOffers?: boolean;
   pageNames: Record<string, string>;
   helperOn?: boolean;
 }) {
@@ -224,6 +230,8 @@ export function InboxView({
                 />
               </div>
             </div>
+
+            <Offers offers={offers} canDecide={canDecideOffers} showListing title="Offers in this chat" />
 
             {selected.lead_status !== "none" ? (
               <Card className="mt-5">
