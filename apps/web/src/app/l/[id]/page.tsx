@@ -12,12 +12,12 @@ import { PublicListingView } from "./listing-view";
 /** Link previews on Facebook, Messenger and SMS show the listing's photo, price and place. */
 export async function generateMetadata({ params }: PageProps<"/l/[id]">): Promise<Metadata> {
   const listing = await getPublicListing((await params).id);
-  if (!listing) return { title: "Listing not available · HomeFinder AI", robots: { index: false } };
+  if (!listing) return { title: "Listing not available · MyHomeSeller", robots: { index: false } };
   const title = `${listing.name} · ${formatPeso(listing.price_minor, listing.currency)}`;
   const description = `${TYPE_LABEL[listing.type as keyof typeof TYPE_LABEL] ?? "Property"} in ${listing.location}, listed by ${listing.business_name}.`;
   const cover = listing.photos[0] ? mediaUrl(listing.photos[0].path) : null;
   return {
-    title: `${title} · HomeFinder AI`,
+    title: `${title} · MyHomeSeller`,
     description,
     openGraph: { title, description, type: "website", ...(cover ? { images: [{ url: cover }] } : {}) },
     twitter: { card: cover ? "summary_large_image" : "summary", title, description },

@@ -13,7 +13,7 @@ export type TeamConversation = {
 };
 
 /**
- * Send a message into a chat as the team (Messenger or HomeFinder chat) and take
+ * Send a message into a chat as the team (Messenger or MyHomeSeller chat) and take
  * the conversation over from the AI. The caller must already have checked that
  * this person may reply in this business; `admin` is the service-role client.
  */

@@ -44,7 +44,7 @@ export function ReportsView({
             value={leads.conversion === null ? "—" : `${leads.conversion}%`}
             note={`${leads.reachedViewing} scheduled or done, ${leads.closed} closed`}
           />
-          <Tile label="First response" value={fmtDuration(leads.medianFirstResponseMs)} note="Median time to first contact a HomeFinder buyer" />
+          <Tile label="First response" value={fmtDuration(leads.medianFirstResponseMs)} note="Median time to first contact a MyHomeSeller buyer" />
         </div>
         <div className="mt-5 grid gap-5 lg:grid-cols-[1.6fr_1fr]">
           <Panel title="Inquiries over time">
@@ -114,7 +114,7 @@ export function ReportsView({
             />
           </div>
         ) : (
-          <Empty text="When buyers message you in HomeFinder or on Messenger, the AI chat results show here." />
+          <Empty text="When buyers message you in MyHomeSeller or on Messenger, the AI chat results show here." />
         )}
       </Section>
 
@@ -265,7 +265,7 @@ export function SourceChart({ series }: { series: LeadsReport["series"] }) {
           return (
             <div
               key={s.label}
-              title={`${s.label}: ${s.propilot} HomeFinder, ${s.messenger} Messenger`}
+              title={`${s.label}: ${s.propilot} MyHomeSeller, ${s.messenger} Messenger`}
               className="group relative flex h-full flex-1 flex-col justify-end"
             >
               <div className="mx-auto flex w-full max-w-6 flex-col justify-end gap-[2px] transition-opacity group-hover:opacity-80" style={{ height: `${(total / top) * 100}%` }}>

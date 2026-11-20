@@ -19,7 +19,7 @@ const STAGE_LABEL: Record<string, string> = {
 const SOURCE_LABEL: Record<string, string> = {
   viewing_request: "Listing inquiry",
   messenger: "Messenger",
-  app_chat: "HomeFinder chat",
+  app_chat: "MyHomeSeller chat",
   manual: "Added by hand",
 };
 

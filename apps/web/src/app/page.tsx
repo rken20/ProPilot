@@ -34,7 +34,7 @@ export default async function Home() {
         {/* Hero: alone on the first screen. */}
         <section className="flex min-h-svh flex-col">
           <header className={`${wrap} flex items-center justify-between py-5`}>
-            <Link href="/" aria-label="HomeFinder AI home">
+            <Link href="/" aria-label="MyHomeSeller home">
               <Logo />
             </Link>
             <nav className="flex items-center gap-2">

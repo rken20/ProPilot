@@ -1,6 +1,6 @@
 /**
  * Google APIs over plain fetch (no SDK): OAuth, Sheets (drive.file: only files
- * this app created) and Calendar (calendar.app.created: only the "HomeFinder
+ * this app created) and Calendar (calendar.app.created: only the "MyHomeSeller
  * viewings" calendar this app creates). Every call takes a fetch so tests can
  * stub it.
  */
@@ -131,7 +131,7 @@ export async function createViewingsCalendar(f: Fetch, token: string) {
   const cal = await call<{ id: string }>(f, "https://www.googleapis.com/calendar/v3/calendars", {
     method: "POST",
     headers: auth(token),
-    body: JSON.stringify({ summary: "HomeFinder viewings", timeZone: "Asia/Manila" }),
+    body: JSON.stringify({ summary: "MyHomeSeller viewings", timeZone: "Asia/Manila" }),
   });
   return cal.id;
 }

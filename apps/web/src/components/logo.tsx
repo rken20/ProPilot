@@ -1,4 +1,4 @@
-/** HomeFinder AI mark: a white tile with a grape roofline and a green door. `wordmark={false}` shows the tile alone. */
+/** MyHomeSeller mark: a white tile with a grape roofline and a green door. `wordmark={false}` shows the tile alone. */
 export function Logo({ className = "", tone = "light", wordmark = true }: { className?: string; tone?: "light" | "dark"; wordmark?: boolean }) {
   const tile = tone === "dark" ? "#ffffff" : "#4c2da9";
   const roof = tone === "dark" ? "#4c2da9" : "#ffffff";
@@ -10,7 +10,7 @@ export function Logo({ className = "", tone = "light", wordmark = true }: { clas
         <path d="M10.5 15v8h11v-8" fill="none" stroke={roof} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         <rect x="14.2" y="17.5" width="3.6" height="5.5" rx="1.2" fill="#12a356" />
       </svg>
-      {wordmark ? <span className="whitespace-nowrap text-[18px] font-extrabold tracking-tight">HomeFinder AI</span> : null}
+      {wordmark ? <span className="whitespace-nowrap text-[18px] font-extrabold tracking-tight">MyHomeSeller</span> : null}
     </span>
   );
 }

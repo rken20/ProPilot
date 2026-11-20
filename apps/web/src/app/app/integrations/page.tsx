@@ -15,14 +15,14 @@ import { createLeadsSheet, disconnectFacebookPage, disconnectGoogle, setMessenge
 
 const NOTICES: Record<string, [tone: "success" | "error" | "info", text: string]> = {
   "google-connected": ["success", "Google is connected."],
-  "google-disconnected": ["success", "Google is disconnected and HomeFinder's access was revoked."],
+  "google-disconnected": ["success", "Google is disconnected and MyHomeSeller's access was revoked."],
   "google-cancelled": ["info", "Google connection was cancelled."],
   "google-failed": ["error", "Couldn't connect Google. Please try again."],
   "google-no-refresh": [
     "error",
-    "Google didn't grant ongoing access. Remove HomeFinder AI at myaccount.google.com/permissions, then connect again.",
+    "Google didn't grant ongoing access. Remove MyHomeSeller at myaccount.google.com/permissions, then connect again.",
   ],
-  "google-not-ready": ["error", "Connect Google isn't switched on for HomeFinder yet."],
+  "google-not-ready": ["error", "Connect Google isn't switched on for MyHomeSeller yet."],
   "connect-first": ["error", "Connect your Google account first."],
   "sheet-created": ["success", "Your leads sheet is ready in Google Drive. New leads are added automatically."],
   "sheet-failed": ["error", "Couldn't create the sheet. Check that the Google Sheets API is enabled, then try again."],
@@ -37,7 +37,7 @@ const NOTICES: Record<string, [tone: "success" | "error" | "info", text: string]
     "error",
     "Facebook didn't share any Pages. Connect again and tick the Pages you manage. Pages need you as an admin or editor.",
   ],
-  "facebook-not-ready": ["error", "Connect Facebook isn't switched on for HomeFinder yet."],
+  "facebook-not-ready": ["error", "Connect Facebook isn't switched on for MyHomeSeller yet."],
   "messenger-on": ["success", "AI replies are on. New Messenger messages to this Page get an answer, and show up in Messenger."],
   "messenger-off": ["success", "AI replies are off for this Page. Messages stay in Facebook's own inbox."],
   "messenger-permission": [
@@ -90,7 +90,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
             <div className="space-y-4">
               <p>
                 Turn your Page posts into listings, post listings to your Page, and let the AI answer Messenger inquiries
-                until someone on your team takes over. HomeFinder only posts when someone presses Post.
+                until someone on your team takes over. MyHomeSeller only posts when someone presses Post.
               </p>
               {pages.length ? (
                 <ul className="divide-y divide-line rounded-xl border border-line">
@@ -141,7 +141,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
           <p>
             {email
               ? "The owner, admins and agents get an email the moment a buyer requests a viewing, with the buyer's mobile number and a link to the lead."
-              : "Lead emails start once an email sender is added to HomeFinder's settings. Requests still arrive in Viewing requests."}
+              : "Lead emails start once an email sender is added to MyHomeSeller's settings. Requests still arrive in Viewing requests."}
           </p>
         </Panel>
 
@@ -158,7 +158,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
           ) : conn ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p>
-                Connected as <span className="font-medium text-ink">{conn.google_email}</span>. HomeFinder can only see files and
+                Connected as <span className="font-medium text-ink">{conn.google_email}</span>. MyHomeSeller can only see files and
                 calendars it created.
               </p>
               <form action={disconnectGoogle}>
@@ -231,7 +231,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
         >
           <p>
             {conn?.scopes.includes(CALENDAR_SCOPE)
-              ? "When you set a viewing time on a lead, it's added to a “HomeFinder viewings” calendar in your Google Calendar, with a reminder an hour before. Changes and cancellations update it too."
+              ? "When you set a viewing time on a lead, it's added to a “MyHomeSeller viewings” calendar in your Google Calendar, with a reminder an hour before. Changes and cancellations update it too."
               : "Connect Google to add viewings to your calendar automatically. Until then, use “Add to Google Calendar” on any lead."}
           </p>
         </Panel>

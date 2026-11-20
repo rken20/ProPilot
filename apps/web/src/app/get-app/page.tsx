@@ -10,24 +10,24 @@ import { getOrigin } from "@/lib/auth";
 import { qrPath } from "@/lib/qr";
 
 export const metadata: Metadata = {
-  title: "Get the app · HomeFinder AI",
-  description: "Install HomeFinder AI on your phone or computer. No app store needed.",
+  title: "Get the app · MyHomeSeller",
+  description: "Install MyHomeSeller on your phone or computer. No app store needed.",
 };
 
 const icon = "inline size-4 align-[-3px]";
 
-/** How to install HomeFinder AI on a phone or computer. Public, so it can be shared and scanned. */
+/** How to install MyHomeSeller on a phone or computer. Public, so it can be shared and scanned. */
 export default async function GetAppPage() {
   const url = `${await getOrigin()}/get-app`;
   const qr = qrPath(url);
   return (
     <div className="min-h-svh">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5 sm:px-8">
-        <Link href="/" aria-label="HomeFinder AI home">
+        <Link href="/" aria-label="MyHomeSeller home">
           <Logo />
         </Link>
         <Link href="/app" className={buttonClass("ghost", "min-h-11")}>
-          Open HomeFinder
+          Open MyHomeSeller
         </Link>
       </header>
 
@@ -36,7 +36,7 @@ export default async function GetAppPage() {
           <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 size-72 rounded-full bg-white/10 blur-2xl" />
           <div className="relative flex flex-wrap items-center justify-between gap-6">
             <div className="max-w-xl">
-              <h1 className="text-[2rem] leading-[1.1] font-extrabold tracking-tight text-balance sm:text-[2.6rem]">Get the HomeFinder app</h1>
+              <h1 className="text-[2rem] leading-[1.1] font-extrabold tracking-tight text-balance sm:text-[2.6rem]">Get the MyHomeSeller app</h1>
               <p className="mt-3 text-[15px] text-white/80">
                 Install it on your phone or computer straight from the browser. It gets its own icon, opens full screen and updates by itself. No
                 app store needed.
@@ -56,7 +56,7 @@ export default async function GetAppPage() {
               Tap the menu <EllipsisVertical className={`${icon} -mx-1`} aria-hidden />, then <b>Install app</b> or <b>Add to Home screen</b>.
             </li>
             <li>
-              Tap <b>Install</b>. HomeFinder appears with your other apps.
+              Tap <b>Install</b>. MyHomeSeller appears with your other apps.
             </li>
           </Device>
           <Device icon="phone" tile="bg-tile-sky" name="iPhone and iPad">
@@ -65,7 +65,7 @@ export default async function GetAppPage() {
               Tap Share <Share className={icon} aria-hidden />, then <b>Add to Home Screen</b>.
             </li>
             <li>
-              Tap <b>Add</b>. HomeFinder appears on your home screen.
+              Tap <b>Add</b>. MyHomeSeller appears on your home screen.
             </li>
           </Device>
           <Device icon="laptop" tile="bg-tile-peach" name="Computer">
@@ -74,7 +74,7 @@ export default async function GetAppPage() {
               Click the install icon <MonitorDown className={icon} aria-hidden /> at the end of the address bar.
             </li>
             <li>
-              Click <b>Install</b>. HomeFinder opens in its own window.
+              Click <b>Install</b>. MyHomeSeller opens in its own window.
             </li>
           </Device>
         </div>

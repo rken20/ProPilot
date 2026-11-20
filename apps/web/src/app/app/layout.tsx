@@ -52,7 +52,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
       ? [{ href: "/app/integrations", label: "Integrations" }]
       : []),
     ...(can(current.role, "billing.view") ? [{ href: "/app/billing", label: "Billing" }] : []),
-    // HomeFinder staff only: GCash payments waiting for a check.
+    // MyHomeSeller staff only: GCash payments waiting for a check.
     ...(superAdmin ? [{ href: "/admin/payments", label: "Payments to check", count: paymentsWaiting }] : []),
   ];
 

@@ -108,7 +108,7 @@ export function QualificationCard({
 
       {prefs ? (
         <div className="rounded-xl border border-line p-3">
-          <p className="mb-2 text-xs font-medium text-muted">What the buyer told HomeFinder, {timeAgo(prefs.updated_at)}</p>
+          <p className="mb-2 text-xs font-medium text-muted">What the buyer told MyHomeSeller, {timeAgo(prefs.updated_at)}</p>
           <FactRows
             f={prefs}
             extra={[

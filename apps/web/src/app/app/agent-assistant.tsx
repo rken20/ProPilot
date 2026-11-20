@@ -13,7 +13,7 @@ const SUGGESTIONS = [
   "Draft a Facebook post for my newest listing",
 ];
 
-/** "Ask HomeFinder": a panel on every app page. It reads the team's data and drafts text; it never sends or changes anything. */
+/** "Ask MyHomeSeller": a panel on every app page. It reads the team's data and drafts text; it never sends or changes anything. */
 export function AgentAssistant() {
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<AgentTurn[]>([]);
@@ -68,13 +68,13 @@ export function AgentAssistant() {
         )}
       >
         <Sparkles className="size-4 text-[#c9a463]" aria-hidden />
-        Ask HomeFinder
+        Ask MyHomeSeller
       </button>
 
       {open ? (
         <section
           id="ask-propilot"
-          aria-label="Ask HomeFinder"
+          aria-label="Ask MyHomeSeller"
           className="pp-enter fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] top-[calc(4rem+env(safe-area-inset-top,0px))] z-50 flex flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-[var(--shadow-lift)] sm:inset-x-auto sm:bottom-20 sm:right-5 sm:top-auto sm:h-[min(36rem,calc(100vh-7rem))] sm:w-[25rem]"
         >
           <header className="flex items-center gap-2.5 border-b border-line px-4 py-3">
@@ -82,7 +82,7 @@ export function AgentAssistant() {
               <Sparkles className="size-4" aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="font-semibold">Ask HomeFinder</h2>
+              <h2 className="font-semibold">Ask MyHomeSeller</h2>
               <p className="text-xs text-muted">Reads your leads, listings and chats. It drafts; you send.</p>
             </div>
             <button type="button" onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-muted hover:bg-zinc-100 hover:text-ink" aria-label="Close">

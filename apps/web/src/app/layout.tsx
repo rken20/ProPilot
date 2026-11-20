@@ -5,12 +5,12 @@ import "@fontsource-variable/newsreader";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "HomeFinder AI",
+  title: "MyHomeSeller",
   description: "The AI sales assistant for property owners and agents.",
-  applicationName: "HomeFinder AI",
+  applicationName: "MyHomeSeller",
   // Installed on an iPhone's home screen: no Safari bars, and the page draws
   // under the status bar (globals.css paints that strip grape).
-  appleWebApp: { capable: true, title: "HomeFinder", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "MyHomeSeller", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
 

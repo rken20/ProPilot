@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/logo";
 
-export const metadata: Metadata = { title: "Privacy policy · HomeFinder AI" };
+export const metadata: Metadata = { title: "Privacy policy · MyHomeSeller" };
 
 const UPDATED = "20 November 2026";
 
@@ -13,19 +13,19 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-svh bg-surface">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
-        <Link href="/" aria-label="HomeFinder AI home">
+        <Link href="/" aria-label="MyHomeSeller home">
           <Logo />
         </Link>
       </header>
       <main className="mx-auto max-w-3xl px-6 pb-24">
         <h1 className="font-display text-[2.6rem] leading-tight font-medium">Privacy policy</h1>
-        <p className="mt-2 text-sm text-muted">Last updated {UPDATED}. HomeFinder AI is in beta in the Philippines.</p>
+        <p className="mt-2 text-sm text-muted">Last updated {UPDATED}. MyHomeSeller is in beta in the Philippines.</p>
 
         <div className="mt-10 space-y-10 text-[15px] leading-relaxed text-ink/90">
-          <Section title="What HomeFinder is">
+          <Section title="What MyHomeSeller is">
             <p>
-              HomeFinder AI helps property owners, agents and brokers list properties, answer the people who ask about them
-              and follow up. Each listing can have a public page where anyone can send an inquiry. This policy explains what personal data HomeFinder handles,
+              MyHomeSeller helps property owners, agents and brokers list properties, answer the people who ask about them
+              and follow up. Each listing can have a public page where anyone can send an inquiry. This policy explains what personal data MyHomeSeller handles,
               why, and what you can do about it under the Data Privacy Act of 2012 (Republic Act 10173).
             </p>
           </Section>
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
                 one-way scrambled form of your internet address for up to 2 days when you send an inquiry.
               </li>
               <li>
-                If you connect Google: your Google email address and an encrypted token that lets HomeFinder use only the
+                If you connect Google: your Google email address and an encrypted token that lets MyHomeSeller use only the
                 spreadsheet and calendar it creates.
               </li>
               <li>
@@ -107,13 +107,13 @@ export default function PrivacyPage() {
               <li>Inquiries from public pages: with the business&apos;s leads, until the business deletes them.</li>
               <li>Messenger conversations: deleted 12 months after the last message.</li>
               <li>Pipeline leads that never got past the early stages, or were marked lost: deleted after 12 months with no activity.</li>
-              <li>Google and Facebook tokens: until you disconnect, or remove HomeFinder in your Google or Facebook settings.</li>
+              <li>Google and Facebook tokens: until you disconnect, or remove MyHomeSeller in your Google or Facebook settings.</li>
             </ul>
           </Section>
 
           <Section title="Facebook data and how to delete it">
             <p>
-              You can disconnect a Page any time under Integrations, which deletes its token. You can also remove HomeFinder
+              You can disconnect a Page any time under Integrations, which deletes its token. You can also remove MyHomeSeller
               AI in Facebook under Settings and privacy, then Settings, then Business integrations (or Apps and websites).
               When you do and ask for your data to be deleted, Facebook tells us and we delete every Page token you
               connected. You&apos;ll get a confirmation code you can check on our deletion status page.

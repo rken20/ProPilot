@@ -14,7 +14,7 @@ import { UPGRADE_MESSAGE } from "@/lib/plan-rules";
 
 const ROLE = { owner: "owner", admin: "admin", agent: "agent", marketing: "marketing" } as const;
 
-/** One turn of "Ask HomeFinder". Reads use the person's own access; nothing is changed. */
+/** One turn of "Ask MyHomeSeller". Reads use the person's own access; nothing is changed. */
 export async function askAgentAssistant(raw: AgentTurn[]): Promise<{ reply?: string; error?: string }> {
   const biz = await requireBusiness();
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -61,7 +61,7 @@ export async function askAgentAssistant(raw: AgentTurn[]): Promise<{ reply?: str
       const name = new Map((props ?? []).map((p) => [p.id, p.name]));
       return [
         ...(vr ?? []).map((l) => ({
-          source: "HomeFinder viewing request",
+          source: "MyHomeSeller viewing request",
           buyer: l.buyer_name,
           phone: l.buyer_phone,
           status: l.status,
@@ -70,7 +70,7 @@ export async function askAgentAssistant(raw: AgentTurn[]): Promise<{ reply?: str
           listing: name.get(l.property_id) ?? null,
         })),
         ...((chats.data ?? []) as Array<Record<string, unknown>>).map((l) => ({
-          source: l.channel === "app" ? "HomeFinder chat" : "Messenger",
+          source: l.channel === "app" ? "MyHomeSeller chat" : "Messenger",
           buyer: l.lead_name ?? l.display_name,
           phone: l.lead_phone,
           status: l.lead_status,
@@ -113,7 +113,7 @@ export async function askAgentAssistant(raw: AgentTurn[]): Promise<{ reply?: str
         .limit(25);
       return (data ?? []).map((c) => ({
         who: c.lead_name ?? c.display_name ?? "Unknown",
-        where: c.channel === "app" ? "HomeFinder chat" : "Messenger",
+        where: c.channel === "app" ? "MyHomeSeller chat" : "Messenger",
         why: c.attention_reason,
         last_message: c.last_message_at,
         open_in_propilot: `/app/inbox?c=${c.id}`,

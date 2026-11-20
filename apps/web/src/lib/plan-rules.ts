@@ -29,7 +29,7 @@ export const UPGRADE_MESSAGE = "AI features are part of the Basic plan. An owner
 /** What each plan says on the Billing page. */
 export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; excludes?: string }> = {
   free: {
-    tagline: "For trying HomeFinder: list and follow up by hand.",
+    tagline: "For trying MyHomeSeller: list and follow up by hand.",
     includes: [
       "1 team member",
       "Listings with a public page to share",
@@ -46,7 +46,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Property matcher and lead scoring",
       "AI replies in Messenger and chats, up to 3,000 a month",
       "AI-written listing descriptions and captions",
-      "Ask HomeFinder and the reply helper",
+      "Ask MyHomeSeller and the reply helper",
     ],
     excludes: "Walay AI video creation. Limited buyer finder.",
   },

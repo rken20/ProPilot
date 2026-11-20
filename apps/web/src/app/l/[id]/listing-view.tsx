@@ -50,7 +50,7 @@ export function PublicListingView({ listing, inquiry }: { listing: PublicListing
     <div className="min-h-screen bg-[var(--pp-ground)]">
       <header className="bg-gradient-to-r from-frame-1 to-frame-3 text-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link href="/" aria-label="HomeFinder AI">
+          <Link href="/" aria-label="MyHomeSeller">
             <Logo tone="dark" />
           </Link>
           <p className="truncate text-sm text-white/80">
@@ -124,7 +124,7 @@ export function PublicListingView({ listing, inquiry }: { listing: PublicListing
       </main>
 
       <footer className="border-t border-line py-6 text-center text-xs text-muted">
-        Shared with <Link href="/" className="font-semibold text-grape-700">HomeFinder AI</Link>, the AI sales assistant for property owners and agents.
+        Shared with <Link href="/" className="font-semibold text-grape-700">MyHomeSeller</Link>, the AI sales assistant for property owners and agents.
       </footer>
     </div>
   );

@@ -137,7 +137,7 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
   } catch (e) {
     log("send", e);
     if (e instanceof GraphError && e.tokenInvalid) {
-      await flag(admin, conv.id as string, "HomeFinder couldn't reply: reconnect the Page in Integrations.");
+      await flag(admin, conv.id as string, "MyHomeSeller couldn't reply: reconnect the Page in Integrations.");
     }
     return;
   }

@@ -36,8 +36,8 @@ export type Message = {
   created_at: string;
 };
 
-const nameOf = (c: Conversation) => c.display_name || c.lead_name || (c.psid ? `Messenger user ${c.psid.slice(-4)}` : "HomeFinder buyer");
-const channelLabel = (c: Conversation) => (c.channel === "app" ? "HomeFinder chat" : "Messenger");
+const nameOf = (c: Conversation) => c.display_name || c.lead_name || (c.psid ? `Messenger user ${c.psid.slice(-4)}` : "MyHomeSeller buyer");
+const channelLabel = (c: Conversation) => (c.channel === "app" ? "MyHomeSeller chat" : "Messenger");
 
 /** The Messenger inbox: conversation list, the open thread, and its viewing request. */
 export function InboxView({
@@ -140,7 +140,7 @@ export function InboxView({
               <MessageCircle className="mx-auto size-8 text-zinc-500" aria-hidden />
               <p className="mt-3 font-medium">No messages yet</p>
               <p className="mt-1 text-sm text-muted">
-                When a buyer messages you in HomeFinder or on your Facebook Page, the chat shows up here.
+                When a buyer messages you in MyHomeSeller or on your Facebook Page, the chat shows up here.
               </p>
             </Card>
           )}
@@ -157,7 +157,7 @@ export function InboxView({
                   <h2 className="truncate text-2xl font-bold tracking-tight">{nameOf(selected)}</h2>
                   <p className="text-sm text-muted">
                     {selected.channel === "app"
-                      ? "HomeFinder chat"
+                      ? "MyHomeSeller chat"
                       : `Messenger, ${(selected.page_row_id && pageName.get(selected.page_row_id)) || "your Page"}`}
                   </p>
                 </div>

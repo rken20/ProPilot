@@ -102,7 +102,7 @@ export function InstallBanner() {
       <Icon3d name="phone" size={40} className="shrink-0" />
       <div className="min-w-0 lg:flex lg:flex-1 lg:items-center lg:justify-between lg:gap-4">
         <div>
-          <p className="font-bold">Get the HomeFinder app</p>
+          <p className="font-bold">Get the MyHomeSeller app</p>
           <p className="mt-0.5 text-sm text-muted">
             {canPrompt ? (
               "One tap to open, full screen. No app store needed."
@@ -156,7 +156,7 @@ export function InstallCard({ className }: { className?: string }) {
       <div className="flex items-start gap-3">
         <Icon3d name="phone" size={40} className="shrink-0" />
         <div className="min-w-0">
-          <p className="font-medium">HomeFinder on your phone</p>
+          <p className="font-medium">MyHomeSeller on your phone</p>
           {where === "installed" ? (
             <p className="mt-1 text-sm text-muted">You&apos;re using the installed app. It updates by itself.</p>
           ) : (

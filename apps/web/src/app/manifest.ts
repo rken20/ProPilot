@@ -1,14 +1,14 @@
 import type { MetadataRoute } from "next";
 
 /**
- * Lets a phone install HomeFinder AI from the browser ("Add to Home screen"):
+ * Lets a phone install MyHomeSeller from the browser ("Add to Home screen"):
  * its own icon, no browser bars, and it opens on the dashboard.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/app",
-    name: "HomeFinder AI",
-    short_name: "HomeFinder",
+    name: "MyHomeSeller",
+    short_name: "MyHomeSeller",
     description: "The AI sales assistant for property owners and agents.",
     lang: "en-PH",
     start_url: "/app",
