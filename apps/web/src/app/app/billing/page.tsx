@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { Check, Clock, X } from "lucide-react";
 import { can } from "@propilot/shared";
 import { Alert, Card, PageHeader, cx } from "@/components/ui";
-import { requireBusiness } from "@/lib/auth";
+import { getUser, requireBusiness } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
 import { businessPlan } from "@/lib/plan";
 import { daysLeft, FREE_PLAN, PLAN_COPY } from "@/lib/plan-rules";
@@ -19,6 +19,9 @@ import { createClient } from "@/lib/supabase/server";
 import { GcashPayForm } from "./pay-form";
 import { UsageMeters, UsageNotice } from "@/components/usage-notice";
 import { businessUsage } from "@/lib/usage";
+import { SubmitButton } from "@/components/submit-button";
+import { isSuperAdmin } from "@/lib/superadmin";
+import { switchTestPlan } from "./test-plan-actions";
 
 const dateFmt = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric" });
 const date = (iso: string) => dateFmt.format(new Date(iso));
@@ -45,6 +48,8 @@ export default async function BillingPage() {
   ]);
 
   const usage = await businessUsage(supabase, biz.businessId, plan);
+  const me = await getUser();
+  const superAdmin = me ? await isSuperAdmin(me.id) : false;
   const now = new Date();
   const left = daysLeft(plan.periodEnd, now);
   const pending = (payments ?? []).find((p) => p.status === "pending");
@@ -73,6 +78,24 @@ export default async function BillingPage() {
           <span className="rounded-full bg-hot px-3 py-1 text-sm font-semibold text-white">Renew soon</span>
         ) : null}
       </Card>
+
+      {superAdmin ? (
+        <Card className="mb-6 border-dashed border-grape-300">
+          <h2 className="text-lg font-bold tracking-tight">Test a plan</h2>
+          <p className="mt-0.5 text-sm text-muted">
+            Only super admins see this. It puts {biz.businessName} on any plan straight away, with no payment, so you can try each plan&apos;s features. A paid
+            plan is set for one year from today.
+          </p>
+          <form action={switchTestPlan} className="mt-4 flex flex-wrap gap-2">
+            {[{ code: FREE_PLAN, name: "Free" }, ...paid.map((p) => ({ code: p.code as string, name: p.name as string }))].map((p) => (
+              <SubmitButton key={p.code} name="plan" value={p.code} variant={p.code === plan.code ? "primary" : "secondary"} pendingText="Switching…" aria-pressed={p.code === plan.code}>
+                {p.name}
+                {p.code === plan.code ? " (now)" : ""}
+              </SubmitButton>
+            ))}
+          </form>
+        </Card>
+      ) : null}
 
       <UsageNotice items={usage} planCode={plan.code} canSeeBilling onBilling className="mb-6" />
       {usage.length ? (
