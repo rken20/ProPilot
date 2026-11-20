@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { EllipsisVertical, Share, SquarePlus, X } from "lucide-react";
+import { EllipsisVertical, Share, X } from "lucide-react";
 import { Icon3d } from "@/components/icon-3d";
 import { buttonClass, cx } from "@/components/ui";
 
@@ -62,10 +63,7 @@ function IosSteps() {
   return (
     <>
       In Safari, tap <Share className="mx-0.5 inline size-4 align-[-3px]" aria-label="Share" />, then{" "}
-      <span className="font-semibold text-ink">
-        Add to Home Screen <SquarePlus className="inline size-4 align-[-3px]" aria-hidden />
-      </span>
-      .
+      <span className="font-semibold text-ink">Add to Home Screen</span>.
     </>
   );
 }
@@ -73,13 +71,13 @@ function IosSteps() {
 function AndroidSteps() {
   return (
     <>
-      In Chrome, tap <EllipsisVertical className="inline size-4 align-[-3px]" aria-label="the menu" />, then{" "}
+      In Chrome, tap <EllipsisVertical className="-mx-1 inline size-4 align-[-3px]" aria-label="the menu" />, then{" "}
       <span className="font-semibold text-ink">Install app</span> or <span className="font-semibold text-ink">Add to Home screen</span>.
     </>
   );
 }
 
-/** A dismissible nudge on the dashboard, on phones only, until the app is installed. */
+/** A dismissible nudge on the dashboard until the app is installed. */
 export function InstallBanner() {
   const { where, canPrompt, install } = useInstall();
   const dismissed = useSyncExternalStore(
@@ -100,22 +98,54 @@ export function InstallBanner() {
   }
 
   return (
-    <section aria-label="Install the app" className="relative flex items-start gap-3 rounded-[1.5rem] bg-tile-lavender p-4 pr-11 lg:hidden">
+    <section aria-label="Get the app" className="relative flex items-start gap-3 rounded-[1.5rem] bg-tile-lavender p-4 pr-11 lg:items-center lg:pl-5 lg:pr-14">
       <Icon3d name="phone" size={40} className="shrink-0" />
-      <div className="min-w-0">
-        <p className="font-bold">Put HomeFinder on your phone</p>
-        <p className="mt-0.5 text-sm text-muted">{canPrompt ? "One tap to open, full screen. No app store needed." : where === "ios" ? <IosSteps /> : <AndroidSteps />}</p>
-        {canPrompt ? (
-          <button type="button" onClick={install} className={buttonClass("primary", "mt-3")}>
-            Install app
-          </button>
-        ) : null}
+      <div className="min-w-0 lg:flex lg:flex-1 lg:items-center lg:justify-between lg:gap-4">
+        <div>
+          <p className="font-bold">Get the HomeFinder app</p>
+          <p className="mt-0.5 text-sm text-muted">
+            {canPrompt ? (
+              "One tap to open, full screen. No app store needed."
+            ) : (
+              <>
+                <span className="lg:hidden">{where === "ios" ? <IosSteps /> : <AndroidSteps />}</span>
+                <span className="max-lg:hidden">Install it on your phone or computer. No app store needed.</span>
+              </>
+            )}
+          </p>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 lg:mt-0 lg:shrink-0">
+          {canPrompt ? (
+            <button type="button" onClick={install} className={buttonClass("primary")}>
+              Install app
+            </button>
+          ) : null}
+          <Link href="/get-app" className={buttonClass("secondary")}>
+            {canPrompt ? "Other devices" : "How to install"}
+          </Link>
+        </div>
       </div>
       <button type="button" onClick={hide} aria-label="Hide" className="absolute right-2 top-2 grid size-9 place-items-center rounded-full text-muted hover:bg-white/60 hover:text-ink">
         <X className="size-4" aria-hidden />
       </button>
     </section>
   );
+}
+
+/** The install button on the Get the app page (on the grape panel). */
+export function InstallHere() {
+  const { where, canPrompt, install } = useInstall();
+  if (where === "installed") {
+    return <p className="rounded-full bg-white/15 px-4 py-2.5 text-sm font-semibold">You&apos;re using the installed app. It updates by itself.</p>;
+  }
+  if (canPrompt) {
+    return (
+      <button type="button" onClick={install} className={buttonClass("inverse", "min-h-12 px-7 text-[15px]")}>
+        Install on this device
+      </button>
+    );
+  }
+  return <p className="text-sm text-white/75">Follow the steps for your device below. It takes about 10 seconds.</p>;
 }
 
 /** The same help, always available on the Account page. */

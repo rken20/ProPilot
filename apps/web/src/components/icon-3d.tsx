@@ -4,7 +4,7 @@
  */
 export const ICONS_3D = [
   "bell", "calendar", "camera", "card", "chart", "chat", "clipboard", "envelope", "eyes", "gear",
-  "handshake", "heart", "house", "houses", "key", "lightbulb", "link", "megaphone", "memo", "money",
+  "handshake", "heart", "house", "houses", "key", "laptop", "lightbulb", "link", "megaphone", "memo", "money",
   "party", "phone", "pin", "plug", "robot", "rocket", "search", "sparkles", "target", "team", "trophy", "wave",
 ] as const;
 export type Icon3dName = (typeof ICONS_3D)[number];

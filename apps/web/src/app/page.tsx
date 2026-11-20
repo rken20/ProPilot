@@ -38,6 +38,9 @@ export default async function Home() {
               <Logo />
             </Link>
             <nav className="flex items-center gap-2">
+              <Link href="/get-app" className={buttonClass("ghost", "min-h-11 max-sm:hidden")}>
+                Get the app
+              </Link>
               <Link href="/login" className={buttonClass("ghost", "min-h-11")}>
                 Log in
               </Link>
@@ -168,6 +171,9 @@ export default async function Home() {
           </div>
           <footer className={`${wrap} flex flex-col gap-4 border-t border-white/10 py-8 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between`}>
             <Logo className="text-white" tone="dark" />
+            <Link href="/get-app" className="font-semibold text-white/85 hover:text-white">
+              Get the app
+            </Link>
             <p>Philippines · 3D icons by Microsoft Fluent Emoji (MIT)</p>
           </footer>
         </section>

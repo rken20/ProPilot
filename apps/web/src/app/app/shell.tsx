@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LogOut, UserRound } from "lucide-react";
+import { LogOut, Smartphone, UserRound } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Nav, type NavItem } from "./nav";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -102,6 +102,9 @@ export function AppShell({ current, memberships, fullName, items, switchBusiness
               </Link>
             </div>
           </div>
+          <Link href="/get-app" className="mt-3 flex items-center gap-2 px-2 text-sm text-white/60 hover:text-white">
+            <Smartphone className="size-4" aria-hidden /> Get the app
+          </Link>
           <ThemeToggle className="mt-3 flex items-center px-2 text-sm text-white/60 hover:text-white" />
           <form action="/auth/signout" method="post" className="mt-3 px-2">
             <button className="flex items-center gap-2 text-sm text-white/60 hover:text-white">
