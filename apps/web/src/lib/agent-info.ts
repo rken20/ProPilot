@@ -38,4 +38,4 @@ export function agentName(key: string): string {
   return AGENT_INFO.find((a) => a.key === key)?.name ?? "AI agent";
 }
 
-export const DEFAULT_AGENT_SETTINGS = { enabled: true, follow_up_days: 3 };
+export const DEFAULT_AGENT_SETTINGS = { enabled: true, follow_up_days: 3, chat_language: "taglish" };

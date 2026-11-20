@@ -169,7 +169,7 @@ export async function aiTurn(admin: Admin, conv: ConvRef, opts: { name: string; 
     return null;
   }
 
-  const [{ data: history }, { data: props }] = await Promise.all([
+  const [{ data: history }, { data: props }, { data: settings }] = await Promise.all([
     admin.from("messenger_messages").select("sender, body").eq("conversation_id", conv.id).order("created_at", { ascending: false }).limit(16),
     admin
       .from("properties")
@@ -178,6 +178,7 @@ export async function aiTurn(admin: Admin, conv: ConvRef, opts: { name: string; 
       .in("status", ["available", "reserved"])
       .order("updated_at", { ascending: false })
       .limit(40),
+    admin.from("agent_settings").select("chat_language").eq("business_id", conv.business_id).maybeSingle(),
   ]);
   const turns: Turn[] = (history ?? []).reverse().map((m) => ({ from: m.sender as Turn["from"], text: m.body as string }));
   const listings = (props ?? []) as MessengerListing[];
@@ -189,6 +190,7 @@ export async function aiTurn(admin: Admin, conv: ConvRef, opts: { name: string; 
     today,
     channel: opts.channel,
     focusListingId: conv.property_id,
+    language: settings?.chat_language === "english" ? "english" : "taglish",
   });
 
   // A takeover may have happened while the AI was writing; don't talk over a person.

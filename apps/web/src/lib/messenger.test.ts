@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
-import { messengerReply, runMessengerTool, toModelMessages, type AssistantResult, type MessengerListing } from "./messenger-assistant";
+import { messengerReply, messengerSystemPrompt, runMessengerTool, toModelMessages, type AssistantResult, type MessengerListing } from "./messenger-assistant";
 import { parseWebhook, verifyWebhookSignature } from "./meta";
 
 const listing: MessengerListing = {
@@ -57,6 +57,17 @@ describe("parseWebhook", () => {
     expect(parseWebhook({ object: "instagram", entry: [] })).toEqual([]);
     expect(parseWebhook({ object: "page", entry: [{ id: "x", messaging: [{}] }] })).toEqual([]);
     expect(parseWebhook(null)).toEqual([]);
+  });
+});
+
+describe("chat language", () => {
+  it("writes in Taglish unless the business chose English", () => {
+    const base = messengerSystemPrompt("Santos Realty", [listing], false, "2026-11-20");
+    expect(base).toContain("Write in Taglish");
+    expect(messengerSystemPrompt("Santos Realty", [listing], false, "2026-11-20", { language: "taglish" })).toBe(base);
+    const english = messengerSystemPrompt("Santos Realty", [listing], false, "2026-11-20", { language: "english" });
+    expect(english).toContain("Write in English only");
+    expect(english).not.toContain("Taglish");
   });
 });
 

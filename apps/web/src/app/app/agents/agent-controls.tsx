@@ -19,7 +19,7 @@ export function RunNow() {
   );
 }
 
-export function AgentSettingsForm({ enabled, followUpDays }: { enabled: boolean; followUpDays: number }) {
+export function AgentSettingsForm({ enabled, followUpDays, chatLanguage }: { enabled: boolean; followUpDays: number; chatLanguage: "taglish" | "english" }) {
   const [state, action] = useActionState<SettingsState, FormData>(saveAgentSettings, {});
   return (
     <form action={action} className="space-y-4">
@@ -46,6 +46,21 @@ export function AgentSettingsForm({ enabled, followUpDays }: { enabled: boolean;
           />
           <span className="text-sm text-muted">days with no messages or updates</span>
         </div>
+      </div>
+      <div>
+        <label htmlFor="chatLanguage" className="text-sm font-medium">
+          AI chat language
+        </label>
+        <select
+          id="chatLanguage"
+          name="chatLanguage"
+          defaultValue={chatLanguage}
+          className="mt-1.5 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100"
+        >
+          <option value="taglish">Taglish (Tagalog and English)</option>
+          <option value="english">English only</option>
+        </select>
+        <p className="mt-1 text-sm text-muted">How the AI writes to buyers on Messenger.</p>
       </div>
       {state.error ? <Alert>{state.error}</Alert> : null}
       {state.saved ? <Alert tone="success">Saved.</Alert> : null}

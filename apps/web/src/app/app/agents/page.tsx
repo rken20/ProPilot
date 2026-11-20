@@ -42,7 +42,7 @@ export default async function AgentsPage() {
       .order("created_at", { ascending: false })
       .limit(12),
     supabase.from("agent_runs").select("id, agent, trigger, status, summary, proposed, started_at").eq("business_id", biz.businessId).order("started_at", { ascending: false }).limit(8),
-    supabase.from("agent_settings").select("enabled, follow_up_days").eq("business_id", biz.businessId).maybeSingle(),
+    supabase.from("agent_settings").select("enabled, follow_up_days, chat_language").eq("business_id", biz.businessId).maybeSingle(),
   ]);
 
   const tasks = (waiting ?? []) as TaskRow[];
@@ -167,7 +167,7 @@ export default async function AgentsPage() {
                   {lastRun ? `Last run ${timeAgo(lastRun.started_at)}.` : "Not run yet."} Agents only suggest; they never message anyone on their own.
                 </p>
               </div>
-              <AgentSettingsForm enabled={cfg.enabled} followUpDays={cfg.follow_up_days} />
+              <AgentSettingsForm enabled={cfg.enabled} followUpDays={cfg.follow_up_days} chatLanguage={cfg.chat_language === "english" ? "english" : "taglish"} />
               <div className="border-t border-line pt-4">
                 <RunNow />
               </div>

@@ -135,10 +135,16 @@ export async function saveAgentSettings(_prev: SettingsState, form: FormData): P
   if (!can(biz.role, "lead.assign")) return { error: "Only owners and admins can change this." };
   const days = Number(str(form, "followUpDays"));
   if (!Number.isInteger(days) || days < 1 || days > 30) return { error: "Pick between 1 and 30 days." };
+  const chatLanguage = str(form, "chatLanguage") === "english" ? "english" : "taglish";
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("agent_settings")
-    .upsert({ business_id: biz.businessId, enabled: form.get("enabled") === "on", follow_up_days: days, updated_by: user.id, updated_at: new Date().toISOString() });
+  const { error } = await supabase.from("agent_settings").upsert({
+    business_id: biz.businessId,
+    enabled: form.get("enabled") === "on",
+    follow_up_days: days,
+    chat_language: chatLanguage,
+    updated_by: user.id,
+    updated_at: new Date().toISOString(),
+  });
   if (error) return { error: "Couldn't save. Please try again." };
   refresh();
   return { saved: Date.now() };
