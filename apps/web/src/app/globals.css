@@ -47,6 +47,7 @@
   /* Chart series (validated for colour blindness): listing pages, Messenger. */
   --chart-listing: #6d4ae0;
   --chart-messenger: #e8890c;
+  --chart-green: #1baf7a;
 
   /* Small highlights (was brass): warm orange. */
   --color-brass: #c25e0c;
@@ -126,6 +127,7 @@
   --color-tile-sky-ink: #8cc4ff;
   --chart-listing: #8466e8;
   --chart-messenger: #c9761a;
+  --chart-green: #199e70;
 
   --color-brass: #f5a35b;
   --color-brass-50: #3d2a17;
@@ -196,7 +198,7 @@
   display: none;
 }
 :root[data-theme="dark"] .pp-dark-only {
-  display: inline;
+  display: inline-flex;
 }
 :root[data-theme="dark"] .pp-light-only {
   display: none;

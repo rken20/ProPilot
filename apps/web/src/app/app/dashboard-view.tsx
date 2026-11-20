@@ -1,24 +1,42 @@
 import Link from "next/link";
-import { CircleCheck, Plus, type LucideIcon } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  BarChart3,
+  Bell,
+  Bot,
+  CalendarDays,
+  ChevronRight,
+  CircleCheck,
+  ClipboardCheck,
+  Handshake,
+  Home,
+  Megaphone,
+  MessageCircle,
+  Plus,
+  Rocket,
+  Users,
+  Video,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { Alert, buttonClass, cx } from "@/components/ui";
 import { CountUp } from "@/components/count-up";
-import { Icon3d, type Icon3dName } from "@/components/icon-3d";
+import { Icon3d } from "@/components/icon-3d";
 import { InstallBanner } from "@/components/install-app";
+import { changePct, type PerfPoint } from "@/lib/dashboard-stats";
 import { formatPeso } from "@/lib/money";
 import { timeAgo } from "@/lib/time";
 import { STATUS_LABEL } from "@/lib/property-labels";
-import { fmtDuration, type LeadsReport } from "@/lib/reports";
-import { SourceChart } from "./reports/reports-view";
+import { PerformanceChart } from "./performance-chart";
 
 export type Activity = { at: string; icon: LucideIcon; tone: string; title: string; detail: string; href?: string };
 export type ListingRow = { id: string; name: string; location: string; price_minor: number; currency: string; status: string; is_public: boolean; coverUrl?: string | null };
-export type ReportSummary = {
-  leads: LeadsReport;
-  topListings: Array<{ id: string; name: string; views: number; inquiries: number }>;
-  chats: { conversations: number; aiOnly: number; afterHoursAnswered: number };
-};
 export type SetupStep = { label: string; done: boolean; href?: string; soon?: boolean };
+/** Something the AI did or has waiting. `at` is when; without it the row is pinned first as "Now". */
+export type AiItem = { kind: "chat" | "buyers" | "tasks" | "run"; title: string; detail: string; at?: string; href?: string };
 
 export type DashboardData = {
   greetingText: string;
@@ -32,19 +50,38 @@ export type DashboardData = {
   properties: ListingRow[];
   steps: SetupStep[];
   recent: Activity[];
+  /** Inquiries nobody has answered yet (the bell); null if this role can't see leads. */
+  unanswered: number | null;
+  /** New inquiries in the last 30 days and in the 30 before; null if this role can't see leads. */
+  inquiries: { total: number; previous: number | null } | null;
+  /** Viewings held or booked this calendar month and last; null if this role can't see leads. */
+  viewings: { thisMonth: number; lastMonth: number } | null;
+  /** Leads past the first inquiry (qualified, viewing, offer, reservation); null if this role can't see leads. */
+  potentialBuyers: number | null;
   /** Buyer Finder this month; null on Free or for roles that don't work leads. */
   finder: { used: number; limit: number | null } | null;
-  /** Leads past the first inquiry (qualified, viewing, offer, reservation); null if this role can't see leads. */
-  interested: number | null;
-  /** Public listing page views, last 30 days. */
-  views: number;
-  /** New leads in the last 30 days, and how many came from Messenger; null if this role can't see leads. */
-  inquiries: { total: number; messenger: number } | null;
-  /** Last 30 days at a glance; null for roles that can't see reports. */
-  summary: ReportSummary | null;
-  assistantLive: boolean;
+  /** always: answering on Messenger around the clock. on: working on leads only. almost: paid, nothing to work on yet. off: Free. */
+  assistant: "always" | "on" | "almost" | "off";
+  aiActivity: AiItem[];
+  /** Last 30 days as running totals, and the listing with the most interest; null for roles that can't see reports. */
+  performance: { points: PerfPoint[]; top: { id: string; views: number; inquiries: number } | null } | null;
+  facebookConnected: boolean;
   now?: Date;
 };
+
+const AI_ICON: Record<AiItem["kind"], { icon: LucideIcon; tone: string }> = {
+  chat: { icon: MessageCircle, tone: "bg-[#12a356]" },
+  buyers: { icon: Users, tone: "bg-[#2f6fed]" },
+  tasks: { icon: ClipboardCheck, tone: "bg-[#e2700c]" },
+  run: { icon: Bot, tone: "bg-[#7c4ff0]" },
+};
+
+const ASSISTANT = {
+  always: { title: "Your AI agent is working for you!", pill: "Active 24/7" },
+  on: { title: "Your AI agent is working for you!", pill: "Active" },
+  almost: { title: "Your AI agent is almost ready", pill: "Almost ready" },
+  off: { title: "Switch on your AI agent", pill: "Off on Free" },
+} as const;
 
 /** Presentational dashboard. All numbers come from real records passed in. */
 export function DashboardView({
@@ -59,429 +96,439 @@ export function DashboardView({
   properties,
   steps,
   recent,
-  finder,
-  interested,
-  views,
+  unanswered,
   inquiries,
-  summary,
-  assistantLive,
+  viewings,
+  potentialBuyers,
+  finder,
+  assistant,
+  aiActivity,
+  performance,
+  facebookConnected,
   now,
 }: DashboardData) {
   const doneCount = steps.filter((s) => s.done).length;
+  const setupDone = doneCount === steps.length;
   const paid = plan.code !== "free";
   const firstListing = properties.find((p) => p.status === "available") ?? properties[0];
+  const active = properties.filter((p) => p.status === "available").length;
+  const live = assistant === "always" || assistant === "on";
+  const showAi = aiActivity.length > 0;
+  const top = performance?.top ? properties.find((p) => p.id === performance.top!.id) : undefined;
+  const featured = top ?? firstListing;
+  const lastPoint = performance?.points.at(-1);
+  const hasActivity = Boolean(lastPoint && lastPoint.views + lastPoint.inquiries + lastPoint.viewings > 0);
+
   return (
-    <div className="pp-stagger space-y-8">
+    <div className="pp-stagger space-y-6">
       {notice ? <Alert tone="success">{notice}</Alert> : null}
       <InstallBanner />
 
-      {/* Hero: the promise, and the assistant's state */}
-      <section
-        style={{ "--i": 0 } as React.CSSProperties}
-        className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-frame-1 via-frame-2 to-frame-3 p-6 text-white shadow-[var(--shadow-lift)] sm:p-8"
-      >
-        <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 size-72 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm text-white/70">
-              {dateText} · {greetingText}
-              {firstName ? `, ${firstName}` : ""}
-            </p>
-            <h1 className="mt-2 max-w-xl text-[2rem] leading-[1.1] font-extrabold tracking-tight text-balance sm:text-[2.6rem]">
-              Find the right buyer for your property.
-            </h1>
-            <p className="mt-2 max-w-lg text-[15px] text-white/75">
-              Your AI-powered sales assistant answers inquiries, sizes up each lead and finds potential buyers for {businessName}.
-            </p>
-          </div>
-          <Icon3d name="house" size={112} className="hidden sm:block" />
+      {/* Greeting */}
+      <header style={{ "--i": 0 } as React.CSSProperties} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="text-[1.75rem] leading-tight font-extrabold tracking-tight text-balance sm:text-[2.25rem]">
+            {greetingText}
+            {firstName ? `, ${firstName}` : ""}!
+          </h1>
+          <p className="mt-1 text-[15px] text-muted">Here&apos;s what&apos;s happening with your properties. {dateText}.</p>
         </div>
-
-        <div className="relative mt-6 flex flex-wrap items-center gap-4 rounded-[1.5rem] bg-white/12 p-4 ring-1 ring-white/15 backdrop-blur-sm">
-          <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-white">
-            <Icon3d name="robot" size={40} />
-          </span>
-          <div className="min-w-0 flex-1 basis-48">
-            <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-white/80">
-              Your AI assistant
-              <span className={cx("rounded-full px-2 py-0.5 text-[11px] font-bold tracking-wide", assistantLive ? "bg-brand-600 text-white" : "bg-white/15 text-white/80")}>
-                {assistantLive ? "ACTIVE" : paid ? "ALMOST READY" : "OFF ON FREE"}
-              </span>
-            </p>
-            <p className="mt-0.5 text-lg font-bold">
-              {assistantLive ? "Let's find your buyer!" : paid ? "Make a listing public to switch it on." : "Upgrade to Basic to switch on the AI."}
-            </p>
-          </div>
-          {canCreateProperty ? (
-            <Link href="/app/properties/new" className={buttonClass("inverse", "w-full sm:w-auto")}>
-              <Plus className="size-4" aria-hidden /> Add property
-            </Link>
-          ) : null}
-        </div>
-      </section>
-
-      {/* Key numbers */}
-      <section style={{ "--i": 1 } as React.CSSProperties} aria-labelledby="numbers-title">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 id="numbers-title" className="text-xl font-extrabold tracking-tight">
-            Your property dashboard
-          </h2>
+        <div className="flex items-center gap-3">
           <Link
             href="/app/billing"
-            className="rounded-full bg-tile-mint px-3 py-1 text-xs font-bold text-brand-700 hover:ring-2 hover:ring-brand-100"
+            className="rounded-full bg-tile-mint px-3 py-1.5 text-xs font-bold text-brand-700 hover:ring-2 hover:ring-brand-100"
           >
             {plan.name.toUpperCase()} {paid ? `· ${formatPeso(plan.priceMinor)} / month` : "· upgrade for AI"}
           </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-          <Tile
-            icon="target"
-            tile="bg-tile-lavender"
-            accent="text-grape-700"
-            label="Potential buyers found"
-            value={finder ? (finder.limit === null ? <CountUp value={finder.used} /> : <>{finder.used} / {finder.limit}</>) : "—"}
-            note={finder ? "This month, by Buyer Finder" : "Buyer Finder is on paid plans"}
-            href={finder ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties") : "/app/billing"}
-          />
-          <Tile
-            icon="heart"
-            tile="bg-tile-mint"
-            accent="text-brand-700"
-            label="Interested buyers"
-            value={interested === null ? "—" : <CountUp value={interested} />}
-            note="Qualified, viewing or making an offer"
-            href="/app/pipeline"
-          />
-          <Tile icon="eyes" tile="bg-tile-sky" accent="text-tile-sky-ink" label="Property views" value={<CountUp value={views} />} note="Public listing pages, last 30 days" />
-          <Tile
-            icon="envelope"
-            tile="bg-tile-peach"
-            accent="text-brass-700"
-            label="Buyer inquiries"
-            value={inquiries ? <CountUp value={inquiries.total} /> : "—"}
-            note={inquiries ? (inquiries.messenger ? `Last 30 days, ${inquiries.messenger} on Messenger` : "New leads, last 30 days") : "Leads are for sales roles"}
-            href={inquiries ? "/app/pipeline" : undefined}
-          />
-        </div>
-      </section>
-
-      {/* Buyer Finder */}
-      <section
-        style={{ "--i": 2 } as React.CSSProperties}
-        className="rounded-[1.5rem] border border-line bg-white p-6 shadow-[var(--shadow-card)]"
-        aria-labelledby="finder-title"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 id="finder-title" className="text-xl font-extrabold tracking-tight">
-              Your Buyer Finder
-            </h2>
-            <p className="mt-1 text-[1.75rem] leading-tight font-extrabold tracking-tight text-brand-600 sm:text-[2rem]">
-              {finder ? (finder.limit === null ? "Unlimited buyer matches" : `${finder.limit} buyer matches / month`) : "Find buyers with AI"}
-            </p>
-          </div>
-          <Icon3d name="target" size={56} />
-        </div>
-        {finder && finder.limit !== null ? (
-          <div
-            className="mt-4 h-2.5 overflow-hidden rounded-full bg-grape-50"
-            role="progressbar"
-            aria-label="Buyer Finder this month"
-            aria-valuemin={0}
-            aria-valuemax={finder.limit}
-            aria-valuenow={finder.used}
-          >
-            <div className="pp-grow h-full rounded-full bg-gradient-to-r from-brand-600 to-[#3ccf83]" style={{ width: `${Math.min(100, (finder.used / Math.max(1, finder.limit)) * 100)}%` }} />
-          </div>
-        ) : null}
-        <p className="mt-3 text-sm text-muted">
-          {finder
-            ? `Your monthly ${plan.name} plan allowance. The AI reads every chat and inquiry for budget and area, then shows who fits each listing.`
-            : "On Basic, the AI reads every chat and inquiry for budget and area, then shows which of your leads fit each listing."}
-        </p>
-        <Link
-          href={finder ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/billing"}
-          className={buttonClass("primary", "mt-5 w-full py-3 text-base")}
-        >
-          {finder ? (firstListing ? "Find potential buyers" : "Add a property to start") : "See plans, from ₱499 a month"} <span aria-hidden>→</span>
-        </Link>
-      </section>
-
-      {/* Listings */}
-      <section style={{ "--i": 3 } as React.CSSProperties} aria-labelledby="listings-title">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 id="listings-title" className="text-xl font-extrabold tracking-tight">
-            My property listings
-          </h2>
-          {properties.length ? (
-            <Link href="/app/properties" className="text-sm font-bold text-grape-700 hover:underline">
-              View all
-            </Link>
-          ) : null}
-        </div>
-        {properties.length === 0 ? (
-          <div className="rounded-[1.5rem] border-2 border-dashed border-grape-100 bg-white px-6 py-10 text-center">
-            <Icon3d name="houses" size={72} className="mx-auto" />
-            <p className="mt-3 text-lg font-bold">No listings yet</p>
-            <p className="mt-1 text-sm text-muted">Add your first property. The AI only talks about what you add here.</p>
-            {canCreateProperty ? (
-              <Link href="/app/properties/new" className={buttonClass("primary", "mt-4")}>
-                <Plus className="size-4" aria-hidden /> Add property
-              </Link>
-            ) : null}
-          </div>
-        ) : (
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {properties.slice(0, 6).map((p) => (
-              <li key={p.id}>
-                <Link
-                  href={`/app/properties/${p.id}`}
-                  className="pp-lift block overflow-hidden rounded-[1.5rem] border border-line bg-white shadow-[var(--shadow-card)]"
-                >
-                  <div className="relative">
-                    {p.coverUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- pre-sized thumbnail
-                      <img src={p.coverUrl} alt="" className="aspect-[16/10] w-full object-cover" />
-                    ) : (
-                      <div className="grid aspect-[16/10] place-items-center bg-gradient-to-br from-tile-lavender to-tile-sky">
-                        <Icon3d name="houses" size={64} />
-                      </div>
-                    )}
-                    <span
-                      className={cx(
-                        "absolute left-3 top-3 rounded-full px-2.5 py-0.5 text-xs font-bold",
-                        p.status === "available" ? "bg-tile-mint text-brand-700" : "bg-white/90 text-muted",
-                      )}
-                    >
-                      {p.status === "available" ? "Active" : STATUS_LABEL[p.status as keyof typeof STATUS_LABEL]}
-                    </span>
-                    {p.is_public ? (
-                      <span className="absolute right-3 top-3 rounded-full bg-grape-900/75 px-2.5 py-0.5 text-xs font-semibold text-white">Public page</span>
-                    ) : null}
-                  </div>
-                  <div className="p-4">
-                    <p className="truncate font-bold">{p.name}</p>
-                    <p className="truncate text-sm text-muted">{p.location}</p>
-                    <p className="mt-2 text-lg font-extrabold text-grape-700 tabular-nums">{formatPeso(Number(p.price_minor), p.currency)}</p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {summary ? <ReportSummaryCard summary={summary} /> : null}
-
-      <div style={{ "--i": 5 } as React.CSSProperties} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Setup */}
-        <section className="rounded-[1.5rem] border border-line bg-white p-6 shadow-[var(--shadow-card)]">
-          <div className="flex items-center gap-3">
-            <Icon3d name="rocket" size={44} />
-            <div className="flex-1">
-              <h2 className="text-xl font-extrabold tracking-tight">Get set up</h2>
-              <p className="text-sm text-muted tabular-nums">
-                {doneCount} of {steps.length} done
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-grape-50" role="progressbar" aria-label="Setup" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount}>
-            <div className="pp-grow h-full rounded-full bg-grape-500" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
-          </div>
-          <ul className="mt-4 space-y-0.5">
-            {steps.map((s) => {
-              const row = (
-                <span className="flex items-center gap-3 px-2 py-1.5 text-sm">
-                  {s.done ? (
-                    <CircleCheck className="size-5 shrink-0 text-brand-600" aria-hidden />
-                  ) : (
-                    <span className="size-5 shrink-0 rounded-full border-2 border-grape-100" aria-hidden />
-                  )}
-                  <span className={cx("flex-1", s.done ? "text-muted line-through decoration-muted/40" : "font-medium")}>{s.label}</span>
-                  {s.soon ? <span className="rounded-full bg-grape-50 px-2 py-0.5 text-xs text-grape-700">Coming soon</span> : null}
-                  <span className="sr-only">{s.done ? "Done" : "Not done"}</span>
+          {unanswered !== null ? (
+            <Link
+              href="/app/leads"
+              aria-label={unanswered ? `${unanswered} new ${unanswered === 1 ? "inquiry" : "inquiries"} to answer` : "Inquiries"}
+              className="pp-bounce relative grid size-11 place-items-center rounded-full border border-line bg-white text-ink shadow-[var(--shadow-card)]"
+            >
+              <Bell className="size-5" aria-hidden />
+              {unanswered ? (
+                <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-hot px-1 text-center text-[11px] font-bold leading-5 text-white tabular-nums">
+                  {unanswered > 99 ? "99+" : unanswered}
                 </span>
-              );
-              return (
-                <li key={s.label}>
-                  {!s.done && s.href ? (
-                    <Link href={s.href} className="block rounded-xl hover:bg-grape-50">
-                      {row}
-                    </Link>
-                  ) : (
-                    row
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          {canManageTeam ? (
-            <Link href="/app/team" className="mt-3 inline-block px-2 text-sm font-bold text-grape-700 hover:underline">
-              Invite a teammate
+              ) : null}
             </Link>
           ) : null}
+        </div>
+      </header>
+
+      {/* Key numbers */}
+      <section style={{ "--i": 1 } as React.CSSProperties} aria-label="Key numbers" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <Stat
+          icon={Home}
+          circle="from-[#3b82f6] to-[#1d4ed8]"
+          tile="bg-tile-sky"
+          label="Total properties"
+          value={<CountUp value={properties.length} />}
+          note={
+            properties.length === 0 ? (
+              "Add your first one"
+            ) : active === properties.length ? (
+              <span className="inline-flex items-center gap-1 font-semibold text-good">
+                <CircleCheck className="size-3.5" aria-hidden /> All active
+              </span>
+            ) : (
+              `${active} active`
+            )
+          }
+          href="/app/properties"
+        />
+        <Stat
+          icon={Users}
+          circle="from-[#22b866] to-[#0b8a47]"
+          tile="bg-tile-mint"
+          label="Buyer inquiries"
+          value={inquiries ? <CountUp value={inquiries.total} /> : "—"}
+          trend={inquiries && inquiries.previous !== null ? changePct(inquiries.total, inquiries.previous) : null}
+          note={inquiries ? (inquiries.previous ? "vs previous 30 days" : "Last 30 days") : "For sales roles"}
+          href={inquiries ? "/app/leads" : undefined}
+        />
+        <Stat
+          icon={CalendarDays}
+          circle="from-[#e8780c] to-[#c2540a]"
+          tile="bg-tile-peach"
+          label="Viewing appointments"
+          value={viewings ? <CountUp value={viewings.thisMonth} /> : "—"}
+          trend={viewings ? changePct(viewings.thisMonth, viewings.lastMonth) : null}
+          note={viewings ? (viewings.lastMonth ? "This month, vs last" : "This month") : "For sales roles"}
+          href={viewings ? "/app/leads?show=scheduled" : undefined}
+        />
+        <Stat
+          icon={Handshake}
+          circle="from-[#8b5cf6] to-[#5b34c9]"
+          tile="bg-tile-lavender"
+          label="Potential buyers"
+          value={potentialBuyers === null ? "—" : <CountUp value={potentialBuyers} />}
+          note={
+            potentialBuyers === null
+              ? "For sales roles"
+              : finder && finder.limit !== null
+                ? `Buyer Finder: ${finder.used} of ${finder.limit} used`
+                : "From qualified leads"
+          }
+          href={potentialBuyers === null ? undefined : "/app/pipeline"}
+        />
+      </section>
+
+      {/* The AI agent, and what it has been doing */}
+      <div style={{ "--i": 2 } as React.CSSProperties} className="grid grid-cols-1 gap-5 xl:grid-cols-5">
+        <section
+          aria-labelledby="agent-title"
+          className="relative flex flex-col gap-5 overflow-hidden rounded-[2rem] bg-gradient-to-br from-frame-1 via-frame-2 to-frame-3 p-6 text-white shadow-[var(--shadow-lift)] sm:flex-row sm:items-center sm:gap-7 sm:p-8 xl:col-span-3"
+        >
+          <div aria-hidden className="pointer-events-none absolute -left-10 -top-24 size-72 rounded-full bg-white/10 blur-2xl" />
+          <span className="relative grid size-24 shrink-0 place-items-center rounded-[1.75rem] bg-white/12 ring-1 ring-white/20 sm:size-40 sm:rounded-[2.25rem]">
+            <Icon3d name="robot" size={72} className="sm:hidden" />
+            <Icon3d name="robot" size={120} className="max-sm:hidden" />
+          </span>
+          <div className="relative min-w-0">
+            <h2 id="agent-title" className="text-[1.6rem] leading-[1.15] font-extrabold tracking-tight text-balance sm:text-[2rem]">
+              {ASSISTANT[assistant].title}
+            </h2>
+            <p
+              className={cx(
+                "mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold",
+                live ? "bg-[#e2f6ea] text-[#0a6d39]" : "bg-white/15 text-white",
+              )}
+            >
+              {live ? <CircleCheck className="size-4" aria-hidden /> : null}
+              {ASSISTANT[assistant].pill}
+            </p>
+            <p className="mt-3 max-w-md text-[15px] text-white/80">
+              {assistant === "always"
+                ? `Answering buyers on Messenger, sizing up each lead and finding potential buyers for ${businessName}.`
+                : assistant === "on"
+                  ? "Sizing up each lead and finding potential buyers. Connect your Facebook Page and it answers buyers on Messenger too."
+                  : assistant === "almost"
+                    ? "Give a listing a public page or connect your Facebook Page, and it starts answering buyers and sizing up leads."
+                    : "On Basic it answers buyers on Messenger, sizes up each lead and finds potential buyers for you."}
+            </p>
+            <Link
+              href={live ? "/app/agents" : assistant === "almost" ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/billing"}
+              className={buttonClass("inverse", "mt-5")}
+            >
+              {live ? "View AI activity" : assistant === "almost" ? (firstListing ? "Open your listing" : "Add a property") : "See plans, from ₱499 a month"}
+              <ArrowRight className="size-4" aria-hidden />
+            </Link>
+          </div>
         </section>
 
-        {/* Recent activity */}
-        <section className="rounded-[1.5rem] border border-line bg-white p-6 shadow-[var(--shadow-card)]">
-          <div className="flex items-center gap-3">
-            <Icon3d name="bell" size={44} />
-            <h2 className="text-xl font-extrabold tracking-tight">Recent activity</h2>
-          </div>
-          {recent.length === 0 ? (
-            <p className="mt-4 text-sm text-muted">Nothing yet. Activity from your team and listings shows up here.</p>
-          ) : (
-            <ul className="mt-3 divide-y divide-line">
-              {recent.map((a, i) => {
-                const Icon = a.icon;
-                const body = (
-                  <span className="flex items-start gap-3 py-3">
-                    <span className={cx("grid size-9 shrink-0 place-items-center rounded-full", a.tone)}>
-                      <Icon className="size-[18px]" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold">{a.title}</span>
-                      <span className="block truncate text-sm text-muted">{a.detail}</span>
-                    </span>
-                    <span className="shrink-0 text-xs text-muted">{timeAgo(a.at, now)}</span>
-                  </span>
-                );
+        <Panel
+          className="xl:col-span-2"
+          icon={<Zap className="size-5 fill-[#fbbf24] text-[#fbbf24]" aria-hidden />}
+          title={showAi ? "AI agent activity" : "Recent activity"}
+          action={showAi ? { href: "/app/agents", label: "View all" } : undefined}
+        >
+          {showAi ? (
+            <ul className="divide-y divide-line px-5">
+              {aiActivity.map((a, i) => {
+                const { icon: Icon, tone } = AI_ICON[a.kind];
                 return (
-                  <li key={`${a.title}-${a.at}-${i}`}>
-                    {a.href ? (
-                      <Link href={a.href} className="-mx-2 block rounded-xl px-2 hover:bg-grape-50">
-                        {body}
-                      </Link>
-                    ) : (
-                      body
-                    )}
+                  <li key={`${a.kind}-${i}`}>
+                    <Row
+                      href={a.href}
+                      icon={
+                        <span className={cx("grid size-10 shrink-0 place-items-center rounded-full text-white", tone)}>
+                          <Icon className="size-5" aria-hidden />
+                        </span>
+                      }
+                      title={a.title}
+                      detail={a.detail}
+                      when={a.at ? timeAgo(a.at, now) : "Now"}
+                    />
                   </li>
                 );
               })}
             </ul>
-          )}
-        </section>
-      </div>
-    </div>
-  );
-}
-
-/** The last 30 days in one card: lead numbers, the inquiries chart, top listings and the AI chat. */
-function ReportSummaryCard({ summary }: { summary: ReportSummary }) {
-  const { leads, topListings, chats } = summary;
-  const reachedPct = leads.viewingRequests ? Math.round((leads.reachedViewing / leads.viewingRequests) * 100) : null;
-  return (
-    <section
-      style={{ "--i": 4 } as React.CSSProperties}
-      aria-labelledby="summary-title"
-      className="rounded-[1.5rem] border border-line bg-white p-6 shadow-[var(--shadow-card)]"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Icon3d name="chart" size={44} />
-          <div>
-            <h2 id="summary-title" className="text-xl font-extrabold tracking-tight">
-              Last 30 days
-            </h2>
-            <p className="text-sm text-muted">How buyers found you and what happened next.</p>
-          </div>
-        </div>
-        <Link href="/app/reports" className="text-sm font-bold text-grape-700 hover:underline">
-          Full reports
-        </Link>
-      </div>
-
-      <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-        <Figure label="Inquiries" value={leads.inquiries} note={`${leads.viewingRequests} from listing pages, ${leads.fromMessenger} Messenger`} />
-        <Figure
-          label="Reached a viewing"
-          value={leads.reachedViewing}
-          note={leads.viewingRequests ? `${reachedPct}% of listing inquiries` : "None yet"}
-        />
-        <Figure label="Closed" value={leads.closed} note={leads.closed ? "Marked closed in this period" : "No closed deals yet"} />
-        <Figure label="Typical first reply" value={fmtDuration(leads.medianFirstResponseMs)} note="To listing inquiries" />
-      </dl>
-
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr_1fr]">
-        <div>
-          {leads.inquiries ? (
-            <SourceChart series={leads.series} />
           ) : (
-            <p className="rounded-2xl border-2 border-dashed border-grape-100 px-4 py-10 text-center text-sm text-muted">
-              No inquiries in the last 30 days. Share a listing&apos;s public page or connect Facebook to start.
-            </p>
+            <ActivityList recent={recent} now={now} />
           )}
-        </div>
-        <div className="space-y-5">
-          <div>
-            <h3 className="text-sm font-bold">Most interest</h3>
-            {topListings.length ? (
-              <ol className="mt-2 divide-y divide-line">
-                {topListings.map((l) => (
-                  <li key={l.id}>
-                    <Link href={`/app/properties/${l.id}`} className="-mx-2 block rounded-xl px-2 py-2 hover:bg-grape-50">
-                      <span className="block truncate text-sm font-semibold">{l.name}</span>
-                      <span className="block text-xs text-muted tabular-nums">
-                        {plural(l.views, "view")}, {plural(l.inquiries, "inquiry", "inquiries")}
-                      </span>
+        </Panel>
+      </div>
+
+      {/* Performance, and shortcuts */}
+      <div style={{ "--i": 3 } as React.CSSProperties} className="grid grid-cols-1 gap-5 xl:grid-cols-5">
+        {performance ? (
+          <section aria-labelledby="perf-title" className="rounded-[1.5rem] border border-line bg-white p-5 shadow-[var(--shadow-card)] sm:p-6 xl:col-span-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Icon3d name="chart" size={36} />
+                <h2 id="perf-title" className="text-xl font-extrabold tracking-tight">
+                  Property performance
+                </h2>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <span className="rounded-full border border-line px-3 py-1 font-semibold">Last 30 days</span>
+                <Link href="/app/reports" className="font-bold text-grape-700 hover:underline">
+                  Full reports
+                </Link>
+              </div>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[10.5rem_minmax(0,1fr)]">
+              {featured ? (
+                <Link href={`/app/properties/${featured.id}`} className="pp-lift flex gap-3 rounded-2xl sm:block">
+                  {featured.coverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- pre-sized thumbnail
+                    <img src={featured.coverUrl} alt="" className="aspect-[4/3] w-28 shrink-0 rounded-2xl object-cover sm:w-full" />
+                  ) : (
+                    <span className="grid aspect-[4/3] w-28 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-tile-lavender to-tile-sky sm:w-full">
+                      <Icon3d name="houses" size={48} />
+                    </span>
+                  )}
+                  <span className="block min-w-0 sm:mt-2.5">
+                    <span className="line-clamp-2 text-sm font-bold leading-snug">{featured.name}</span>
+                    <span
+                      className={cx(
+                        "mt-1.5 inline-block rounded-full px-2.5 py-0.5 text-xs font-bold",
+                        featured.status === "available" ? "bg-tile-mint text-brand-700" : "bg-surface text-muted",
+                      )}
+                    >
+                      {featured.status === "available" ? "Active" : STATUS_LABEL[featured.status as keyof typeof STATUS_LABEL]}
+                    </span>
+                    <span className="mt-1.5 block text-xs text-muted tabular-nums">
+                      {top && performance.top
+                        ? `Most interest: ${plural(performance.top.views, "view")}, ${plural(performance.top.inquiries, "inquiry", "inquiries")}`
+                        : "No views yet"}
+                    </span>
+                  </span>
+                </Link>
+              ) : (
+                <div className="rounded-2xl border-2 border-dashed border-grape-100 p-4 text-center">
+                  <Icon3d name="houses" size={48} className="mx-auto" />
+                  <p className="mt-2 text-sm font-bold">No listings yet</p>
+                  {canCreateProperty ? (
+                    <Link href="/app/properties/new" className="mt-1 inline-block text-sm font-bold text-grape-700 hover:underline">
+                      Add a property
                     </Link>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="mt-2 text-sm text-muted">No views or inquiries on your public pages yet.</p>
-            )}
+                  ) : null}
+                </div>
+              )}
+              <div className="min-w-0">
+                {hasActivity ? (
+                  <>
+                    <PerformanceChart points={performance.points} />
+                    <p className="mt-3 text-xs text-muted">Running totals across all your listings. Views are of public listing pages.</p>
+                  </>
+                ) : (
+                  <p className="grid h-full min-h-40 place-items-center rounded-2xl border-2 border-dashed border-grape-100 px-4 py-8 text-center text-sm text-muted">
+                    No views, inquiries or viewings in the last 30 days. Share a listing&apos;s public page to start.
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <Panel className={performance ? "xl:col-span-2" : "xl:col-span-5"} icon={<Rocket className="size-5" aria-hidden />} title="Quick actions">
+          <div className="grid flex-1 auto-rows-fr grid-cols-2 gap-3 p-4">
+            <Action
+              href={canCreateProperty ? "/app/properties/new" : "/app/properties"}
+              icon={canCreateProperty ? Plus : Home}
+              tone="from-[#2f6fed] to-[#1e4fd0]"
+              label={canCreateProperty ? "Add a property" : "Open properties"}
+            />
+            <Action
+              href={facebookConnected ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/integrations"}
+              icon={Megaphone}
+              tone="from-[#12a356] to-[#0b7a3f]"
+              label={facebookConnected ? "Post a listing on Facebook" : "Connect your Facebook Page"}
+            />
+            <Action
+              href={performance ? "/app/reports" : "/app/pipeline"}
+              icon={BarChart3}
+              tone="from-[#7c4ff0] to-[#5a31c7]"
+              label={performance ? "View detailed reports" : "Open your pipeline"}
+            />
+            <div className="flex min-h-[4.5rem] flex-col justify-center gap-2 rounded-2xl bg-tile-peach p-4 text-brass-700 sm:flex-row sm:items-center sm:justify-start sm:gap-3">
+              <Video className="size-6 shrink-0" aria-hidden />
+              <span className="min-w-0 text-[15px] leading-tight font-bold">
+                Create property video
+                <span className="mt-0.5 block text-xs font-semibold opacity-80">Coming soon</span>
+              </span>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-bold">AI chat</h3>
-            <p className="mt-1 text-sm text-muted">
-              {chats.conversations
-                ? `${plural(chats.conversations, "chat")}, ${chats.aiOnly} handled by the AI alone, ${plural(chats.afterHoursAnswered, "message")} answered after hours.`
-                : "No chats yet."}
+        </Panel>
+      </div>
+
+      {/* Setup while it's unfinished, and recent activity when the panel above shows the AI instead */}
+      {!setupDone || showAi ? (
+        <div style={{ "--i": 4 } as React.CSSProperties} className={cx("grid grid-cols-1 gap-5", !setupDone && showAi && "lg:grid-cols-2")}>
+          {!setupDone ? (
+            <section className="rounded-[1.5rem] border border-line bg-white p-6 shadow-[var(--shadow-card)]">
+              <div className="flex items-center gap-3">
+                <Icon3d name="rocket" size={44} />
+                <div className="flex-1">
+                  <h2 className="text-xl font-extrabold tracking-tight">Get set up</h2>
+                  <p className="text-sm text-muted tabular-nums">
+                    {doneCount} of {steps.length} done
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-grape-50" role="progressbar" aria-label="Setup" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount}>
+                <div className="pp-grow h-full rounded-full bg-grape-500" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+              </div>
+              <ul className="mt-4 space-y-0.5">
+                {steps.map((s) => {
+                  const row = (
+                    <span className="flex items-center gap-3 px-2 py-1.5 text-sm">
+                      {s.done ? (
+                        <CircleCheck className="size-5 shrink-0 text-brand-600" aria-hidden />
+                      ) : (
+                        <span className="size-5 shrink-0 rounded-full border-2 border-grape-100" aria-hidden />
+                      )}
+                      <span className={cx("flex-1", s.done ? "text-muted line-through decoration-muted/40" : "font-medium")}>{s.label}</span>
+                      {s.soon ? <span className="rounded-full bg-grape-50 px-2 py-0.5 text-xs text-grape-700">Coming soon</span> : null}
+                      <span className="sr-only">{s.done ? "Done" : "Not done"}</span>
+                    </span>
+                  );
+                  return (
+                    <li key={s.label}>
+                      {!s.done && s.href ? (
+                        <Link href={s.href} className="block rounded-xl hover:bg-grape-50">
+                          {row}
+                        </Link>
+                      ) : (
+                        row
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+              {canManageTeam ? (
+                <Link href="/app/team" className="mt-3 inline-block px-2 text-sm font-bold text-grape-700 hover:underline">
+                  Invite a teammate
+                </Link>
+              ) : null}
+            </section>
+          ) : null}
+          {showAi ? (
+            <section className="rounded-[1.5rem] border border-line bg-white pb-2 pt-6 shadow-[var(--shadow-card)]">
+              <div className="flex items-center gap-3 px-6">
+                <Icon3d name="bell" size={44} />
+                <h2 className="text-xl font-extrabold tracking-tight">Recent activity</h2>
+              </div>
+              <ActivityList recent={recent} now={now} />
+            </section>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Closing banner */}
+      <section
+        style={{ "--i": 5 } as React.CSSProperties}
+        className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 overflow-hidden rounded-[1.5rem] bg-gradient-to-r from-tile-sky via-tile-lavender to-tile-peach p-6"
+      >
+        <div className="flex min-w-0 items-center gap-4">
+          <Icon3d name="houses" size={64} className="max-sm:hidden" />
+          <div className="min-w-0">
+            <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">Turn your property into profit!</h2>
+            <p className="mt-1 max-w-xl text-sm text-ink/75">
+              {paid
+                ? "Share a listing's public page on Facebook and Messenger. Every inquiry lands in your pipeline, ready to follow up."
+                : "With MyHomeSeller on Basic, every buyer gets an answer and you see which leads fit each listing."}
             </p>
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
-
-function Figure({ label, value, note }: { label: string; value: number | string; note: string }) {
-  return (
-    <div>
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="mt-1 text-2xl font-extrabold tracking-tight tabular-nums">{typeof value === "number" ? <CountUp value={value} /> : value}</dd>
-      <dd className="mt-0.5 text-xs text-muted">{note}</dd>
+        <Link
+          href={paid ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/billing"}
+          className={buttonClass("primary", "max-sm:w-full")}
+        >
+          {paid ? (firstListing ? "Share a listing" : "Add a property") : "See plans, from ₱499 a month"}
+          <ArrowRight className="size-4" aria-hidden />
+        </Link>
+      </section>
     </div>
   );
 }
 
 const plural = (n: number, word: string, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
 
-function Tile({
-  icon,
+/** A key number: round colored icon, the figure, and how it changed. */
+function Stat({
+  icon: Icon,
+  circle,
   tile,
-  accent,
   label,
   value,
+  trend,
   note,
   href,
 }: {
-  icon: Icon3dName;
+  icon: LucideIcon;
+  circle: string;
   tile: string;
-  accent: string;
   label: string;
   value: ReactNode;
-  note: string;
+  trend?: number | null;
+  note: ReactNode;
   href?: string;
 }) {
-  const className = cx("pp-bounce block rounded-[var(--radius-tile)] p-4 sm:p-5", tile, href && "pp-lift");
+  const className = cx("flex flex-col gap-3 rounded-[var(--radius-tile)] p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5", tile, href && "pp-lift");
   const body = (
     <>
-      <Icon3d name={icon} size={40} />
-      <p className={cx("mt-3 text-[1.9rem] leading-none font-extrabold tracking-tight tabular-nums sm:text-[2.3rem]", accent)}>{value}</p>
-      <p className="mt-2 text-sm font-semibold text-ink/80">{label}</p>
-      <p className="mt-0.5 text-xs text-muted">{note}</p>
+      <span className={cx("grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br text-white shadow-[0_8px_18px_-8px_rgb(0_0_0/0.45)] sm:size-14", circle)}>
+        <Icon className="size-6 sm:size-7" aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-ink/80">{label}</span>
+        <span className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-[2rem] leading-none font-extrabold tracking-tight sm:text-[2.4rem]">{value}</span>
+          {trend === null || trend === undefined ? null : (
+            <span className={cx("inline-flex items-center text-sm font-bold tabular-nums", trend > 0 ? "text-good" : trend < 0 ? "text-hot" : "text-muted")}>
+              {trend > 0 ? <ArrowUp className="size-3.5" aria-hidden /> : trend < 0 ? <ArrowDown className="size-3.5" aria-hidden /> : null}
+              {trend > 0 ? "+" : ""}
+              {trend}%
+            </span>
+          )}
+        </span>
+        <span className="mt-1 block text-xs text-muted">{note}</span>
+      </span>
+      {href ? <ChevronRight className="size-5 shrink-0 text-ink/40 max-2xl:hidden" aria-hidden /> : null}
     </>
   );
   return href ? (
@@ -490,5 +537,98 @@ function Tile({
     </Link>
   ) : (
     <div className={className}>{body}</div>
+  );
+}
+
+/** A card with a dark title bar, like the mockup's activity and quick-action panels. */
+function Panel({
+  icon,
+  title,
+  action,
+  className,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  action?: { href: string; label: string };
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={cx("flex flex-col overflow-hidden rounded-[1.5rem] border border-line bg-white shadow-[var(--shadow-card)]", className)}>
+      <div className="flex items-center justify-between gap-3 bg-frame-1 px-5 py-3.5 text-white">
+        <h2 className="flex items-center gap-2.5 text-lg font-extrabold tracking-tight">
+          {icon}
+          {title}
+        </h2>
+        {action ? (
+          <Link href={action.href} className="inline-flex items-center gap-1 text-sm font-semibold text-white/85 hover:text-white">
+            {action.label} <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Row({ href, icon, title, detail, when }: { href?: string; icon: ReactNode; title: string; detail: string; when: string }) {
+  const body = (
+    <span className="flex items-start gap-3 py-3">
+      {icon}
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-bold">{title}</span>
+        <span className="block truncate text-sm text-muted">{detail}</span>
+      </span>
+      <span className="shrink-0 pt-0.5 text-xs text-muted">{when}</span>
+    </span>
+  );
+  return href ? (
+    <Link href={href} className="-mx-2 block rounded-xl px-2 hover:bg-grape-50">
+      {body}
+    </Link>
+  ) : (
+    body
+  );
+}
+
+function ActivityList({ recent, now }: { recent: Activity[]; now?: Date }) {
+  if (recent.length === 0) return <p className="px-5 py-6 text-sm text-muted">Nothing yet. Activity from your team and listings shows up here.</p>;
+  return (
+    <ul className="divide-y divide-line px-5">
+      {recent.map((a, i) => {
+        const Icon = a.icon;
+        return (
+          <li key={`${a.title}-${a.at}-${i}`}>
+            <Row
+              href={a.href}
+              icon={
+                <span className={cx("grid size-10 shrink-0 place-items-center rounded-full", a.tone)}>
+                  <Icon className="size-5" aria-hidden />
+                </span>
+              }
+              title={a.title}
+              detail={a.detail}
+              when={timeAgo(a.at, now)}
+            />
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function Action({ href, icon: Icon, tone, label }: { href: string; icon: LucideIcon; tone: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className={cx(
+        "pp-lift pp-bounce flex min-h-[4.5rem] flex-col justify-center gap-2 rounded-2xl bg-gradient-to-br p-4 text-[15px] leading-tight font-bold text-white sm:flex-row sm:items-center sm:justify-start sm:gap-3",
+        tone,
+      )}
+    >
+      <Icon className="size-6 shrink-0" aria-hidden />
+      {label}
+    </Link>
   );
 }
