@@ -287,25 +287,29 @@ export function SourceChart({ series }: { series: LeadsReport["series"] }) {
           </span>
         ))}
       </div>
-      <table className="sr-only">
-        <caption>Inquiries per period by source</caption>
-        <thead>
-          <tr>
-            <th>Period</th>
-            <th>Listing pages</th>
-            <th>Messenger</th>
-          </tr>
-        </thead>
-        <tbody>
-          {series.map((s) => (
-            <tr key={s.label}>
-              <td>{s.label}</td>
-              <td>{s.propilot}</td>
-              <td>{s.messenger}</td>
+      {/* For screen readers. The wrapper keeps it 1px: a table ignores that size by itself and, though
+          invisible, would hang hundreds of pixels below the page and let it scroll into empty space. */}
+      <div className="sr-only">
+        <table>
+          <caption>Inquiries per period by source</caption>
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th>Listing pages</th>
+              <th>Messenger</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {series.map((s) => (
+              <tr key={s.label}>
+                <td>{s.label}</td>
+                <td>{s.propilot}</td>
+                <td>{s.messenger}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }
