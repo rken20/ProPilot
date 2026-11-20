@@ -219,14 +219,23 @@ export function DashboardView({
       <div style={{ "--i": 2 } as React.CSSProperties} className="grid grid-cols-1 gap-5 xl:grid-cols-5">
         <section
           aria-labelledby="agent-title"
-          className="relative flex flex-col gap-5 overflow-hidden rounded-[2rem] bg-gradient-to-br from-frame-1 via-frame-2 to-frame-3 p-6 text-white shadow-[var(--shadow-lift)] sm:flex-row sm:items-center sm:gap-7 sm:p-8 xl:col-span-3"
+          className="relative isolate flex flex-col overflow-hidden rounded-[2rem] bg-frame-1 text-white shadow-[var(--shadow-lift)] sm:min-h-80 sm:flex-row sm:items-center xl:col-span-3"
         >
-          <div aria-hidden className="pointer-events-none absolute -left-10 -top-24 size-72 rounded-full bg-white/10 blur-2xl" />
-          <span className="relative grid size-24 shrink-0 place-items-center rounded-[1.75rem] bg-white/12 ring-1 ring-white/20 sm:size-40 sm:rounded-[2.25rem]">
-            <Icon3d name="robot" size={72} className="sm:hidden" />
-            <Icon3d name="robot" size={120} className="max-sm:hidden" />
-          </span>
-          <div className="relative min-w-0">
+          {/* The house scene with the mascot in front: a banner on top on phones, the whole card behind the text on wider screens. */}
+          <div aria-hidden className="relative h-48 shrink-0 sm:absolute sm:inset-0 sm:-z-10 sm:h-auto">
+            {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
+            <img src="/images/dashboard/house.webp" alt="" width={1600} height={893} className="size-full object-cover object-[30%_55%]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-45% to-frame-1 to-95% sm:bg-gradient-to-r sm:from-transparent sm:from-20% sm:via-frame-1/85 sm:via-50% sm:to-frame-1 sm:to-75%" />
+            {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
+            <img
+              src="/images/dashboard/mascot.webp"
+              alt=""
+              width={641}
+              height={720}
+              className="absolute -bottom-2 left-4 h-[10.5rem] w-auto drop-shadow-[0_16px_22px_rgb(20_10_60/0.45)] sm:bottom-0 sm:left-5 sm:h-[90%]"
+            />
+          </div>
+          <div className="relative min-w-0 p-6 pt-5 sm:ml-auto sm:w-[55%] sm:py-8 sm:pl-0 sm:pr-8">
             <h2 id="agent-title" className="text-[1.6rem] leading-[1.15] font-extrabold tracking-tight text-balance sm:text-[2rem]">
               {ASSISTANT[assistant].title}
             </h2>
@@ -461,18 +470,22 @@ export function DashboardView({
       {/* Closing banner */}
       <section
         style={{ "--i": 5 } as React.CSSProperties}
-        className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 overflow-hidden rounded-[1.5rem] bg-gradient-to-r from-tile-sky via-tile-lavender to-tile-peach p-6"
+        className="relative isolate flex flex-wrap items-center justify-between gap-x-6 gap-y-4 overflow-hidden rounded-[1.5rem] border border-line p-6 sm:py-9"
       >
-        <div className="flex min-w-0 items-center gap-4">
-          <Icon3d name="houses" size={64} className="max-sm:hidden" />
-          <div className="min-w-0">
-            <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">Turn your property into profit!</h2>
-            <p className="mt-1 max-w-xl text-sm text-ink/75">
-              {paid
-                ? "Share a listing's public page on Facebook and Messenger. Every inquiry lands in your pipeline, ready to follow up."
-                : "With MyHomeSeller on Basic, every buyer gets an answer and you see which leads fit each listing."}
-            </p>
-          </div>
+        {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
+        <img src="/images/dashboard/skyline.webp" alt="" width={2000} height={481} loading="lazy" className="absolute inset-0 -z-20 size-full object-cover object-[100%_10%]" />
+        {/* A wash in the card's color keeps the words readable in both themes; the skyline shows through on the right. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10 bg-gradient-to-r from-[var(--pp-card)] from-25% via-[var(--pp-card)]/75 via-55% to-transparent max-sm:from-0% max-sm:via-[var(--pp-card)]/85 max-sm:to-[var(--pp-card)]/55"
+        />
+        <div className="min-w-0">
+          <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">Turn your property into profit!</h2>
+          <p className="mt-1 max-w-xl text-sm text-ink/80">
+            {paid
+              ? "Share a listing's public page on Facebook and Messenger. Every inquiry lands in your pipeline, ready to follow up."
+              : "With MyHomeSeller on Basic, every buyer gets an answer and you see which leads fit each listing."}
+          </p>
         </div>
         <Link
           href={paid ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/billing"}
