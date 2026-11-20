@@ -40,6 +40,12 @@ export default function PrivacyPage() {
                 need an account to send one.
               </li>
               <li>
+                If you tell us what you&apos;re looking for on an inquiry form (property type, budget, preferred areas, when
+                you plan to buy and how you&apos;d pay): it goes to that business with your inquiry. If you also tick the box
+                to get match emails, we save your email, name, property type, budget, areas and payment method, together
+                with the wording you agreed to and when. We ask you to confirm from an email before using them.
+              </li>
+              <li>
                 Visits to a listing&apos;s public page are counted per day, with no personal data. To stop spam, we keep a
                 one-way scrambled form of your internet address for up to 2 days when you send an inquiry.
               </li>
@@ -72,6 +78,13 @@ export default function PrivacyPage() {
               <li>To run your account and show you the right screens.</li>
               <li>To pass an inquiry to the business that listed the property, in the app and, if set up, by email.</li>
               <li>To answer questions about a listing using only that listing&apos;s details.</li>
+              <li>
+                Match emails, only if you asked for them and confirmed: an automatic check compares what you&apos;re looking
+                for with public listings on MyHomeSeller and emails you the ones that fit, at most once a week. Listings from
+                sellers on a paid plan are shown first. Sellers never see your preferences or contact details from this;
+                a seller hears from you only if you send them an inquiry. Every email has a link that stops the emails and
+                deletes your preferences straight away. Otherwise we delete them after 12 months.
+              </li>
               <li>
                 On Facebook, only when you ask: to read your Page&apos;s posts so you can turn one into a listing, and to
                 publish a listing to your Page when someone on your team presses Post.
@@ -106,6 +119,10 @@ export default function PrivacyPage() {
               <li>Your account and listings: until you delete them or ask us to delete your account.</li>
               <li>Inquiries from public pages: with the business&apos;s leads, until the business deletes them.</li>
               <li>Messenger conversations: deleted 12 months after the last message.</li>
+              <li>
+                Match email preferences: until you stop the emails, or 12 months at most. If you never confirm from our
+                email, they are deleted after 7 days.
+              </li>
               <li>Pipeline leads that never got past the early stages, or were marked lost: deleted after 12 months with no activity.</li>
               <li>Google and Facebook tokens: until you disconnect, or remove MyHomeSeller in your Google or Facebook settings.</li>
             </ul>

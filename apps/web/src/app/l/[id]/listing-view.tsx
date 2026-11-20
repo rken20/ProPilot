@@ -25,7 +25,15 @@ function NoPhotos({ name }: { name: string }) {
 }
 
 /** A listing's public page, as anyone with the link sees it. */
-export function PublicListingView({ listing, inquiry }: { listing: PublicListing; inquiry: (prev: FormState, form: FormData) => Promise<FormState> }) {
+export function PublicListingView({
+  listing,
+  inquiry,
+  matchEmails = false,
+}: {
+  listing: PublicListing;
+  inquiry: (prev: FormState, form: FormData) => Promise<FormState>;
+  matchEmails?: boolean;
+}) {
   const photos = listing.photos.map((p) => ({ id: p.id, full: mediaUrl(p.path) ?? "", thumb: mediaUrl(p.thumb) ?? "" }));
   const fin = financingLabels(listing.financing);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
@@ -116,7 +124,7 @@ export function PublicListingView({ listing, inquiry }: { listing: PublicListing
                   <p className="mt-0.5 text-sm text-muted">Ask a question or pick a day to see it.</p>
                 </div>
               </div>
-              <ViewingForm action={inquiry} minDate={today} agent={listing.business_name} />
+              <ViewingForm action={inquiry} minDate={today} agent={listing.business_name} matchEmails={matchEmails} />
             </section>
             <LoanEstimator priceMinor={listing.price_minor} defaultDownpayment={listing.financing?.downpaymentPercent} />
           </aside>

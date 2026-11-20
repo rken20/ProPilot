@@ -7,6 +7,7 @@ import { formatPeso } from "@/lib/money";
 import { TYPE_LABEL } from "@/lib/property-labels";
 import { getPublicListing, recordListingView } from "@/lib/public-listing";
 import { sendInquiry } from "./actions";
+import { matchAlertsOn } from "@/lib/match-alerts";
 import { PublicListingView } from "./listing-view";
 
 /** Link previews on Facebook, Messenger and SMS show the listing's photo, price and place. */
@@ -31,5 +32,5 @@ export default async function PublicListingPage({ params }: PageProps<"/l/[id]">
   // Link-preview crawlers (Facebook, Messenger, search engines) aren't views.
   const ua = (await headers()).get("user-agent") ?? "";
   if (!/bot|crawl|spider|facebookexternalhit|preview|slurp/i.test(ua)) after(() => recordListingView(listing.id));
-  return <PublicListingView listing={listing} inquiry={sendInquiry.bind(null, listing.id)} />;
+  return <PublicListingView listing={listing} inquiry={sendInquiry.bind(null, listing.id)} matchEmails={matchAlertsOn()} />;
 }

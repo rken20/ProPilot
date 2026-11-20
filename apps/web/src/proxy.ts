@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // /l/<id> is a listing's public page, for anyone with the link.
 // /manifest.webmanifest lets a phone install the app; browsers fetch it without the session cookie.
 // /get-app explains how to install it.
-const PUBLIC_PATHS = ["/", "/l", "/manifest.webmanifest", "/get-app", "/login", "/signup", "/forgot-password", "/auth", "/privacy", "/api/meta/data-deletion", "/api/meta/webhook", "/api/cron"];
+const PUBLIC_PATHS = ["/", "/l", "/manifest.webmanifest", "/get-app", "/alerts", "/login", "/signup", "/forgot-password", "/auth", "/privacy", "/api/meta/data-deletion", "/api/meta/webhook", "/api/cron"];
 
 /**
  * Refreshes the Supabase session cookie on every request and sends signed-out

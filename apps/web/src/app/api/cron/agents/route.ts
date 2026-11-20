@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { runScheduledAgents } from "@/lib/agent-runs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendUsageEmails } from "@/lib/usage";
+import { sendMatchEmails } from "@/lib/match-alerts";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -23,6 +24,8 @@ export async function GET(request: NextRequest) {
   // Quick, and first, so the AI agents below can't use up its time.
   const origin = process.env.APP_ORIGIN?.replace(/\/$/, "") || request.nextUrl.origin;
   const usageEmails = await sendUsageEmails(admin, origin).catch(() => 0);
+  // Buyers who agreed get the listings that fit them, paid sellers' listings first.
+  const matches = await sendMatchEmails(admin, origin).catch(() => ({ emails: 0, listings: 0 }));
   const result = await runScheduledAgents(admin);
-  return NextResponse.json({ ...result, usageEmails });
+  return NextResponse.json({ ...result, usageEmails, matchEmails: matches.emails });
 }
