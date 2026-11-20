@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { runScheduledAgents } from "@/lib/agent-runs";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendUsageEmails } from "@/lib/usage";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -19,6 +20,9 @@ export async function GET(request: NextRequest) {
   }
   const admin = createAdminClient();
   if (!admin) return new NextResponse("not configured", { status: 503 });
+  // Quick, and first, so the AI agents below can't use up its time.
+  const origin = process.env.APP_ORIGIN?.replace(/\/$/, "") || request.nextUrl.origin;
+  const usageEmails = await sendUsageEmails(admin, origin).catch(() => 0);
   const result = await runScheduledAgents(admin);
-  return NextResponse.json(result);
+  return NextResponse.json({ ...result, usageEmails });
 }

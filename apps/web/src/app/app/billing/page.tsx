@@ -17,6 +17,8 @@ const PLAN_LOOK: Record<string, { icon: Icon3dName; tile: string; badge?: string
 };
 import { createClient } from "@/lib/supabase/server";
 import { GcashPayForm } from "./pay-form";
+import { UsageMeters, UsageNotice } from "@/components/usage-notice";
+import { businessUsage } from "@/lib/usage";
 
 const dateFmt = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric" });
 const date = (iso: string) => dateFmt.format(new Date(iso));
@@ -42,6 +44,7 @@ export default async function BillingPage() {
       .limit(24),
   ]);
 
+  const usage = await businessUsage(supabase, biz.businessId, plan);
   const now = new Date();
   const left = daysLeft(plan.periodEnd, now);
   const pending = (payments ?? []).find((p) => p.status === "pending");
@@ -70,6 +73,15 @@ export default async function BillingPage() {
           <span className="rounded-full bg-hot px-3 py-1 text-sm font-semibold text-white">Renew soon</span>
         ) : null}
       </Card>
+
+      <UsageNotice items={usage} planCode={plan.code} canSeeBilling onBilling className="mb-6" />
+      {usage.length ? (
+        <Card className="mb-6">
+          <h2 className="text-lg font-bold tracking-tight">AI allowances this month</h2>
+          <p className="mt-0.5 mb-4 text-sm text-muted">They renew on the 1st of each month.</p>
+          <UsageMeters items={usage} />
+        </Card>
+      ) : null}
 
       {pending ? (
         <div className="mb-6">

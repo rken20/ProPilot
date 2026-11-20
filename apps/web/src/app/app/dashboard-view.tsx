@@ -27,6 +27,8 @@ import { Alert, buttonClass, cx } from "@/components/ui";
 import { CountUp } from "@/components/count-up";
 import { Icon3d } from "@/components/icon-3d";
 import { InstallBanner } from "@/components/install-app";
+import { UsageNotice } from "@/components/usage-notice";
+import type { UsageItem } from "@/lib/usage-rules";
 import { changePct, type PerfPoint } from "@/lib/dashboard-stats";
 import { formatPeso } from "@/lib/money";
 import { timeAgo } from "@/lib/time";
@@ -69,6 +71,9 @@ export type DashboardData = {
   facebookConnected: boolean;
   /** Whether the plan includes the Pricing Advisor (Agency). The button shows either way. */
   pricingAdvisor: boolean;
+  /** This month's AI allowances; a notice shows when one is low or used up. */
+  usage: UsageItem[];
+  canSeeBilling: boolean;
   now?: Date;
 };
 
@@ -109,6 +114,8 @@ export function DashboardView({
   performance,
   facebookConnected,
   pricingAdvisor,
+  usage,
+  canSeeBilling,
   now,
 }: DashboardData) {
   const doneCount = steps.filter((s) => s.done).length;
@@ -126,6 +133,7 @@ export function DashboardView({
   return (
     <div className="pp-stagger space-y-6">
       {notice ? <Alert tone="success">{notice}</Alert> : null}
+      <UsageNotice items={usage} planCode={plan.code} canSeeBilling={canSeeBilling} />
       <InstallBanner />
 
       {/* Greeting */}

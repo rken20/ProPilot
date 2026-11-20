@@ -10,6 +10,7 @@ import { daysAgoIso, greeting, longDate } from "@/lib/time";
 import { DashboardView, type Activity, type AiItem, type SetupStep } from "./dashboard-view";
 import { agentName } from "@/lib/agent-info";
 import { aiEnabled, businessPlan } from "@/lib/plan";
+import { businessUsage } from "@/lib/usage";
 import { buyerFinderUsed } from "@/lib/buyer-finder";
 import { performanceSeries, viewingsByMonth } from "@/lib/dashboard-stats";
 import { loadReportData } from "@/lib/report-data";
@@ -166,6 +167,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
         .filter((l) => l.views + l.inquiries > 0)
         .sort((a, b) => b.inquiries - a.inquiries || b.views - a.views)[0]
     : undefined;
+  // AI allowances this month, for the notice when one is low or used up.
+  const usage = canSeeLeads ? await businessUsage(supabase, biz.businessId, plan) : [];
   const { data: planRow } = await supabase.from("plans").select("price_minor").eq("code", plan.code).maybeSingle();
   const nameOf = (id: string) => {
     if (id === user?.id) return "You";
@@ -253,6 +256,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       }
       facebookConnected={pagesConnected}
       pricingAdvisor={plan.priceChecks !== 0}
+      usage={usage}
+      canSeeBilling={can(biz.role, "billing.view")}
       recent={recent}
     />
   );
