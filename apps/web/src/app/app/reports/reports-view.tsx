@@ -59,7 +59,7 @@ export function ReportsView({
       <Section i={2} title="Listing performance" csv={csv("listings")}>
         {listings.length ? (
           <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[var(--shadow-card)]">
-            <table className="w-full min-w-[46rem] text-sm">
+            <table className="pp-table w-full min-w-[46rem] text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs text-muted">
                   <th className="px-4 py-3 font-medium">Listing</th>
@@ -121,7 +121,7 @@ export function ReportsView({
       {team ? (
         <Section i={4} title="Team" csv={csv("team")}>
           <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[var(--shadow-card)]">
-            <table className="w-full min-w-[46rem] text-sm">
+            <table className="pp-table w-full min-w-[46rem] text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs text-muted">
                   <th className="px-4 py-3 font-medium">Name</th>

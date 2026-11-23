@@ -30,7 +30,7 @@ export function HeroChat() {
   return (
     <div className="flex min-h-[170px] flex-col justify-end gap-3" aria-label="Example question from a buyer">
       {step >= 1 ? (
-        <p className="pp-enter ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-brand-600 px-4 py-2.5 text-sm leading-relaxed text-white">
+        <p className="pp-enter ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-[#1565e6] px-4 py-2.5 text-sm leading-relaxed text-white">
           {QUESTION}
         </p>
       ) : null}

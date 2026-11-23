@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { Card, PageHeader } from "@/components/ui";
+import { Card, PageHeader, Panel } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPeso } from "@/lib/money";
 import { requireSuperAdmin } from "@/lib/superadmin";
@@ -103,8 +103,7 @@ export default async function AdminPaymentsPage() {
         </Card>
       )}
 
-      <Card className="mt-8">
-        <h2 className="text-lg font-bold tracking-tight">Give a plan for free</h2>
+      <Panel title="Give a plan for free" className="mt-8">
         <p className="mt-1 mb-4 text-sm text-muted">
           For beta testers and partners. It works like a confirmed payment of ₱0 and shows in their payment history.
         </p>
@@ -150,7 +149,7 @@ export default async function AdminPaymentsPage() {
             Give plan
           </SubmitButton>
         </form>
-      </Card>
+      </Panel>
 
       {recent?.length ? (
         <section className="mt-8">

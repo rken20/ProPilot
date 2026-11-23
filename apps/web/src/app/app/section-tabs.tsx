@@ -15,12 +15,11 @@ export function SectionTabs({ groups }: { groups: SectionTab[][] }) {
   const tabs = groups.find((g) => g.some((t) => t.href === path));
   if (!tabs || tabs.length < 2) return null;
   return (
-    // The line under the tabs is an inset shadow, so the active tab's underline sits on it without
-    // overflowing (a 1px overflow here used to show an up/down scrollbar). Tabs still swipe sideways
-    // on narrow screens; the scrollbar itself is hidden.
+    // Pills in one rounded bar, the current one navy like the dashboard's panel headers. The bar
+    // swipes sideways on narrow screens; its scrollbar is hidden.
     <nav
       aria-label="Section"
-      className="-mt-1 mb-6 flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--color-line)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="-mt-1 mb-6 flex w-fit max-w-full gap-1 overflow-x-auto overflow-y-hidden rounded-full border border-line bg-white p-1 shadow-[var(--shadow-card)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {tabs.map((t) => {
         const active = t.href === path;
@@ -30,8 +29,8 @@ export function SectionTabs({ groups }: { groups: SectionTab[][] }) {
             href={t.href}
             aria-current={active ? "page" : undefined}
             className={cx(
-              "flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm transition-colors",
-              active ? "border-brand-600 font-semibold text-ink" : "border-transparent text-muted hover:text-ink",
+              "flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm transition-colors",
+              active ? "bg-frame-1 font-bold text-white" : "font-medium text-muted hover:bg-grape-50 hover:text-ink",
             )}
           >
             {t.label}

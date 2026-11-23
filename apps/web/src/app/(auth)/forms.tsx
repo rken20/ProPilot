@@ -28,7 +28,7 @@ export function SignUpForm({ next }: { next?: string }) {
       </SubmitButton>
       <p className="text-center text-sm text-zinc-600">
         Already have an account?{" "}
-        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-brand-700">
+        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-bold text-grape-700 hover:underline">
           Log in
         </Link>
       </p>
@@ -50,7 +50,7 @@ export function SignInForm({ next, notice }: { next?: string; notice?: string })
         <Input id="password" name="password" type="password" autoComplete="current-password" required />
       </Field>
       <div className="flex justify-end">
-        <Link href="/forgot-password" className="text-sm text-brand-700">
+        <Link href="/forgot-password" className="text-sm font-semibold text-grape-700 hover:underline">
           Forgot password?
         </Link>
       </div>
@@ -59,7 +59,7 @@ export function SignInForm({ next, notice }: { next?: string; notice?: string })
       </SubmitButton>
       <p className="text-center text-sm text-zinc-600">
         New to MyHomeSeller?{" "}
-        <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-medium text-brand-700">
+        <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-bold text-grape-700 hover:underline">
           Create an account
         </Link>
       </p>
@@ -80,7 +80,7 @@ export function ForgotPasswordForm() {
         Send reset link
       </SubmitButton>
       <p className="text-center text-sm">
-        <Link href="/login" className="text-brand-700">
+        <Link href="/login" className="font-semibold text-grape-700 hover:underline">
           Back to log in
         </Link>
       </p>

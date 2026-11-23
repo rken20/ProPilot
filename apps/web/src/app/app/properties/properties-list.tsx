@@ -63,8 +63,8 @@ export function PropertiesList({ rows }: { rows: PropertyRow[] }) {
       </ul>
 
       <div className="hidden overflow-hidden rounded-[1.5rem] border border-line bg-white shadow-[var(--shadow-card)] sm:block">
-        <table className="w-full text-sm">
-          <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+        <table className="pp-table w-full text-sm">
+          <thead className="text-left text-xs">
             <tr>
               <th className="px-4 py-3 font-medium">Property</th>
               <th className="hidden px-4 py-3 font-medium md:table-cell">Type</th>

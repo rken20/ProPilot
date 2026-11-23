@@ -459,3 +459,19 @@ body::before {
     transform: none;
   }
 }
+
+/*
+ * A table with class "pp-table" gets the dashboard's navy title bar as its
+ * header row. Unlayered, so it wins over the utility classes on the cells.
+ */
+table.pp-table > thead {
+  background: var(--color-frame-1);
+}
+table.pp-table > thead :is(tr, th) {
+  border-color: transparent;
+  color: #fff;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}

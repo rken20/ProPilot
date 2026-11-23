@@ -25,7 +25,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { Alert, cx } from "@/components/ui";
+import { Alert, cx, titleCase } from "@/components/ui";
 import { Avatar } from "@/components/avatar";
 import { CountUp } from "@/components/count-up";
 import { Icon3d } from "@/components/icon-3d";
@@ -135,7 +135,7 @@ export function DashboardView({
   const hasActivity = Boolean(lastPoint && lastPoint.views + lastPoint.inquiries + lastPoint.viewings > 0);
 
   return (
-    <div className="pp-stagger space-y-6">
+    <div className="pp-stagger space-y-5">
       {notice ? <Alert tone="success">{notice}</Alert> : null}
       <UsageNotice items={usage} planCode={plan.code} canSeeBilling={canSeeBilling} />
       <InstallBanner />
@@ -149,14 +149,14 @@ export function DashboardView({
           alt=""
           width={1600}
           height={893}
-          className="pointer-events-none absolute -top-14 right-16 -z-10 h-40 w-auto max-w-none opacity-60 select-none [mask-image:radial-gradient(ellipse_at_55%_55%,black_30%,transparent_70%)] max-lg:hidden"
+          className="pointer-events-none absolute -top-12 right-16 -z-10 h-36 w-auto max-w-none opacity-60 select-none [mask-image:radial-gradient(ellipse_at_55%_55%,black_30%,transparent_70%)] max-lg:hidden"
         />
         <div className="min-w-0">
-          <h1 className="text-[1.75rem] leading-tight font-extrabold tracking-tight text-balance sm:text-[2.25rem]">
+          <h1 className="text-[1.6rem] leading-tight font-extrabold tracking-tight text-balance sm:text-[1.9rem]">
             {titleCase(greetingText)}
             {fullName || firstName ? `, ${fullName || firstName}` : ""}!
           </h1>
-          <p className="mt-1 text-[15px] text-muted">Here&apos;s what&apos;s happening with your properties. {dateText}.</p>
+          <p className="mt-1 text-sm text-muted">Here&apos;s what&apos;s happening with your properties. {dateText}.</p>
         </div>
         <div className="flex items-center gap-3">
           {paid ? null : (
@@ -168,7 +168,7 @@ export function DashboardView({
             <Link
               href="/app/leads"
               aria-label={unanswered ? `${unanswered} new ${unanswered === 1 ? "inquiry" : "inquiries"} to answer` : "Inquiries"}
-              className="pp-bounce relative grid size-11 place-items-center rounded-full bg-white/90 text-ink shadow-[var(--shadow-card)]"
+              className="pp-bounce relative grid size-10 place-items-center rounded-full bg-white/90 text-ink shadow-[var(--shadow-card)]"
             >
               <Bell className="size-5" aria-hidden />
               {unanswered ? (
@@ -180,14 +180,14 @@ export function DashboardView({
           ) : null}
           {/* On phones the photo is already in the bar on top. */}
           <Link href="/app/account" aria-label="Your account" className="pp-bounce flex items-center gap-1 rounded-full max-lg:hidden">
-            <Avatar name={fullName || firstName} url={avatarUrl} className="size-12 bg-grape-100 text-sm text-grape-700 ring-2 ring-white shadow-[var(--shadow-card)]" />
+            <Avatar name={fullName || firstName} url={avatarUrl} className="size-10 bg-grape-100 text-sm text-grape-700 ring-2 ring-white shadow-[var(--shadow-card)]" />
             <ChevronDown className="size-4 text-ink/60" aria-hidden />
           </Link>
         </div>
       </header>
 
       {/* Key numbers */}
-      <section style={{ "--i": 1 } as React.CSSProperties} aria-label="Key numbers" className="relative grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+      <section style={{ "--i": 1 } as React.CSSProperties} aria-label="Key numbers" className="relative grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat
           icon={Home}
           circle="from-[#3b82f6] to-[#1d4ed8]"
@@ -244,10 +244,10 @@ export function DashboardView({
       <div style={{ "--i": 2 } as React.CSSProperties} className="grid grid-cols-1 gap-5 xl:grid-cols-5">
         <section
           aria-labelledby="agent-title"
-          className="relative isolate flex flex-col overflow-hidden rounded-[2rem] border border-[var(--hero-line)] bg-[var(--hero-wash)] text-[var(--hero-ink)] shadow-[var(--shadow-card)] sm:min-h-80 sm:flex-row sm:items-center xl:col-span-3"
+          className="relative isolate flex flex-col overflow-hidden rounded-[2rem] border border-[var(--hero-line)] bg-[var(--hero-wash)] text-[var(--hero-ink)] shadow-[var(--shadow-card)] sm:min-h-64 sm:flex-row sm:items-center xl:col-span-3"
         >
           {/* The house scene with the mascot in front: a banner on top on phones, the left of the card on wider screens. */}
-          <div aria-hidden className="relative h-48 shrink-0 sm:absolute sm:inset-0 sm:-z-10 sm:h-auto">
+          <div aria-hidden className="relative h-44 shrink-0 sm:absolute sm:inset-0 sm:-z-10 sm:h-auto">
             {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
             <img src="/images/dashboard/house.webp" alt="" width={1600} height={893} className="size-full object-cover object-[30%_55%]" />
             <div className="absolute inset-0 bg-gradient-to-b from-transparent from-55% to-[var(--hero-wash)] to-100% sm:bg-gradient-to-r sm:from-transparent sm:from-25% sm:via-[var(--hero-wash)]/90 sm:via-50% sm:to-[var(--hero-wash)] sm:to-68%" />
@@ -257,23 +257,23 @@ export function DashboardView({
               alt=""
               width={641}
               height={720}
-              className="absolute -bottom-2 left-4 h-[10.5rem] w-auto drop-shadow-[0_16px_22px_rgb(10_31_77/0.35)] sm:bottom-0 sm:left-5 sm:h-[90%]"
+              className="absolute -bottom-2 left-4 h-[9.5rem] w-auto drop-shadow-[0_16px_22px_rgb(10_31_77/0.35)] sm:bottom-0 sm:left-5 sm:h-[90%]"
             />
           </div>
-          <div className="relative min-w-0 p-6 pt-5 sm:ml-auto sm:w-[53%] sm:py-8 sm:pl-0 sm:pr-8">
-            <h2 id="agent-title" className="text-[1.6rem] leading-[1.15] font-extrabold tracking-tight text-balance sm:text-[2rem]">
+          <div className="relative min-w-0 p-5 pt-4 sm:ml-auto sm:w-[53%] sm:py-6 sm:pl-0 sm:pr-7">
+            <h2 id="agent-title" className="text-[1.45rem] leading-[1.15] font-extrabold tracking-tight text-balance sm:text-[1.7rem]">
               {ASSISTANT[assistant].title}
             </h2>
             <p
               className={cx(
-                "mt-3 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-[15px] font-bold",
+                "mt-2.5 inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-sm font-bold",
                 live ? "border-[#9fdcb8] bg-[#e2f6ea] text-[#0a6d39]" : "border-[var(--hero-line)] bg-white/60 text-[#0a1f4d]",
               )}
             >
               {live ? <CircleCheck className="size-4.5 fill-[#12a356] text-white" aria-hidden /> : null}
               {ASSISTANT[assistant].pill}
             </p>
-            <p className="mt-3 max-w-md text-[15px] opacity-85">
+            <p className="mt-2.5 max-w-md text-sm opacity-85">
               {assistant === "always"
                 ? `Finding buyers, answering inquiries and sizing up every lead for ${businessName}.`
                 : assistant === "on"
@@ -284,7 +284,7 @@ export function DashboardView({
             </p>
             <Link
               href={live ? "/app/agents" : assistant === "almost" ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/billing"}
-              className="pp-bounce mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#1565e6] px-6 text-[15px] font-bold text-white shadow-[0_8px_18px_-8px_rgb(21_101_230/0.8)] hover:bg-[#0f52c4]"
+              className="pp-bounce mt-4 inline-flex min-h-10 items-center gap-2 rounded-full bg-[#1565e6] px-5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgb(21_101_230/0.8)] hover:bg-[#0f52c4]"
             >
               {live ? "View AI Activity" : assistant === "almost" ? (firstListing ? "Open Your Listing" : "Add a Property") : "See Plans, from ₱499 a Month"}
               <ArrowRight className="size-4" aria-hidden />
@@ -307,7 +307,7 @@ export function DashboardView({
                     <Row
                       href={a.href}
                       icon={
-                        <span className={cx("grid size-10 shrink-0 place-items-center rounded-full text-white", tone)}>
+                        <span className={cx("grid size-9 shrink-0 place-items-center rounded-full text-white", tone)}>
                           <Icon className="size-5" aria-hidden />
                         </span>
                       }
@@ -328,11 +328,11 @@ export function DashboardView({
       {/* Performance, and shortcuts */}
       <div style={{ "--i": 3 } as React.CSSProperties} className="grid grid-cols-1 gap-5 xl:grid-cols-5">
         {performance ? (
-          <section aria-labelledby="perf-title" className="rounded-[1.5rem] border border-line bg-white p-5 shadow-[var(--shadow-card)] sm:p-6 xl:col-span-3">
+          <section aria-labelledby="perf-title" className="rounded-[1.5rem] border border-line bg-white p-5 shadow-[var(--shadow-card)] xl:col-span-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <BarChart3 className="size-7 text-grape-600" strokeWidth={3} aria-hidden />
-                <h2 id="perf-title" className="text-xl font-extrabold tracking-tight">
+                <BarChart3 className="size-6 text-grape-600" strokeWidth={3} aria-hidden />
+                <h2 id="perf-title" className="text-lg font-extrabold tracking-tight">
                   Property Performance
                 </h2>
               </div>
@@ -343,7 +343,7 @@ export function DashboardView({
                 </Link>
               </div>
             </div>
-            <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[10.5rem_minmax(0,1fr)]">
+            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-[9.5rem_minmax(0,1fr)]">
               {featured ? (
                 <Link href={`/app/properties/${featured.id}`} className="pp-lift flex gap-3 rounded-2xl sm:block">
                   {featured.coverUrl ? (
@@ -399,7 +399,7 @@ export function DashboardView({
         ) : null}
 
         <Panel className={performance ? "xl:col-span-2" : "xl:col-span-5"} icon={<Rocket className="size-5" aria-hidden />} title="Quick Actions">
-          <div className="grid flex-1 auto-rows-fr grid-cols-2 gap-3 p-4">
+          <div className="grid flex-1 auto-rows-fr grid-cols-2 gap-2.5 p-3.5">
             <Action href="/app/pricing" icon={PhilippinePeso} tone="from-[#1a4bb0] to-[#0c2563]" label="Pricing Advisor" note={pricingAdvisor ? undefined : "Agency plan"} />
             <Action
               href={canCreateProperty ? "/app/properties/new" : "/app/properties"}
@@ -428,7 +428,7 @@ export function DashboardView({
       {/* The banner from the mockup */}
       <section
         style={{ "--i": 4 } as React.CSSProperties}
-        className="relative isolate flex flex-wrap items-center justify-between gap-x-6 gap-y-4 overflow-hidden rounded-[1.5rem] border border-line p-6 sm:py-9"
+        className="relative isolate flex flex-wrap items-center justify-between gap-x-6 gap-y-4 overflow-hidden rounded-[1.5rem] border border-line p-5 sm:px-6 sm:py-7"
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
         <img src="/images/dashboard/skyline.webp" alt="" width={2000} height={481} loading="lazy" className="absolute inset-0 -z-20 size-full object-cover object-[100%_10%]" />
@@ -438,7 +438,7 @@ export function DashboardView({
           className="absolute inset-0 -z-10 bg-gradient-to-r from-[var(--pp-card)] from-25% via-[var(--pp-card)]/75 via-55% to-transparent max-sm:from-0% max-sm:via-[var(--pp-card)]/85 max-sm:to-[var(--pp-card)]/55"
         />
         <div className="min-w-0">
-          <h2 className="text-xl font-extrabold tracking-tight italic sm:text-[1.7rem]">Turn Your Property into Profit!</h2>
+          <h2 className="text-xl font-extrabold tracking-tight italic sm:text-[1.5rem]">Turn Your Property into Profit!</h2>
           <p className="mt-1 max-w-xl text-sm text-ink/80">
             {paid
               ? "Share a listing's public page on Facebook and Messenger. Every inquiry becomes a lead, ready to follow up."
@@ -447,7 +447,7 @@ export function DashboardView({
         </div>
         <Link
           href={paid ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/billing"}
-          className="pp-bounce inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-sun px-7 text-[15px] font-extrabold text-sun-ink shadow-[0_10px_22px_-10px_rgb(248_196_35/0.9)] hover:brightness-105 max-sm:w-full"
+          className="pp-bounce inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-sun px-6 text-sm font-extrabold text-sun-ink shadow-[0_10px_22px_-10px_rgb(248_196_35/0.9)] hover:brightness-105 max-sm:w-full"
         >
           {paid ? (firstListing ? "Share a Listing" : "Add a Property") : "See Plans, from ₱499 a Month"}
           <ArrowRight className="size-4" aria-hidden />
@@ -521,7 +521,6 @@ export function DashboardView({
 }
 
 const plural = (n: number, word: string, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
-const titleCase = (text: string) => text.replace(/\b[a-z]/g, (c) => c.toUpperCase());
 
 /** A key number: round colored icon, the figure, and how it changed. */
 function Stat({
@@ -546,16 +545,16 @@ function Stat({
   /** Show the arrow on the right, as on the first and last cards. */
   chevron?: boolean;
 }) {
-  const className = cx("flex flex-col gap-3 rounded-[var(--radius-tile)] p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5", tile, href && "pp-lift");
+  const className = cx("flex flex-col gap-2.5 rounded-[var(--radius-tile)] p-3.5 sm:flex-row sm:items-center sm:gap-3.5 sm:p-4", tile, href && "pp-lift");
   const body = (
     <>
-      <span className={cx("grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br text-white shadow-[0_8px_18px_-8px_rgb(0_0_0/0.45)] sm:size-14", circle)}>
-        <Icon className="size-6 sm:size-7" aria-hidden />
+      <span className={cx("grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br text-white shadow-[0_8px_18px_-8px_rgb(0_0_0/0.45)] sm:size-12", circle)}>
+        <Icon className="size-6" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-ink/80">{label}</span>
+        <span className="block text-[13px] font-semibold text-ink/80">{label}</span>
         <span className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="text-[2rem] leading-none font-extrabold tracking-tight sm:text-[2.4rem]">{value}</span>
+          <span className="text-[1.75rem] leading-none font-extrabold tracking-tight sm:text-[2rem]">{value}</span>
           {trend === null || trend === undefined ? null : (
             <span className={cx("inline-flex items-center text-sm font-bold tabular-nums", trend > 0 ? "text-good" : trend < 0 ? "text-hot" : "text-muted")}>
               {trend > 0 ? <ArrowUp className="size-3.5" aria-hidden /> : trend < 0 ? <ArrowDown className="size-3.5" aria-hidden /> : null}
@@ -594,8 +593,8 @@ function Panel({
 }) {
   return (
     <section className={cx("flex flex-col overflow-hidden rounded-[1.5rem] border border-line bg-white shadow-[var(--shadow-card)]", className)}>
-      <div className="flex items-center justify-between gap-3 bg-frame-1 px-5 py-3.5 text-white">
-        <h2 className="flex items-center gap-2.5 text-lg font-extrabold tracking-tight">
+      <div className="flex items-center justify-between gap-3 bg-frame-1 px-5 py-3 text-white">
+        <h2 className="flex items-center gap-2.5 text-base font-extrabold tracking-tight">
           {icon}
           {title}
         </h2>
@@ -612,11 +611,11 @@ function Panel({
 
 function Row({ href, icon, title, detail, when }: { href?: string; icon: ReactNode; title: string; detail: string; when: string }) {
   const body = (
-    <span className="flex items-start gap-3 py-3">
+    <span className="flex items-start gap-3 py-2.5">
       {icon}
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-bold">{title}</span>
-        <span className="block truncate text-sm text-muted">{detail}</span>
+        <span className="block text-[13px] font-bold">{title}</span>
+        <span className="block truncate text-[13px] text-muted">{detail}</span>
       </span>
       <span className="shrink-0 pt-0.5 text-xs text-muted">{when}</span>
     </span>
@@ -641,7 +640,7 @@ function ActivityList({ recent, now }: { recent: Activity[]; now?: Date }) {
             <Row
               href={a.href}
               icon={
-                <span className={cx("grid size-10 shrink-0 place-items-center rounded-full", a.tone)}>
+                <span className={cx("grid size-9 shrink-0 place-items-center rounded-full", a.tone)}>
                   <Icon className="size-5" aria-hidden />
                 </span>
               }
@@ -659,13 +658,13 @@ function ActivityList({ recent, now }: { recent: Activity[]; now?: Date }) {
 /** A colored shortcut tile. Without `href` it's something that isn't ready yet, so it can't be pressed. */
 function Action({ href, icon: Icon, tone, label, note }: { href?: string; icon: LucideIcon; tone: string; label: string; note?: string }) {
   const className = cx(
-    "flex min-h-[4.5rem] flex-col justify-center gap-2 rounded-2xl bg-gradient-to-br p-4 text-[15px] leading-tight font-bold text-white sm:flex-row sm:items-center sm:justify-start sm:gap-3",
+    "flex min-h-16 flex-col justify-center gap-2 rounded-2xl bg-gradient-to-br p-3.5 text-sm leading-tight font-bold text-white sm:flex-row sm:items-center sm:justify-start sm:gap-3",
     tone,
     href ? "pp-lift pp-bounce" : "cursor-default",
   );
   const body = (
     <>
-      <Icon className="size-7 shrink-0" aria-hidden />
+      <Icon className="size-6 shrink-0" aria-hidden />
       <span className="min-w-0">
         {label}
         {note ? <span className="mt-0.5 block text-xs font-semibold text-white/85">{note}</span> : null}

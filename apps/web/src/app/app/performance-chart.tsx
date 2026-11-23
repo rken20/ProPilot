@@ -66,7 +66,7 @@ export function PerformanceChart({ points }: { points: PerfPoint[] }) {
       </figcaption>
 
       <div className="mt-4 flex">
-        <div aria-hidden className="relative h-44 w-9 shrink-0 text-[11px] text-muted tabular-nums sm:h-52">
+        <div aria-hidden className="relative h-44 w-9 shrink-0 text-[11px] text-muted tabular-nums sm:h-44">
           {ticks.map((t) => (
             <span key={t} className="absolute right-2 translate-y-1/2" style={{ bottom: `${(t / scale.max) * 100}%` }}>
               {t.toLocaleString("en-PH")}
@@ -77,7 +77,7 @@ export function PerformanceChart({ points }: { points: PerfPoint[] }) {
           tabIndex={0}
           role="group"
           aria-label="Chart of views, inquiries and viewings. Use the left and right arrow keys to read each day."
-          className="relative h-44 min-w-0 flex-1 cursor-crosshair touch-pan-y rounded-sm outline-offset-4 sm:h-52"
+          className="relative h-44 min-w-0 flex-1 cursor-crosshair touch-pan-y rounded-sm outline-offset-4 sm:h-44"
           onPointerMove={(e) => pick(e.clientX, e.currentTarget)}
           onPointerDown={(e) => pick(e.clientX, e.currentTarget)}
           onPointerLeave={() => setActive(null)}

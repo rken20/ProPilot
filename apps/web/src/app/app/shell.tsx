@@ -51,7 +51,7 @@ function Business({ current, memberships, switchBusiness, id }: Pick<ShellProps,
 }
 
 /**
- * Signed-in app frame. On computers: a grape sidebar with the business,
+ * Signed-in app frame. On computers: a navy sidebar with the business,
  * navigation and account. On phones: an app bar on top and a tab bar at the
  * bottom, so it feels like an app when installed on the home screen.
  */

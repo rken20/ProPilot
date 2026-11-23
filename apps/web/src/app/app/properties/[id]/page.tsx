@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { can } from "@propilot/shared";
-import { Alert, Card, PageHeader, buttonClass } from "@/components/ui";
+import { Alert, buttonClass, Card, PageHeader, Panel } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { getOrigin, getUser, requireBusiness } from "@/lib/auth";
 import { centavosToPesosInput } from "@/lib/money";
@@ -169,15 +169,14 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       {manager && plan.negotiation && p.status === "available" ? (
         <LowestPrice propertyId={p.id} askingMinor={Number(p.price_minor)} currentPesos={centavosToPesosInput(lowestMinor)} />
       ) : manager && aiOn && !plan.negotiation && p.status === "available" ? (
-        <Card className="mt-6">
-          <h3 className="text-xl font-bold tracking-tight">AI negotiation</h3>
+        <Panel title="AI negotiation" className="mt-6">
           <p className="mt-1 max-w-2xl text-sm text-muted">
             On Pro and Agency, the AI negotiates price offers in the chat down to a lowest price you set privately, and you confirm every deal.{" "}
             <Link href="/app/billing" className="font-bold text-grape-700 hover:underline">
               See the plans
             </Link>
           </p>
-        </Card>
+        </Panel>
       ) : null}
       <Offers offers={offers} canDecide={manager} linkToChat title="Offers on this listing" />
 

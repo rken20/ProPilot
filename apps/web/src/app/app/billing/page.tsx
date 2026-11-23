@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Check, Clock, X } from "lucide-react";
 import { can } from "@propilot/shared";
-import { Alert, Card, PageHeader, cx } from "@/components/ui";
+import { Alert, Card, cx, PageHeader, Panel } from "@/components/ui";
 import { getUser, requireBusiness } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
 import { businessPlan } from "@/lib/plan";
@@ -80,8 +80,7 @@ export default async function BillingPage() {
       </Card>
 
       {superAdmin ? (
-        <Card className="mb-6 border-dashed border-grape-300">
-          <h2 className="text-lg font-bold tracking-tight">Test a plan</h2>
+        <Panel title="Test a plan" className="mb-6 border-dashed border-grape-300">
           <p className="mt-0.5 text-sm text-muted">
             Only super admins see this. It puts {biz.businessName} on any plan straight away, with no payment, so you can try each plan&apos;s features. A paid
             plan is set for one year from today.
@@ -94,16 +93,15 @@ export default async function BillingPage() {
               </SubmitButton>
             ))}
           </form>
-        </Card>
+        </Panel>
       ) : null}
 
       <UsageNotice items={usage} planCode={plan.code} canSeeBilling onBilling className="mb-6" />
       {usage.length ? (
-        <Card className="mb-6">
-          <h2 className="text-lg font-bold tracking-tight">AI allowances this month</h2>
+        <Panel title="AI allowances this month" className="mb-6">
           <p className="mt-0.5 mb-4 text-sm text-muted">They renew on the 1st of each month.</p>
           <UsageMeters items={usage} />
-        </Card>
+        </Panel>
       ) : null}
 
       {pending ? (
@@ -164,8 +162,7 @@ export default async function BillingPage() {
       </div>
 
       {paid.length ? (
-        <Card className="mt-6">
-          <h2 className="text-lg font-bold tracking-tight">{plan.code === FREE_PLAN ? "Upgrade" : "Renew or change your plan"}</h2>
+        <Panel title={plan.code === FREE_PLAN ? "Upgrade" : "Renew or change your plan"} className="mt-6">
           <p className="mt-1 mb-5 text-sm text-muted">
             {plan.code === FREE_PLAN ? "Pay by GCash. Your plan starts when we confirm the payment." : "Renewing the same plan early adds the months to the end. Switching plans starts the new plan when we confirm the payment."}
           </p>
@@ -180,7 +177,7 @@ export default async function BillingPage() {
               plans={paid.map((x) => ({ code: x.code as string, name: x.name as string, priceMinor: x.price_minor as number }))}
               defaultCode={plan.code === FREE_PLAN ? undefined : plan.code} gcashNumber={gcashNumber} gcashName={gcashName} />
           )}
-        </Card>
+        </Panel>
       ) : null}
 
       {payments?.length ? (

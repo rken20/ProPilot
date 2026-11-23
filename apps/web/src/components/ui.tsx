@@ -10,12 +10,55 @@ export function Card({ className, ...props }: ComponentProps<"div">) {
   return <div className={cx("rounded-[1.5rem] border border-line bg-white p-6 shadow-[var(--shadow-card)]", className)} {...props} />;
 }
 
+const SMALL_WORDS = new Set(["a", "an", "and", "at", "by", "for", "from", "in", "of", "on", "or", "the", "to", "with"]);
+
+/** Title Case for headings, as on the dashboard: small words stay lowercase, and words with their own capitals (AI, GCash) are left alone. */
+export function titleCase(text: string): string {
+  return text
+    .split(" ")
+    .map((w, i) => (w !== w.toLowerCase() || (i > 0 && SMALL_WORDS.has(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(" ");
+}
+
+/**
+ * A card with a navy title bar, the dashboard's panel. `flush` drops the body's
+ * padding for lists and tables that run edge to edge.
+ */
+export function Panel({
+  title,
+  icon,
+  action,
+  flush = false,
+  className,
+  children,
+}: {
+  title: ReactNode;
+  icon?: ReactNode;
+  action?: ReactNode;
+  flush?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={cx("flex flex-col overflow-hidden rounded-[1.5rem] border border-line bg-white shadow-[var(--shadow-card)]", className)}>
+      <div className="flex items-center justify-between gap-3 bg-frame-1 px-5 py-3 text-white">
+        <h2 className="flex min-w-0 items-center gap-2.5 text-base font-extrabold tracking-tight">
+          {icon}
+          <span className="truncate">{typeof title === "string" ? titleCase(title) : title}</span>
+        </h2>
+        {action}
+      </div>
+      {flush ? children : <div className="p-5 sm:p-6">{children}</div>}
+    </section>
+  );
+}
+
 export function Label({ className, ...props }: ComponentProps<"label">) {
   return <label className={cx("block text-sm font-medium text-ink", className)} {...props} />;
 }
 
 const fieldBase =
-  "mt-1.5 block w-full rounded-2xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm shadow-[0_1px_1px_rgb(42_23_96/0.04)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-zinc-500 hover:border-zinc-400 focus:border-brand-600 focus:ring-4 focus:ring-brand-100";
+  "mt-1.5 block w-full rounded-2xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm shadow-[0_1px_1px_rgb(42_23_96/0.04)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-zinc-500 hover:border-zinc-400 focus:border-grape-500 focus:ring-4 focus:ring-grape-100";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cx(fieldBase, className)} {...props} />;
@@ -56,8 +99,11 @@ export function Field({
 }
 
 const buttonVariants = {
+  /** The main action: the dashboard's blue pill. */
   primary:
-    "bg-brand-600 text-white shadow-[0_6px_16px_-6px_rgb(11_138_71/0.55),inset_0_1px_0_rgb(255_255_255/0.15)] hover:bg-brand-700 hover:shadow-[0_8px_20px_-6px_rgb(11_138_71/0.6)] disabled:bg-brand-600/60 disabled:shadow-none",
+    "bg-[#1565e6] text-white shadow-[0_8px_18px_-8px_rgb(21_101_230/0.8),inset_0_1px_0_rgb(255_255_255/0.15)] hover:bg-[#0f52c4] disabled:bg-[#1565e6]/60 disabled:shadow-none",
+  /** The yellow call to action, as on the dashboard banner. One per screen at most. */
+  sun: "bg-sun font-extrabold text-sun-ink shadow-[0_10px_22px_-10px_rgb(248_196_35/0.9)] hover:brightness-105",
   secondary: "border border-grape-100 bg-white text-grape-700 hover:border-grape-300 hover:bg-grape-50",
   danger: "border border-red-200 bg-white text-red-700 hover:bg-red-50",
   ghost: "text-zinc-700 hover:bg-zinc-100",
@@ -112,11 +158,11 @@ export function PageHeader({
   icon?: ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="flex items-center gap-4">
         {icon}
         <div>
-          <h1 className="text-[2rem] leading-tight font-extrabold tracking-tight text-ink">{title}</h1>
+          <h1 className="text-[1.6rem] leading-tight font-extrabold tracking-tight text-ink sm:text-[1.9rem]">{title}</h1>
           {description ? <p className="mt-1.5 max-w-xl text-sm text-muted">{description}</p> : null}
         </div>
       </div>

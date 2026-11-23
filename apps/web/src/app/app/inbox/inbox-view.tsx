@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Bot, MessageCircle, UserRound } from "lucide-react";
-import { Badge, Card, PageHeader, buttonClass, cx } from "@/components/ui";
+import { Badge, buttonClass, Card, cx, PageHeader, Panel } from "@/components/ui";
 import { RefreshSoon } from "@/components/refresh-soon";
 import { SubmitButton } from "@/components/submit-button";
 import { withinReplyWindow } from "@/lib/messenger-window";
@@ -234,8 +234,7 @@ export function InboxView({
             <Offers offers={offers} canDecide={canDecideOffers} showListing title="Offers in this chat" />
 
             {selected.lead_status !== "none" ? (
-              <Card className="mt-5">
-                <h3 className="text-xl font-bold tracking-tight">Viewing request</h3>
+              <Panel title="Viewing request" className="mt-5">
                 <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                   <Row k="Name" v={selected.lead_name} />
                   <Row k="Mobile" v={selected.lead_phone} />
@@ -262,7 +261,7 @@ export function InboxView({
                     Save
                   </SubmitButton>
                 </form>
-              </Card>
+              </Panel>
             ) : null}
           </section>
         ) : (

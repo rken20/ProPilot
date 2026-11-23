@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { Alert, Badge, Card, Field, Input } from "@/components/ui";
+import { Alert, Badge, Field, Input, Panel } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPeso } from "@/lib/money";
 import { timeAgo } from "@/lib/time";
@@ -33,14 +33,13 @@ const OUTCOME: Record<Offer["outcome"], { label: string; tone: "neutral" | "bran
 export function Offers({ offers, canDecide, showListing = false, linkToChat = false, title = "Offers" }: { offers: Offer[]; canDecide: boolean; showListing?: boolean; linkToChat?: boolean; title?: string }) {
   if (!offers.length) return null;
   return (
-    <Card className="mt-5">
-      <h3 className="text-xl font-bold tracking-tight">{title}</h3>
+    <Panel title={title} className="mt-5">
       <ul className="mt-2 divide-y divide-line">
         {offers.map((o) => (
           <OfferRow key={o.id} offer={o} canDecide={canDecide} showListing={showListing} linkToChat={linkToChat} />
         ))}
       </ul>
-    </Card>
+    </Panel>
   );
 }
 
@@ -110,8 +109,7 @@ function OfferRow({ offer: o, canDecide, showListing, linkToChat }: { offer: Off
 export function LowestPrice({ propertyId, askingMinor, currentPesos }: { propertyId: string; askingMinor: number; currentPesos: string }) {
   const [state, action] = useActionState<FloorState, FormData>(saveLowestPrice.bind(null, propertyId), {});
   return (
-    <Card className="mt-6">
-      <h3 className="text-xl font-bold tracking-tight">AI negotiation</h3>
+    <Panel title="AI negotiation" className="mt-6">
       <p className="mt-1 max-w-2xl text-sm text-muted">
         When a buyer names a price in the chat, the AI turns down offers under your lowest price, asks once for more on the rest, then sends the offer to you. You
         confirm or decline every offer. Only you and your admins can see this number, and the AI is never told it.
@@ -127,6 +125,6 @@ export function LowestPrice({ propertyId, askingMinor, currentPesos }: { propert
         </SubmitButton>
       </form>
       {state.error ? <Alert>{state.error}</Alert> : state.saved ? <Alert tone="success">Saved.</Alert> : null}
-    </Card>
+    </Panel>
   );
 }
