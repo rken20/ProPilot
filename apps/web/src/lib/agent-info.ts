@@ -2,8 +2,8 @@
 export const AGENT_INFO = [
   {
     key: "pipeline",
-    name: "Pipeline keeper",
-    does: "Checks your pipeline every morning for unanswered viewing requests, quiet leads and next steps that are due.",
+    name: "Lead keeper",
+    does: "Checks your leads every morning for unanswered viewing requests, quiet leads and next steps that are due.",
     live: true,
   },
   {

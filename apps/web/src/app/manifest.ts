@@ -26,7 +26,7 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: "Add a property", url: "/app/properties/new" },
-      { name: "Pipeline", url: "/app/pipeline" },
+      { name: "Leads", url: "/app/pipeline" },
       { name: "Messages", url: "/app/inbox" },
     ],
   };

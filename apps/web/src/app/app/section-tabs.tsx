@@ -7,7 +7,7 @@ import { cx } from "@/components/ui";
 export type SectionTab = { href: string; label: string; count?: number };
 
 /**
- * Tabs for pages that share one sidebar item (Dashboard, Pipeline, Settings).
+ * Tabs for pages that share one sidebar item (Dashboard, Leads, Settings).
  * Shown only on the tab pages themselves, not on their sub-pages.
  */
 export function SectionTabs({ groups }: { groups: SectionTab[][] }) {

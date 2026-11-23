@@ -104,7 +104,7 @@ export async function runScheduledAgents(
   let proposed = 0;
   let failed = 0;
   let qualified = 0;
-  // The Pipeline keeper is quick and runs for everyone first.
+  // The Lead keeper is quick and runs for everyone first.
   for (const id of active) {
     const res = await runPipelineKeeper(admin, id, "schedule");
     proposed += res.proposed;

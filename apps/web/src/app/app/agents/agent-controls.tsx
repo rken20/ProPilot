@@ -10,7 +10,7 @@ export function RunNow() {
   const [state, action] = useActionState<RunState, FormData>(runAgentsNow, {});
   return (
     <form action={action} className="space-y-3">
-      <SubmitButton variant="secondary" pendingText="Checking your pipeline…">
+      <SubmitButton variant="secondary" pendingText="Checking your leads…">
         <Play className="size-4" aria-hidden /> Run now
       </SubmitButton>
       {state.error ? <Alert>{state.error}</Alert> : null}

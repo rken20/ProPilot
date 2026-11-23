@@ -13,7 +13,7 @@ export type AddState = { error?: string; added?: boolean };
 const WHY: Record<string, string> = {
   not_available: "This listing isn't available anymore.",
   denied: "Only owners, admins and agents can use Buyer Finder.",
-  not_open: "This lead is closed. Reopen it in the Pipeline first.",
+  not_open: "This lead is closed. Reopen it on the Leads page first.",
   already: "This lead is already a potential buyer for this listing.",
   limit: "You've used this month's Buyer Finder allowance. It resets on the 1st, or upgrade in Billing.",
 };

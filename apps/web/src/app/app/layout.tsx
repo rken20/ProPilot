@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const sales = can(current.role, "lead.viewAll") || can(current.role, "lead.viewAssigned");
   // Independent lookups run side by side: each is a round trip to the database.
   const [waiting, superAdmin, aiOn, profile] = await Promise.all([
-    // AI suggestions waiting for a decision, shown as a badge on Pipeline and its "AI agents" tab.
+    // AI suggestions waiting for a decision, shown as a badge on Leads and its "AI agents" tab.
     sales
       ? createClient().then(async (supabase) =>
           (
@@ -46,7 +46,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   ];
   const salesTabs: SectionTab[] = sales
     ? [
-        { href: "/app/pipeline", label: "Pipeline" },
+        { href: "/app/pipeline", label: "Leads" },
         { href: "/app/leads", label: "Inquiries" },
         { href: "/app/agents", label: "AI agents", count: waiting },
       ]
@@ -64,7 +64,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const items: NavItem[] = [
     { href: "/app", label: "Dashboard", icon: "dashboard", match: ["/app/reports"] },
     { href: "/app/properties", label: "Properties", icon: "properties", match: ["/app/pricing"] },
-    ...(sales ? [{ href: "/app/pipeline", label: "Pipeline", icon: "pipeline" as const, count: waiting, match: ["/app/leads", "/app/agents"] }] : []),
+    ...(sales ? [{ href: "/app/pipeline", label: "Leads", icon: "pipeline" as const, count: waiting, match: ["/app/leads", "/app/agents"] }] : []),
     ...(can(current.role, "conversation.reply") ? [{ href: "/app/inbox", label: "Messages", icon: "inbox" as const }] : []),
     ...(settingsTabs.length
       ? [{ href: settingsTabs[0]!.href, label: "Settings", icon: "settings" as const, count: paymentsWaiting, match: settingsTabs.map((t) => t.href) }]

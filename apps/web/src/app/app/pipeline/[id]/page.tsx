@@ -112,7 +112,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
   return (
     <>
       <Link href="/app/pipeline" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-        <ArrowLeft className="size-4" aria-hidden /> Pipeline
+        <ArrowLeft className="size-4" aria-hidden /> Leads
       </Link>
 
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">

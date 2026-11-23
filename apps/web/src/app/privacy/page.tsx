@@ -67,7 +67,7 @@ export default function PrivacyPage() {
                 We use these only to find and confirm the payment.
               </li>
               <li>
-                For businesses: a sales pipeline of the people they&apos;re selling to, built from inquiries and chats with
+                For businesses: a list of leads, the people they&apos;re selling to, built from inquiries and chats with
                 them or added by the team, with notes, stage, an AI lead score and which listings they may fit.
               </li>
             </ul>
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
                 Match email preferences: until you stop the emails, or 12 months at most. If you never confirm from our
                 email, they are deleted after 7 days.
               </li>
-              <li>Pipeline leads that never got past the early stages, or were marked lost: deleted after 12 months with no activity.</li>
+              <li>Leads that never got past the early stages, or were marked lost: deleted after 12 months with no activity.</li>
               <li>Google and Facebook tokens: until you disconnect, or remove MyHomeSeller in your Google or Facebook settings.</li>
             </ul>
           </Section>

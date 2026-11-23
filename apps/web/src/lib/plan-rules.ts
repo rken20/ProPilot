@@ -33,7 +33,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
     includes: [
       "1 team member",
       "Listings with a public page to share",
-      "Inquiries, Pipeline and Messages inbox",
+      "Inquiries, Leads and Messages inbox",
       "Reports and follow-up reminders",
     ],
     excludes: "No AI: no AI replies, lead scoring, matching, Buyer Finder or AI writing.",
@@ -48,7 +48,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "AI-written listing descriptions and captions",
       "Ask MyHomeSeller and the reply helper",
     ],
-    excludes: "Walay AI video creation. Limited buyer finder.",
+    excludes: "Walay Video Ad Maker. Limited buyer finder.",
   },
   pro: {
     tagline: "Para sa mga agent",
@@ -57,7 +57,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Buyer Finder: 20 AI-found potential buyers a month",
       "Up to 10,000 AI replies a month",
       "AI negotiation: the chat negotiates offers to a lowest price you set, and you confirm every deal",
-      "AI listing videos, 10 a month (coming soon)",
+      "Video Ad Maker: 10 AI video ads a month from your photos (coming soon)",
     ],
   },
   agency: {
@@ -67,7 +67,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Buyer Finder: 60 AI-found potential buyers a month",
       "Up to 25,000 AI replies a month",
       "Pricing Advisor: 20 AI price checks a month, with comparable listings",
-      "AI listing videos, 30 a month (coming soon)",
+      "Video Ad Maker: 30 AI video ads a month from your photos (coming soon)",
     ],
   },
 };

@@ -21,7 +21,7 @@ export default async function NewProspectPage() {
   return (
     <div className="max-w-2xl">
       <Link href="/app/pipeline" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-        <ArrowLeft className="size-4" aria-hidden /> Pipeline
+        <ArrowLeft className="size-4" aria-hidden /> Leads
       </Link>
       <PageHeader title="Add a lead" description="For people who reach you outside MyHomeSeller: walk-ins, calls, referrals and past clients." />
       <Card>

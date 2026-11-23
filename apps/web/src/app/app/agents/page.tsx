@@ -64,7 +64,7 @@ export default async function AgentsPage() {
     <>
       <PageHeader
         title="AI agents"
-        description="Your AI sales team goes through the pipeline every morning and suggests what to do next. Nothing goes to a buyer until someone on your team approves it."
+        description="Your AI sales team goes through your leads every morning and suggests what to do next. Nothing goes to a buyer until someone on your team approves it."
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">

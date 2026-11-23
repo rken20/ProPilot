@@ -110,7 +110,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
   return (
     <>
       <PageHeader
-        title="Pipeline"
+        title="Leads"
         description="Everyone you're selling to, from first inquiry to closing. New leads from viewing requests and chats appear here on their own."
         action={
           <div className="flex flex-wrap items-center gap-2">
@@ -131,7 +131,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
       />
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <nav className="flex gap-1" aria-label="Pipeline view">
+        <nav className="flex gap-1" aria-label="Leads view">
           {VIEWS.map(([k, label]) => (
             <Link
               key={k}

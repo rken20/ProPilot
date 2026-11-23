@@ -416,12 +416,12 @@ export function DashboardView({
               href={performance ? "/app/reports" : "/app/pipeline"}
               icon={BarChart3}
               tone="from-[#7c4ff0] to-[#5a31c7]"
-              label={performance ? "View detailed reports" : "Open your pipeline"}
+              label={performance ? "View detailed reports" : "Open your leads"}
             />
             <div className="flex min-h-[4.5rem] flex-col justify-center gap-2 rounded-2xl bg-tile-peach p-4 text-brass-700 sm:flex-row sm:items-center sm:justify-start sm:gap-3">
               <Video className="size-6 shrink-0" aria-hidden />
               <span className="min-w-0 text-[15px] leading-tight font-bold">
-                Create property video
+                Video Ad Maker
                 <span className="mt-0.5 block text-xs font-semibold opacity-80">Coming soon</span>
               </span>
             </div>
@@ -508,7 +508,7 @@ export function DashboardView({
           <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">Turn your property into profit!</h2>
           <p className="mt-1 max-w-xl text-sm text-ink/80">
             {paid
-              ? "Share a listing's public page on Facebook and Messenger. Every inquiry lands in your pipeline, ready to follow up."
+              ? "Share a listing's public page on Facebook and Messenger. Every inquiry becomes a lead, ready to follow up."
               : "With MyHomeSeller on Basic, every buyer gets an answer and you see which leads fit each listing."}
           </p>
         </div>

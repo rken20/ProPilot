@@ -24,8 +24,8 @@ export function ShareListing({ url, views, inquiries }: { url: string; views: nu
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-bold tracking-tight">Share this listing</h2>
           <p className="mt-0.5 text-sm text-muted">
-            Its public page: {views.toLocaleString()} view{views === 1 ? "" : "s"} and {inquiries} inquir{inquiries === 1 ? "y" : "ies"} in the last 30 days. Inquiries land in your
-            Pipeline.
+            Its public page: {views.toLocaleString()} view{views === 1 ? "" : "s"} and {inquiries} inquir{inquiries === 1 ? "y" : "ies"} in the last 30 days. Inquiries land on your
+            Leads page.
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <input

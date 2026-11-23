@@ -23,7 +23,7 @@ async function visitorKey(bucket: string): Promise<string> {
 
 /**
  * An inquiry from a listing's public page, from someone without an account.
- * It becomes a viewing request (and a lead in the Pipeline) for the listing's business.
+ * It becomes a viewing request (and a lead on the Leads page) for the listing's business.
  */
 export async function sendInquiry(propertyId: string, _prev: FormState, form: FormData): Promise<FormState> {
   const data = {
