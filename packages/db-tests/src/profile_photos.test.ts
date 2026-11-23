@@ -8,6 +8,7 @@ import { as, freshDb } from "./harness";
 
 const ANA = "00000000-0000-0000-0000-0000000002a1";
 const BEN = "00000000-0000-0000-0000-0000000002b1";
+const ADA = "00000000-0000-0000-0000-0000000002c1";
 const FILE = "0f0e0d0c-0b0a-4908-8706-050403020100";
 
 let db: PGlite;
@@ -21,7 +22,9 @@ beforeAll(async () => {
   db = await freshDb();
   await db.exec(`insert into auth.users (id, email, raw_user_meta_data) values
     ('${ANA}', 'ana@example.test', '{"full_name":"Ana"}'),
-    ('${BEN}', 'ben@example.test', '{"full_name":"Ben"}');`);
+    ('${BEN}', 'ben@example.test', '{"full_name":"Ben"}'),
+    ('${ADA}', 'ada@example.test', '{"full_name":"Ada"}');`);
+  await db.query(`update public.profiles set is_superadmin = true where id = $1`, [ADA]);
 });
 
 describe("profile photo files", () => {
@@ -61,5 +64,26 @@ describe("the profile's photo", () => {
   it("can't be changed on someone else's profile", async () => {
     await setPath(BEN, ANA, `${ANA}/${FILE}.jpg`);
     expect(await pathOf(ANA)).toBeNull();
+  });
+});
+
+describe("the app owner (a super admin)", () => {
+  const admin = async (id: string) => (await db.query<{ is_superadmin: boolean }>(`select is_superadmin from public.profiles where id = $1`, [id])).rows[0]!.is_superadmin;
+
+  it("can set their own photo and name like anyone else", async () => {
+    await setPath(ADA, ADA, `${ADA}/${FILE}.jpg`);
+    expect(await pathOf(ADA)).toBe(`${ADA}/${FILE}.jpg`);
+    await as(db, ADA, () => db.query(`update public.profiles set full_name = 'Ada L.' where id = $1`, [ADA]));
+    expect((await db.query<{ full_name: string }>(`select full_name from public.profiles where id = $1`, [ADA])).rows[0]!.full_name).toBe("Ada L.");
+  });
+
+  it("stays a super admin, and can't drop the role through a profile update", async () => {
+    await expect(as(db, ADA, () => db.query(`update public.profiles set is_superadmin = false where id = $1`, [ADA]))).rejects.toThrow(/row-level security/);
+    expect(await admin(ADA)).toBe(true);
+  });
+
+  it("is still the only way in: nobody can make themselves one", async () => {
+    await expect(as(db, ANA, () => db.query(`update public.profiles set is_superadmin = true where id = $1`, [ANA]))).rejects.toThrow(/row-level security/);
+    expect(await admin(ANA)).toBe(false);
   });
 });

@@ -73,7 +73,7 @@ export function AvatarEditor({
         });
       if (upErr) throw upErr;
       const res = await setAvatar(id);
-      if (res.error) throw new Error(res.error);
+      if (res.error) return setError(res.error);
       setPreview(URL.createObjectURL(blob));
       startTransition(() => router.refresh());
     } catch {
