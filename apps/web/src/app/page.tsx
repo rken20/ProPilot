@@ -213,11 +213,11 @@ export default async function Home() {
   );
 }
 
-/** The dashboard's AI agent card: the mascot in front of the house scene, with a buyer's question being answered. */
+/** The dashboard's AI agent card: the mascot in front of the house scene, with a buyer's question being answered underneath. */
 function AgentScene() {
   return (
-    <div className="pp-enter relative mx-auto w-full max-w-[540px] [animation-delay:160ms] lg:mx-0 lg:justify-self-end">
-      <div className="relative isolate aspect-[5/4] overflow-hidden rounded-[2rem] border border-[var(--hero-line)] bg-[var(--hero-wash)] shadow-[var(--shadow-lift)]">
+    <div className="pp-enter mx-auto w-full max-w-[540px] overflow-hidden rounded-[2rem] border border-[var(--hero-line)] bg-white shadow-[var(--shadow-lift)] [animation-delay:160ms] lg:mx-0 lg:justify-self-end">
+      <div className="relative isolate aspect-[3/2] overflow-hidden bg-[var(--hero-wash)]">
         {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
         <img src="/images/dashboard/house.webp" alt="" width={1600} height={893} fetchPriority="high" className="absolute inset-0 -z-10 size-full object-cover object-[38%_50%]" />
         <p className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-[#9fdcb8] bg-[#e2f6ea] px-3 py-0.5 text-sm font-bold text-[#0a6d39]">
@@ -229,10 +229,10 @@ function AgentScene() {
           alt="The MyHomeSeller robot giving a thumbs up"
           width={641}
           height={720}
-          className="absolute -bottom-1 left-3 h-[64%] w-auto drop-shadow-[0_16px_22px_rgb(10_31_77/0.35)]"
+          className="absolute -bottom-1 left-3 h-[68%] w-auto drop-shadow-[0_16px_22px_rgb(10_31_77/0.35)]"
         />
       </div>
-      <div className="relative z-10 mx-auto -mt-10 w-[92%] rounded-[1.5rem] border border-line bg-white p-4 shadow-[var(--shadow-lift)] sm:-mt-32 sm:ml-auto sm:mr-4 sm:w-[21rem]">
+      <div className="border-t border-line p-4 sm:p-5">
         <HeroChat />
       </div>
     </div>
