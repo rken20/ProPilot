@@ -1,7 +1,7 @@
-/** MyHomeSeller mark: a white tile with a grape roofline and a green door. `wordmark={false}` shows the tile alone. */
+/** MyHomeSeller mark: a white tile with a blue roofline and a green door. `wordmark={false}` shows the tile alone. */
 export function Logo({ className = "", tone = "light", wordmark = true }: { className?: string; tone?: "light" | "dark"; wordmark?: boolean }) {
-  const tile = tone === "dark" ? "#ffffff" : "#4c2da9";
-  const roof = tone === "dark" ? "#4c2da9" : "#ffffff";
+  const tile = tone === "dark" ? "#ffffff" : "#1a62dc";
+  const roof = tone === "dark" ? "#1a62dc" : "#ffffff";
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <svg viewBox="0 0 32 32" className="size-9" aria-hidden="true">

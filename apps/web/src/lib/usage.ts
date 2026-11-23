@@ -70,7 +70,7 @@ export async function sendUsageEmails(admin: SupabaseClient, appOrigin: string, 
 <h1 style="font-size:18px">${esc(subject)}</h1>
 ${lines.map((l) => `<p>${esc(l)}</p>`).join("")}
 <p>${esc(advice)}</p>
-<p><a href="${esc(url)}" style="display:inline-block;background:#3a2084;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Open Billing</a></p>
+<p><a href="${esc(url)}" style="display:inline-block;background:#124fbf;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Open Billing</a></p>
 </body></html>`,
       });
       if (res.sent) sent++;

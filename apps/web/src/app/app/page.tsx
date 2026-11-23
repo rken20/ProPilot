@@ -5,7 +5,7 @@ import { can } from "@propilot/shared";
 import { getUser, requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getCoverThumbs } from "@/lib/listings";
-import { mediaUrl } from "@/lib/media";
+import { avatarUrl, mediaUrl } from "@/lib/media";
 import { daysAgoIso, greeting, longDate } from "@/lib/time";
 import { DashboardView, type Activity, type AiItem, type SetupStep } from "./dashboard-view";
 import { agentName } from "@/lib/agent-info";
@@ -220,13 +220,18 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
   activity.sort((a, b) => b.at.localeCompare(a.at));
   const recent = activity.slice(0, 5);
 
-  const firstName = String(user?.user_metadata?.full_name ?? "").split(" ")[0];
+  // The name and photo from the Account page, for the corner of the greeting.
+  const { data: profile } = user ? await supabase.from("profiles").select("full_name, avatar_path").eq("id", user.id).maybeSingle() : { data: null };
+  const fullName = profile?.full_name || String(user?.user_metadata?.full_name ?? "");
+  const firstName = fullName.split(" ")[0];
 
   return (
     <DashboardView
       greetingText={greeting()}
       dateText={longDate()}
       firstName={firstName ?? ""}
+      fullName={fullName}
+      avatarUrl={avatarUrl(profile?.avatar_path)}
       businessName={biz.businessName}
       notice={notice}
       canCreateProperty={can(biz.role, "property.create")}
@@ -234,7 +239,6 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       plan={{ code: plan.code, name: plan.name, priceMinor: Number(planRow?.price_minor ?? 0) }}
       properties={properties.map((p) => ({ ...p, price_minor: Number(p.price_minor), coverUrl: mediaUrl(covers.get(p.id)) }))}
       steps={steps}
-      finder={canSeeLeads && plan.ai && plan.homeFinderBuyers !== 0 ? { used: finderUsed, limit: plan.homeFinderBuyers } : null}
       unanswered={canSeeLeads ? (unanswered.count ?? 0) : null}
       inquiries={summary ? { total: summary.leads.inquiries, previous: summary.previousInquiries } : newLeads === null ? null : { total: newLeads, previous: null }}
       viewings={canSeeLeads ? viewingsByMonth(viewingTimes) : null}

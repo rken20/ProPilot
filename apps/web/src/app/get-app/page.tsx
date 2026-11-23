@@ -82,7 +82,7 @@ export default async function GetAppPage() {
         {/* Reading this on a computer: the quickest way to get this page onto the phone. */}
         <section className="mt-5 flex items-center gap-6 rounded-[1.5rem] border border-line bg-white p-6 shadow-[var(--shadow-card)] max-md:hidden">
           <svg viewBox={`0 0 ${qr.size} ${qr.size}`} className="size-36 shrink-0 rounded-xl bg-[#fff]" role="img" aria-label="QR code that opens this page">
-            <path d={qr.path} fill="#1d1730" />
+            <path d={qr.path} fill="#0f1b3d" />
           </svg>
           <div className="min-w-0">
             <h2 className="text-lg font-bold">On a computer? Scan to open this page on your phone</h2>

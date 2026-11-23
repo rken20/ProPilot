@@ -1,11 +1,15 @@
 @import "tailwindcss";
 
 /*
- * MyHomeSeller design system ("Playful"). Fun and colorful: a deep grape purple
- * frame (sidebar, page headers), vivid green for actions, pastel tiles for
- * numbers, and glossy 3D icons (components/icon-3d). Coral red ("hot") is kept
- * for things that need action. Plus Jakarta Sans everywhere, heavy for headings.
- * "brand-*", "zinc-*" and "slate-*" are remapped so every screen picks it up.
+ * MyHomeSeller design system ("Playful"). Fun and colorful: a deep navy frame
+ * (sidebar, panel headers) with bright blue accents, vivid green for actions,
+ * pastel tiles for numbers, and glossy 3D icons (components/icon-3d). Coral red
+ * ("hot") is kept for things that need action. Plus Jakarta Sans everywhere,
+ * heavy for headings. "brand-*", "zinc-*" and "slate-*" are remapped so every
+ * screen picks it up.
+ *
+ * The frame color is still named "grape" from when it was purple (until
+ * 23 Nov 2026). It is blue now: grape-500 to 700 are the blues, 800 and 900 navy.
  */
 @theme inline {
   --font-sans: "Plus Jakarta Sans Variable", system-ui, sans-serif;
@@ -20,17 +24,17 @@
   --color-brand-100: #c8eed8;
   --color-brand-600: #0b8a47;
   --color-brand-700: #087039;
-  --color-brand-900: #2a1760;
+  --color-brand-900: #0a1f4d;
 
-  /* The frame: grape purple. */
-  --color-grape-50: #f2edfe;
-  --color-grape-100: #e3d9fc;
-  --color-grape-300: #b9a4f5;
-  --color-grape-500: #7b57e4;
-  --color-grape-600: #6440d0;
-  --color-grape-700: #4c2da9;
-  --color-grape-800: #3a2084;
-  --color-grape-900: #2a1760;
+  /* The frame: navy, with blue accents (the names say "grape" for history). */
+  --color-grape-50: #eaf2ff;
+  --color-grape-100: #d6e5ff;
+  --color-grape-300: #8fb6fa;
+  --color-grape-500: #2b74ee;
+  --color-grape-600: #1a62dc;
+  --color-grape-700: #124fbf;
+  --color-grape-800: #0e2c6e;
+  --color-grape-900: #0a1f4d;
 
   /* Pastel tiles for numbers and features. */
   --color-tile-lavender: #efe9fd;
@@ -40,12 +44,15 @@
   --color-tile-pink: #fde7ef;
   --color-tile-lemon: #fdf5d6;
   --color-tile-sky-ink: #1d5fa8;
-  /* The frame stays deep grape in both themes. */
-  --color-frame-1: #3a2084;
-  --color-frame-2: #4c2da9;
-  --color-frame-3: #6440d0;
+  /* The frame stays deep navy in both themes. */
+  --color-frame-1: #0c2563;
+  --color-frame-2: #123a8c;
+  --color-frame-3: #1a62dc;
+  /* The yellow call-to-action on the dashboard banner. */
+  --color-sun: #f8c423;
+  --color-sun-ink: #0a1f4d;
   /* Chart series (validated for colour blindness): listing pages, Messenger. */
-  --chart-listing: #6d4ae0;
+  --chart-listing: #1f6fe5;
   --chart-messenger: #e8890c;
   --chart-green: #1baf7a;
 
@@ -53,35 +60,35 @@
   --color-brass: #c25e0c;
   --color-brass-50: #fdeedd;
   --color-brass-700: #9a4a08;
-  --color-sand: #f6f2fd;
+  --color-sand: #f0f6fe;
 
-  --color-ink: #1d1730;
-  --color-muted: #625b77;
-  --color-line: #e7e2f1;
-  --color-surface: #f6f4fb;
+  --color-ink: #0f1b3d;
+  --color-muted: #57627c;
+  --color-line: #e1e7f2;
+  --color-surface: #f2f6fc;
   --color-good: #0b8a47;
   --color-hot: #d7353b;
   --color-hot-50: #fdeaeb;
 
-  /* Greys with a little violet in them, in place of Tailwind's zinc and slate. */
-  --color-zinc-50: #f9f8fc;
-  --color-zinc-100: #f2f0f8;
-  --color-zinc-200: #e7e3f0;
-  --color-zinc-300: #d6d0e4;
-  --color-zinc-400: #a59fb8;
-  --color-zinc-500: #6f6886;
-  --color-zinc-600: #5f5875;
-  --color-zinc-700: #474160;
-  --color-zinc-800: #2e2944;
-  --color-zinc-900: #1d1730;
-  --color-slate-100: #f2f0f8;
-  --color-slate-300: #d6d0e4;
-  --color-slate-400: #a59fb8;
-  --color-slate-500: #6f6886;
-  --color-slate-600: #5f5875;
+  /* Greys with a little blue in them, in place of Tailwind's zinc and slate. */
+  --color-zinc-50: #f7f9fd;
+  --color-zinc-100: #eff3fa;
+  --color-zinc-200: #e1e7f2;
+  --color-zinc-300: #cdd6e6;
+  --color-zinc-400: #99a5bd;
+  --color-zinc-500: #66718a;
+  --color-zinc-600: #566079;
+  --color-zinc-700: #3f4962;
+  --color-zinc-800: #262f47;
+  --color-zinc-900: #0f1b3d;
+  --color-slate-100: #eff3fa;
+  --color-slate-300: #cdd6e6;
+  --color-slate-400: #99a5bd;
+  --color-slate-500: #66718a;
+  --color-slate-600: #566079;
 
-  --shadow-card: 0 1px 2px rgb(42 23 96 / 0.05), 0 12px 30px -16px rgb(42 23 96 / 0.18);
-  --shadow-lift: 0 2px 6px rgb(42 23 96 / 0.07), 0 20px 44px -18px rgb(42 23 96 / 0.28);
+  --shadow-card: 0 1px 2px rgb(12 36 97 / 0.05), 0 12px 30px -16px rgb(12 36 97 / 0.18);
+  --shadow-lift: 0 2px 6px rgb(12 36 97 / 0.07), 0 20px 44px -18px rgb(12 36 97 / 0.28);
 
   --radius-tile: 1.25rem;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -89,74 +96,81 @@
 }
 
 :root {
-  --pp-ground: #fbfaff;
+  --pp-ground: #f5f9ff;
   --pp-card: #ffffff;
+  /* The dashboard's AI agent card: a daylight scene that fades into this wash. */
+  --hero-wash: #e8f2ff;
+  --hero-ink: #0a1f4d;
+  --hero-line: #cfe0fb;
 }
 
 /*
- * Dark mode: the same grape frame at night. Switched by data-theme="dark" on
+ * Dark mode: the same navy frame at night. Switched by data-theme="dark" on
  * <html> (see ThemeToggle). Tiles become deep jewel tones; green and coral keep
  * their meaning.
  */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --pp-ground: #110d1c;
-  --pp-card: #1c1730;
+  --pp-ground: #0a1020;
+  --pp-card: #121a2e;
+  --hero-wash: #0e2459;
+  --hero-ink: #ffffff;
+  --hero-line: #1c3266;
 
   --color-brand-50: #12301f;
   --color-brand-100: #184028;
   --color-brand-600: #12a356;
   --color-brand-700: #19b862;
-  --color-brand-900: #1a0f3d;
+  --color-brand-900: #0a1838;
 
-  --color-grape-50: #241a45;
-  --color-grape-100: #2e2258;
-  --color-grape-300: #7e66d8;
-  --color-grape-500: #9b7ff0;
-  --color-grape-600: #a88cf5;
-  --color-grape-700: #b9a2f8;
-  --color-grape-800: #24165a;
-  --color-grape-900: #1a0f3d;
+  --color-grape-50: #14244a;
+  --color-grape-100: #1c3266;
+  --color-grape-300: #4a7bd6;
+  --color-grape-500: #6a9df5;
+  --color-grape-600: #84aff8;
+  --color-grape-700: #a2c3fb;
+  --color-grape-800: #0e2459;
+  --color-grape-900: #0a1838;
 
-  --color-tile-lavender: #2a2050;
+  --color-tile-lavender: #272453;
   --color-tile-mint: #15342a;
   --color-tile-sky: #162c48;
   --color-tile-peach: #3d2a17;
   --color-tile-pink: #3d1a2a;
   --color-tile-lemon: #3a3215;
   --color-tile-sky-ink: #8cc4ff;
-  --chart-listing: #8466e8;
+  --chart-listing: #4a86ee;
   --chart-messenger: #c9761a;
   --chart-green: #199e70;
 
   --color-brass: #f5a35b;
   --color-brass-50: #3d2a17;
   --color-brass-700: #f5b47a;
-  --color-sand: #1f1936;
+  --color-sand: #151e36;
 
-  --color-ink: #f1eefa;
-  --color-muted: #b0a8c8;
-  --color-line: #332b4d;
-  --color-surface: #18132a;
+  --color-ink: #eef2fb;
+  --color-muted: #a6b1c9;
+  --color-line: #26314d;
+  --color-surface: #0f1729;
   --color-good: #4fd88d;
   --color-hot: #ff6b70;
   --color-hot-50: #40171c;
 
-  --color-zinc-50: #16112a;
-  --color-zinc-100: #1e1834;
-  --color-zinc-200: #332b4d;
-  --color-zinc-300: #433a60;
-  --color-zinc-400: #756d92;
-  --color-zinc-500: #a29ab9;
-  --color-zinc-600: #bab3cd;
-  --color-zinc-700: #d0cadf;
-  --color-zinc-800: #e5e1ef;
-  --color-zinc-900: #f1eefa;
-  --color-slate-100: #1e1834;
-  --color-slate-300: #433a60;
-  --color-slate-400: #756d92;
-  --color-slate-500: #a29ab9;
-  --color-slate-600: #bab3cd;
+  --color-zinc-50: #0f1628;
+  --color-zinc-100: #161f36;
+  --color-zinc-200: #26314d;
+  --color-zinc-300: #354261;
+  --color-zinc-400: #6b7896;
+  --color-zinc-500: #98a4be;
+  --color-zinc-600: #b1bcd2;
+  --color-zinc-700: #c9d2e3;
+  --color-zinc-800: #e0e6f1;
+  --color-zinc-900: #eef2fb;
+  --color-slate-100: #161f36;
+  --color-slate-300: #354261;
+  --color-slate-400: #6b7896;
+  --color-slate-500: #98a4be;
+  --color-slate-600: #b1bcd2;
 
   /* Alerts and warnings (Tailwind's default reds and ambers). */
   --color-red-50: #40171c;
@@ -187,7 +201,7 @@
   color: #5fe39a;
 }
 :root[data-theme="dark"] .text-brand-900 {
-  color: #e3d9fc;
+  color: #d6e5ff;
 }
 :root[data-theme="dark"] .fill-hot {
   fill: var(--color-hot);
@@ -215,7 +229,7 @@ body {
 
 /*
  * Installed on a phone (opened from the home-screen icon). On iPhones the page
- * draws under the status bar, so a grape strip sits behind the clock and
+ * draws under the status bar, so a navy strip sits behind the clock and
  * battery and every page starts below it. In a normal browser tab the inset is
  * 0 and none of this shows.
  */
@@ -254,7 +268,7 @@ body::before {
 
 /* 3D icons get a soft drop shadow so they sit on the page like stickers. */
 .pp-icon3d {
-  filter: drop-shadow(0 4px 6px rgb(42 23 96 / 0.18));
+  filter: drop-shadow(0 4px 6px rgb(12 36 97 / 0.18));
 }
 :root[data-theme="dark"] .pp-icon3d {
   filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.45));

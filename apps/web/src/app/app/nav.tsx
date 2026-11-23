@@ -71,7 +71,7 @@ export function Nav({ items, variant = "side" }: { items: NavItem[]; variant?: "
             aria-current={active ? "page" : undefined}
             className={cx(
               "pp-bounce flex shrink-0 items-center gap-3 rounded-2xl px-3 py-2 text-[15px] transition-[background-color,color] duration-200",
-              active ? "bg-[#fff] font-bold text-[#2a1760] shadow-[0_6px_18px_-8px_rgb(0_0_0/0.5)]" : "font-medium text-white/80 hover:bg-white/10 hover:text-white",
+              active ? "bg-[#fff] font-bold text-[#0a1f4d] shadow-[0_6px_18px_-8px_rgb(0_0_0/0.5)]" : "font-medium text-white/80 hover:bg-white/10 hover:text-white",
             )}
           >
             <Icon3d name={ICONS[item.icon]} size={30} />

@@ -7,10 +7,12 @@ import {
   Bell,
   Bot,
   CalendarDays,
+  ChevronDown,
   ChevronRight,
   CircleCheck,
   ClipboardCheck,
   Handshake,
+  Headset,
   Home,
   Megaphone,
   MessageCircle,
@@ -23,14 +25,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { Alert, buttonClass, cx } from "@/components/ui";
+import { Alert, cx } from "@/components/ui";
+import { Avatar } from "@/components/avatar";
 import { CountUp } from "@/components/count-up";
 import { Icon3d } from "@/components/icon-3d";
 import { InstallBanner } from "@/components/install-app";
 import { UsageNotice } from "@/components/usage-notice";
 import type { UsageItem } from "@/lib/usage-rules";
 import { changePct, type PerfPoint } from "@/lib/dashboard-stats";
-import { formatPeso } from "@/lib/money";
 import { timeAgo } from "@/lib/time";
 import { STATUS_LABEL } from "@/lib/property-labels";
 import { PerformanceChart } from "./performance-chart";
@@ -45,6 +47,9 @@ export type DashboardData = {
   greetingText: string;
   dateText: string;
   firstName: string;
+  /** The person's full name and profile photo, for the corner of the greeting. */
+  fullName: string;
+  avatarUrl: string | null;
   businessName: string;
   notice?: string;
   canCreateProperty: boolean;
@@ -61,8 +66,6 @@ export type DashboardData = {
   viewings: { thisMonth: number; lastMonth: number } | null;
   /** Leads past the first inquiry (qualified, viewing, offer, reservation); null if this role can't see leads. */
   potentialBuyers: number | null;
-  /** Buyer Finder this month; null on Free or for roles that don't work leads. */
-  finder: { used: number; limit: number | null } | null;
   /** always: answering on Messenger around the clock. on: working on leads only. almost: paid, nothing to work on yet. off: Free. */
   assistant: "always" | "on" | "almost" | "off";
   aiActivity: AiItem[];
@@ -85,10 +88,10 @@ const AI_ICON: Record<AiItem["kind"], { icon: LucideIcon; tone: string }> = {
 };
 
 const ASSISTANT = {
-  always: { title: "Your AI agent is working for you!", pill: "Active 24/7" },
-  on: { title: "Your AI agent is working for you!", pill: "Active" },
-  almost: { title: "Your AI agent is almost ready", pill: "Almost ready" },
-  off: { title: "Switch on your AI agent", pill: "Off on Free" },
+  always: { title: "Your AI Agent is Working for You!", pill: "Active 24/7" },
+  on: { title: "Your AI Agent is Working for You!", pill: "Active" },
+  almost: { title: "Your AI Agent is Almost Ready", pill: "Almost ready" },
+  off: { title: "Switch On Your AI Agent", pill: "Off on Free" },
 } as const;
 
 /** Presentational dashboard. All numbers come from real records passed in. */
@@ -96,6 +99,8 @@ export function DashboardView({
   greetingText,
   dateText,
   firstName,
+  fullName,
+  avatarUrl,
   businessName,
   notice,
   canCreateProperty,
@@ -108,7 +113,6 @@ export function DashboardView({
   inquiries,
   viewings,
   potentialBuyers,
-  finder,
   assistant,
   aiActivity,
   performance,
@@ -137,26 +141,34 @@ export function DashboardView({
       <InstallBanner />
 
       {/* Greeting */}
-      <header style={{ "--i": 0 } as React.CSSProperties} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+      <header style={{ "--i": 0 } as React.CSSProperties} className="relative isolate flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        {/* A house fading into the page behind the bell and the photo, on wide screens. */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
+        <img
+          src="/images/dashboard/house.webp"
+          alt=""
+          width={1600}
+          height={893}
+          className="pointer-events-none absolute -top-14 right-16 -z-10 h-40 w-auto max-w-none opacity-60 select-none [mask-image:radial-gradient(ellipse_at_55%_55%,black_30%,transparent_70%)] max-lg:hidden"
+        />
         <div className="min-w-0">
           <h1 className="text-[1.75rem] leading-tight font-extrabold tracking-tight text-balance sm:text-[2.25rem]">
-            {greetingText}
-            {firstName ? `, ${firstName}` : ""}!
+            {titleCase(greetingText)}
+            {fullName || firstName ? `, ${fullName || firstName}` : ""}!
           </h1>
           <p className="mt-1 text-[15px] text-muted">Here&apos;s what&apos;s happening with your properties. {dateText}.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link
-            href="/app/billing"
-            className="rounded-full bg-tile-mint px-3 py-1.5 text-xs font-bold text-brand-700 hover:ring-2 hover:ring-brand-100"
-          >
-            {plan.name.toUpperCase()} {paid ? `· ${formatPeso(plan.priceMinor)} / month` : "· upgrade for AI"}
-          </Link>
+          {paid ? null : (
+            <Link href="/app/billing" className="rounded-full bg-tile-mint px-3 py-1.5 text-xs font-bold text-brand-700 hover:ring-2 hover:ring-brand-100">
+              FREE · upgrade for AI
+            </Link>
+          )}
           {unanswered !== null ? (
             <Link
               href="/app/leads"
               aria-label={unanswered ? `${unanswered} new ${unanswered === 1 ? "inquiry" : "inquiries"} to answer` : "Inquiries"}
-              className="pp-bounce relative grid size-11 place-items-center rounded-full border border-line bg-white text-ink shadow-[var(--shadow-card)]"
+              className="pp-bounce relative grid size-11 place-items-center rounded-full bg-white/90 text-ink shadow-[var(--shadow-card)]"
             >
               <Bell className="size-5" aria-hidden />
               {unanswered ? (
@@ -166,23 +178,29 @@ export function DashboardView({
               ) : null}
             </Link>
           ) : null}
+          {/* On phones the photo is already in the bar on top. */}
+          <Link href="/app/account" aria-label="Your account" className="pp-bounce flex items-center gap-1 rounded-full max-lg:hidden">
+            <Avatar name={fullName || firstName} url={avatarUrl} className="size-12 bg-grape-100 text-sm text-grape-700 ring-2 ring-white shadow-[var(--shadow-card)]" />
+            <ChevronDown className="size-4 text-ink/60" aria-hidden />
+          </Link>
         </div>
       </header>
 
       {/* Key numbers */}
-      <section style={{ "--i": 1 } as React.CSSProperties} aria-label="Key numbers" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+      <section style={{ "--i": 1 } as React.CSSProperties} aria-label="Key numbers" className="relative grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Stat
           icon={Home}
           circle="from-[#3b82f6] to-[#1d4ed8]"
           tile="bg-tile-sky"
-          label="Total properties"
+          label="Total Properties"
+          chevron
           value={<CountUp value={properties.length} />}
           note={
             properties.length === 0 ? (
               "Add your first one"
             ) : active === properties.length ? (
               <span className="inline-flex items-center gap-1 font-semibold text-good">
-                <CircleCheck className="size-3.5" aria-hidden /> All active
+                <CircleCheck className="size-3.5" aria-hidden /> All Active
               </span>
             ) : (
               `${active} active`
@@ -194,7 +212,7 @@ export function DashboardView({
           icon={Users}
           circle="from-[#22b866] to-[#0b8a47]"
           tile="bg-tile-mint"
-          label="Buyer inquiries"
+          label="Buyer Inquiries"
           value={inquiries ? <CountUp value={inquiries.total} /> : "—"}
           trend={inquiries && inquiries.previous !== null ? changePct(inquiries.total, inquiries.previous) : null}
           note={inquiries ? (inquiries.previous ? "vs previous 30 days" : "Last 30 days") : "For sales roles"}
@@ -204,25 +222,20 @@ export function DashboardView({
           icon={CalendarDays}
           circle="from-[#e8780c] to-[#c2540a]"
           tile="bg-tile-peach"
-          label="Viewing appointments"
+          label="Viewing Appointments"
           value={viewings ? <CountUp value={viewings.thisMonth} /> : "—"}
           trend={viewings ? changePct(viewings.thisMonth, viewings.lastMonth) : null}
-          note={viewings ? (viewings.lastMonth ? "This month, vs last" : "This month") : "For sales roles"}
+          note={viewings ? (viewings.lastMonth ? "this month, vs last" : "this month") : "For sales roles"}
           href={viewings ? "/app/leads?show=scheduled" : undefined}
         />
         <Stat
           icon={Handshake}
           circle="from-[#8b5cf6] to-[#5b34c9]"
           tile="bg-tile-lavender"
-          label="Potential buyers"
+          label="Potential Buyers"
+          chevron
           value={potentialBuyers === null ? "—" : <CountUp value={potentialBuyers} />}
-          note={
-            potentialBuyers === null
-              ? "For sales roles"
-              : finder && finder.limit !== null
-                ? `Buyer Finder: ${finder.used} of ${finder.limit} used`
-                : "From qualified leads"
-          }
+          note={potentialBuyers === null ? "For sales roles" : "from qualified leads"}
           href={potentialBuyers === null ? undefined : "/app/pipeline"}
         />
       </section>
@@ -231,38 +244,38 @@ export function DashboardView({
       <div style={{ "--i": 2 } as React.CSSProperties} className="grid grid-cols-1 gap-5 xl:grid-cols-5">
         <section
           aria-labelledby="agent-title"
-          className="relative isolate flex flex-col overflow-hidden rounded-[2rem] bg-frame-1 text-white shadow-[var(--shadow-lift)] sm:min-h-80 sm:flex-row sm:items-center xl:col-span-3"
+          className="relative isolate flex flex-col overflow-hidden rounded-[2rem] border border-[var(--hero-line)] bg-[var(--hero-wash)] text-[var(--hero-ink)] shadow-[var(--shadow-card)] sm:min-h-80 sm:flex-row sm:items-center xl:col-span-3"
         >
-          {/* The house scene with the mascot in front: a banner on top on phones, the whole card behind the text on wider screens. */}
+          {/* The house scene with the mascot in front: a banner on top on phones, the left of the card on wider screens. */}
           <div aria-hidden className="relative h-48 shrink-0 sm:absolute sm:inset-0 sm:-z-10 sm:h-auto">
             {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
             <img src="/images/dashboard/house.webp" alt="" width={1600} height={893} className="size-full object-cover object-[30%_55%]" />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-45% to-frame-1 to-95% sm:bg-gradient-to-r sm:from-transparent sm:from-20% sm:via-frame-1/85 sm:via-50% sm:to-frame-1 sm:to-75%" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-55% to-[var(--hero-wash)] to-100% sm:bg-gradient-to-r sm:from-transparent sm:from-25% sm:via-[var(--hero-wash)]/90 sm:via-50% sm:to-[var(--hero-wash)] sm:to-68%" />
             {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
             <img
               src="/images/dashboard/mascot.webp"
               alt=""
               width={641}
               height={720}
-              className="absolute -bottom-2 left-4 h-[10.5rem] w-auto drop-shadow-[0_16px_22px_rgb(20_10_60/0.45)] sm:bottom-0 sm:left-5 sm:h-[90%]"
+              className="absolute -bottom-2 left-4 h-[10.5rem] w-auto drop-shadow-[0_16px_22px_rgb(10_31_77/0.35)] sm:bottom-0 sm:left-5 sm:h-[90%]"
             />
           </div>
-          <div className="relative min-w-0 p-6 pt-5 sm:ml-auto sm:w-[55%] sm:py-8 sm:pl-0 sm:pr-8">
+          <div className="relative min-w-0 p-6 pt-5 sm:ml-auto sm:w-[53%] sm:py-8 sm:pl-0 sm:pr-8">
             <h2 id="agent-title" className="text-[1.6rem] leading-[1.15] font-extrabold tracking-tight text-balance sm:text-[2rem]">
               {ASSISTANT[assistant].title}
             </h2>
             <p
               className={cx(
-                "mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold",
-                live ? "bg-[#e2f6ea] text-[#0a6d39]" : "bg-white/15 text-white",
+                "mt-3 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-[15px] font-bold",
+                live ? "border-[#9fdcb8] bg-[#e2f6ea] text-[#0a6d39]" : "border-[var(--hero-line)] bg-white/60 text-[#0a1f4d]",
               )}
             >
-              {live ? <CircleCheck className="size-4" aria-hidden /> : null}
+              {live ? <CircleCheck className="size-4.5 fill-[#12a356] text-white" aria-hidden /> : null}
               {ASSISTANT[assistant].pill}
             </p>
-            <p className="mt-3 max-w-md text-[15px] text-white/80">
+            <p className="mt-3 max-w-md text-[15px] opacity-85">
               {assistant === "always"
-                ? `Answering buyers on Messenger, sizing up each lead and finding potential buyers for ${businessName}.`
+                ? `Finding buyers, answering inquiries and sizing up every lead for ${businessName}.`
                 : assistant === "on"
                   ? "Sizing up each lead and finding potential buyers. Connect your Facebook Page and it answers buyers on Messenger too."
                   : assistant === "almost"
@@ -271,9 +284,9 @@ export function DashboardView({
             </p>
             <Link
               href={live ? "/app/agents" : assistant === "almost" ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/billing"}
-              className={buttonClass("inverse", "mt-5")}
+              className="pp-bounce mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#1565e6] px-6 text-[15px] font-bold text-white shadow-[0_8px_18px_-8px_rgb(21_101_230/0.8)] hover:bg-[#0f52c4]"
             >
-              {live ? "View AI activity" : assistant === "almost" ? (firstListing ? "Open your listing" : "Add a property") : "See plans, from ₱499 a month"}
+              {live ? "View AI Activity" : assistant === "almost" ? (firstListing ? "Open Your Listing" : "Add a Property") : "See Plans, from ₱499 a Month"}
               <ArrowRight className="size-4" aria-hidden />
             </Link>
           </div>
@@ -282,8 +295,8 @@ export function DashboardView({
         <Panel
           className="xl:col-span-2"
           icon={<Zap className="size-5 fill-[#fbbf24] text-[#fbbf24]" aria-hidden />}
-          title={showAi ? "AI agent activity" : "Recent activity"}
-          action={showAi ? { href: "/app/agents", label: "View all" } : undefined}
+          title={showAi ? "AI Agent Activity" : "Recent Activity"}
+          action={showAi ? { href: "/app/agents", label: "View All" } : undefined}
         >
           {showAi ? (
             <ul className="divide-y divide-line px-5">
@@ -318,13 +331,13 @@ export function DashboardView({
           <section aria-labelledby="perf-title" className="rounded-[1.5rem] border border-line bg-white p-5 shadow-[var(--shadow-card)] sm:p-6 xl:col-span-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <Icon3d name="chart" size={36} />
+                <BarChart3 className="size-7 text-grape-600" strokeWidth={3} aria-hidden />
                 <h2 id="perf-title" className="text-xl font-extrabold tracking-tight">
-                  Property performance
+                  Property Performance
                 </h2>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <span className="rounded-full border border-line px-3 py-1 font-semibold">Last 30 days</span>
+                <span className="rounded-full border border-line px-3 py-1 font-semibold">Last 30 Days</span>
                 <Link href="/app/reports" className="font-bold text-grape-700 hover:underline">
                   Full reports
                 </Link>
@@ -385,59 +398,71 @@ export function DashboardView({
           </section>
         ) : null}
 
-        <Panel className={performance ? "xl:col-span-2" : "xl:col-span-5"} icon={<Rocket className="size-5" aria-hidden />} title="Quick actions">
+        <Panel className={performance ? "xl:col-span-2" : "xl:col-span-5"} icon={<Rocket className="size-5" aria-hidden />} title="Quick Actions">
           <div className="grid flex-1 auto-rows-fr grid-cols-2 gap-3 p-4">
-            <Link
-              href="/app/pricing"
-              className="pp-lift pp-bounce col-span-2 flex min-h-[4.5rem] items-center gap-3 rounded-2xl bg-gradient-to-br from-grape-700 to-grape-900 p-4 text-white"
-            >
-              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/15">
-                <PhilippinePeso className="size-5" aria-hidden />
-              </span>
-              <span className="min-w-0 flex-1 text-[15px] leading-tight font-bold">
-                Pricing Advisor
-                <span className="mt-0.5 block text-xs font-semibold text-white/80">AI price check with comparable listings</span>
-              </span>
-              {pricingAdvisor ? <ChevronRight className="size-5 shrink-0 text-white/80" aria-hidden /> : <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold">Agency plan</span>}
-            </Link>
+            <Action href="/app/pricing" icon={PhilippinePeso} tone="from-[#1a4bb0] to-[#0c2563]" label="Pricing Advisor" note={pricingAdvisor ? undefined : "Agency plan"} />
             <Action
               href={canCreateProperty ? "/app/properties/new" : "/app/properties"}
               icon={canCreateProperty ? Plus : Home}
-              tone="from-[#2f6fed] to-[#1e4fd0]"
-              label={canCreateProperty ? "Add a property" : "Open properties"}
+              tone="from-[#0e97a9] to-[#0a7183]"
+              label={canCreateProperty ? "Add a Property" : "Open Properties"}
             />
+            <Action icon={Video} tone="from-[#2f7af5] to-[#1a5fe0]" label="Video Ad Maker" note="Coming soon" />
             <Action
               href={facebookConnected ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/integrations"}
               icon={Megaphone}
               tone="from-[#12a356] to-[#0b7a3f]"
-              label={facebookConnected ? "Post a listing on Facebook" : "Connect your Facebook Page"}
+              label={facebookConnected ? "Post Listing on Facebook" : "Connect Your Facebook Page"}
             />
             <Action
               href={performance ? "/app/reports" : "/app/pipeline"}
               icon={BarChart3}
               tone="from-[#7c4ff0] to-[#5a31c7]"
-              label={performance ? "View detailed reports" : "Open your leads"}
+              label={performance ? "View Detailed Reports" : "Open Your Leads"}
             />
-            <div className="flex min-h-[4.5rem] flex-col justify-center gap-2 rounded-2xl bg-tile-peach p-4 text-brass-700 sm:flex-row sm:items-center sm:justify-start sm:gap-3">
-              <Video className="size-6 shrink-0" aria-hidden />
-              <span className="min-w-0 text-[15px] leading-tight font-bold">
-                Video Ad Maker
-                <span className="mt-0.5 block text-xs font-semibold opacity-80">Coming soon</span>
-              </span>
-            </div>
+            <Action icon={Headset} tone="from-[#e58a0b] to-[#bd6304]" label="Contact Our Support Team" note="Coming soon" />
           </div>
         </Panel>
       </div>
 
+      {/* The banner from the mockup */}
+      <section
+        style={{ "--i": 4 } as React.CSSProperties}
+        className="relative isolate flex flex-wrap items-center justify-between gap-x-6 gap-y-4 overflow-hidden rounded-[1.5rem] border border-line p-6 sm:py-9"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
+        <img src="/images/dashboard/skyline.webp" alt="" width={2000} height={481} loading="lazy" className="absolute inset-0 -z-20 size-full object-cover object-[100%_10%]" />
+        {/* A wash in the card's color keeps the words readable in both themes; the skyline shows through on the right. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10 bg-gradient-to-r from-[var(--pp-card)] from-25% via-[var(--pp-card)]/75 via-55% to-transparent max-sm:from-0% max-sm:via-[var(--pp-card)]/85 max-sm:to-[var(--pp-card)]/55"
+        />
+        <div className="min-w-0">
+          <h2 className="text-xl font-extrabold tracking-tight italic sm:text-[1.7rem]">Turn Your Property into Profit!</h2>
+          <p className="mt-1 max-w-xl text-sm text-ink/80">
+            {paid
+              ? "Share a listing's public page on Facebook and Messenger. Every inquiry becomes a lead, ready to follow up."
+              : "With MyHomeSeller on Basic, every buyer gets an answer and you see which leads fit each listing."}
+          </p>
+        </div>
+        <Link
+          href={paid ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/billing"}
+          className="pp-bounce inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-sun px-7 text-[15px] font-extrabold text-sun-ink shadow-[0_10px_22px_-10px_rgb(248_196_35/0.9)] hover:brightness-105 max-sm:w-full"
+        >
+          {paid ? (firstListing ? "Share a Listing" : "Add a Property") : "See Plans, from ₱499 a Month"}
+          <ArrowRight className="size-4" aria-hidden />
+        </Link>
+      </section>
+
       {/* Setup while it's unfinished, and recent activity when the panel above shows the AI instead */}
       {!setupDone || showAi ? (
-        <div style={{ "--i": 4 } as React.CSSProperties} className={cx("grid grid-cols-1 gap-5", !setupDone && showAi && "lg:grid-cols-2")}>
+        <div style={{ "--i": 5 } as React.CSSProperties} className={cx("grid grid-cols-1 gap-5", !setupDone && showAi && "lg:grid-cols-2")}>
           {!setupDone ? (
             <section className="rounded-[1.5rem] border border-line bg-white p-6 shadow-[var(--shadow-card)]">
               <div className="flex items-center gap-3">
                 <Icon3d name="rocket" size={44} />
                 <div className="flex-1">
-                  <h2 className="text-xl font-extrabold tracking-tight">Get set up</h2>
+                  <h2 className="text-xl font-extrabold tracking-tight">Get Set Up</h2>
                   <p className="text-sm text-muted tabular-nums">
                     {doneCount} of {steps.length} done
                   </p>
@@ -484,47 +509,19 @@ export function DashboardView({
             <section className="rounded-[1.5rem] border border-line bg-white pb-2 pt-6 shadow-[var(--shadow-card)]">
               <div className="flex items-center gap-3 px-6">
                 <Icon3d name="bell" size={44} />
-                <h2 className="text-xl font-extrabold tracking-tight">Recent activity</h2>
+                <h2 className="text-xl font-extrabold tracking-tight">Recent Activity</h2>
               </div>
               <ActivityList recent={recent} now={now} />
             </section>
           ) : null}
         </div>
       ) : null}
-
-      {/* Closing banner */}
-      <section
-        style={{ "--i": 5 } as React.CSSProperties}
-        className="relative isolate flex flex-wrap items-center justify-between gap-x-6 gap-y-4 overflow-hidden rounded-[1.5rem] border border-line p-6 sm:py-9"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
-        <img src="/images/dashboard/skyline.webp" alt="" width={2000} height={481} loading="lazy" className="absolute inset-0 -z-20 size-full object-cover object-[100%_10%]" />
-        {/* A wash in the card's color keeps the words readable in both themes; the skyline shows through on the right. */}
-        <div
-          aria-hidden
-          className="absolute inset-0 -z-10 bg-gradient-to-r from-[var(--pp-card)] from-25% via-[var(--pp-card)]/75 via-55% to-transparent max-sm:from-0% max-sm:via-[var(--pp-card)]/85 max-sm:to-[var(--pp-card)]/55"
-        />
-        <div className="min-w-0">
-          <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">Turn your property into profit!</h2>
-          <p className="mt-1 max-w-xl text-sm text-ink/80">
-            {paid
-              ? "Share a listing's public page on Facebook and Messenger. Every inquiry becomes a lead, ready to follow up."
-              : "With MyHomeSeller on Basic, every buyer gets an answer and you see which leads fit each listing."}
-          </p>
-        </div>
-        <Link
-          href={paid ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/billing"}
-          className={buttonClass("primary", "max-sm:w-full")}
-        >
-          {paid ? (firstListing ? "Share a listing" : "Add a property") : "See plans, from ₱499 a month"}
-          <ArrowRight className="size-4" aria-hidden />
-        </Link>
-      </section>
     </div>
   );
 }
 
 const plural = (n: number, word: string, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
+const titleCase = (text: string) => text.replace(/\b[a-z]/g, (c) => c.toUpperCase());
 
 /** A key number: round colored icon, the figure, and how it changed. */
 function Stat({
@@ -536,6 +533,7 @@ function Stat({
   trend,
   note,
   href,
+  chevron = false,
 }: {
   icon: LucideIcon;
   circle: string;
@@ -545,6 +543,8 @@ function Stat({
   trend?: number | null;
   note: ReactNode;
   href?: string;
+  /** Show the arrow on the right, as on the first and last cards. */
+  chevron?: boolean;
 }) {
   const className = cx("flex flex-col gap-3 rounded-[var(--radius-tile)] p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5", tile, href && "pp-lift");
   const body = (
@@ -566,7 +566,7 @@ function Stat({
         </span>
         <span className="mt-1 block text-xs text-muted">{note}</span>
       </span>
-      {href ? <ChevronRight className="size-5 shrink-0 text-ink/40 max-2xl:hidden" aria-hidden /> : null}
+      {href && chevron ? <ChevronRight className="size-5 shrink-0 text-ink/60 max-sm:hidden" aria-hidden /> : null}
     </>
   );
   return href ? (
@@ -656,17 +656,29 @@ function ActivityList({ recent, now }: { recent: Activity[]; now?: Date }) {
   );
 }
 
-function Action({ href, icon: Icon, tone, label }: { href: string; icon: LucideIcon; tone: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className={cx(
-        "pp-lift pp-bounce flex min-h-[4.5rem] flex-col justify-center gap-2 rounded-2xl bg-gradient-to-br p-4 text-[15px] leading-tight font-bold text-white sm:flex-row sm:items-center sm:justify-start sm:gap-3",
-        tone,
-      )}
-    >
-      <Icon className="size-6 shrink-0" aria-hidden />
-      {label}
+/** A colored shortcut tile. Without `href` it's something that isn't ready yet, so it can't be pressed. */
+function Action({ href, icon: Icon, tone, label, note }: { href?: string; icon: LucideIcon; tone: string; label: string; note?: string }) {
+  const className = cx(
+    "flex min-h-[4.5rem] flex-col justify-center gap-2 rounded-2xl bg-gradient-to-br p-4 text-[15px] leading-tight font-bold text-white sm:flex-row sm:items-center sm:justify-start sm:gap-3",
+    tone,
+    href ? "pp-lift pp-bounce" : "cursor-default",
+  );
+  const body = (
+    <>
+      <Icon className="size-7 shrink-0" aria-hidden />
+      <span className="min-w-0">
+        {label}
+        {note ? <span className="mt-0.5 block text-xs font-semibold text-white/85">{note}</span> : null}
+      </span>
+    </>
+  );
+  return href ? (
+    <Link href={href} className={className}>
+      {body}
     </Link>
+  ) : (
+    <div className={className} aria-disabled="true">
+      {body}
+    </div>
   );
 }

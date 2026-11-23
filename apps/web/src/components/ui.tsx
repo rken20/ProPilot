@@ -61,8 +61,8 @@ const buttonVariants = {
   secondary: "border border-grape-100 bg-white text-grape-700 hover:border-grape-300 hover:bg-grape-50",
   danger: "border border-red-200 bg-white text-red-700 hover:bg-red-50",
   ghost: "text-zinc-700 hover:bg-zinc-100",
-  /** For grape panels. */
-  inverse: "bg-[#fff] text-[#3a2084] hover:bg-[#f2edfe]",
+  /** For navy panels. */
+  inverse: "bg-[#fff] text-[#0c2563] hover:bg-[#eaf2ff]",
   inverseGhost: "text-white/85 hover:bg-white/10 hover:text-white",
 } as const;
 

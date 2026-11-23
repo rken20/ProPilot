@@ -4,17 +4,32 @@ import { useState } from "react";
 import { niceScale, type PerfPoint } from "@/lib/dashboard-stats";
 
 // Colors checked for both themes with the dataviz palette validator (all pairs, color-blind safe).
-// Orange and green are below 3:1 on the light card, so every value is also in the legend,
-// the tooltip and the table.
+// Orange and green are below 3:1 on the light card, so every value is also in a label at the
+// end of its line, the tooltip and the table. `label` is a darker step of the same hue, so the
+// white words on the end labels pass 4.5:1.
 const SERIES = [
-  { key: "views", name: "Views", color: "var(--chart-listing)" },
-  { key: "inquiries", name: "Inquiries", color: "var(--chart-green)" },
-  { key: "viewings", name: "Viewings", color: "var(--chart-messenger)" },
+  { key: "views", name: "Views", color: "var(--chart-listing)", label: "#1a62dc" },
+  { key: "inquiries", name: "Inquiries", color: "var(--chart-green)", label: "#0b8a47" },
+  { key: "viewings", name: "Viewings", color: "var(--chart-messenger)", label: "#b35a00" },
 ] as const;
 
+/** Keep end labels from sitting on top of each other: positions in % from the top, at least `gap` apart, and no lower than `max`. */
+export function spreadLabels(tops: number[], gap: number, max = 100): number[] {
+  const order = tops.map((t, i) => ({ t, i })).sort((a, b) => a.t - b.t);
+  for (let k = 1; k < order.length; k++) order[k]!.t = Math.max(order[k]!.t, order[k - 1]!.t + gap);
+  const last = order.at(-1);
+  if (last && last.t > max) {
+    last.t = max;
+    for (let k = order.length - 2; k >= 0; k--) order[k]!.t = Math.min(order[k]!.t, order[k + 1]!.t - gap);
+  }
+  const out = new Array<number>(tops.length);
+  for (const o of order) out[o.i] = o.t;
+  return out;
+}
+
 /**
- * Running totals for the last 30 days as three lines on one scale. Hover, touch
- * or use the arrow keys to read any day; the legend carries the totals.
+ * Running totals for the last 30 days as three lines on one scale. Each line ends
+ * in a label with its total. Hover, touch or use the arrow keys to read any day.
  */
 export function PerformanceChart({ points }: { points: PerfPoint[] }) {
   const [active, setActive] = useState<number | null>(null);
@@ -27,6 +42,12 @@ export function PerformanceChart({ points }: { points: PerfPoint[] }) {
   const ticks = Array.from({ length: scale.max / scale.step + 1 }, (_, i) => i * scale.step);
   const dateTicks = [...new Set([0, Math.round((n - 1) / 4), Math.round((n - 1) / 2), Math.round(((n - 1) * 3) / 4), n - 1])];
   const shown = active === null ? null : points[active];
+  const labelTops = spreadLabels(
+    SERIES.map((s) => y(last[s.key])),
+    14,
+    // A label is about 11% of the plot tall, so its middle stops short of the bottom edge.
+    94,
+  );
 
   function pick(clientX: number, el: HTMLElement) {
     const box = el.getBoundingClientRect();
@@ -38,9 +59,8 @@ export function PerformanceChart({ points }: { points: PerfPoint[] }) {
       <figcaption className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
         {SERIES.map((s) => (
           <span key={s.key} className="inline-flex items-center gap-2">
-            <span aria-hidden className="h-[3px] w-4 rounded-full" style={{ background: s.color }} />
+            <span aria-hidden className="size-2.5 rounded-full" style={{ background: s.color }} />
             <span className="text-muted">{s.name}</span>
-            <span className="font-bold tabular-nums">{last[s.key].toLocaleString("en-PH")}</span>
           </span>
         ))}
       </figcaption>
@@ -73,6 +93,22 @@ export function PerformanceChart({ points }: { points: PerfPoint[] }) {
             <span key={t} aria-hidden className="absolute inset-x-0 border-t border-line" style={{ bottom: `${(t / scale.max) * 100}%` }} />
           ))}
           <svg aria-hidden viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 size-full overflow-visible">
+            <defs>
+              {SERIES.map((s) => (
+                <linearGradient key={s.key} id={`perf-fill-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor={s.color} stopOpacity={0.16} />
+                  <stop offset="1" stopColor={s.color} stopOpacity={0} />
+                </linearGradient>
+              ))}
+            </defs>
+            {/* A soft wash under each line, as in the mockup. */}
+            {SERIES.map((s) => (
+              <path
+                key={`fill-${s.key}`}
+                d={`${points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(2)} ${y(p[s.key]).toFixed(2)}`).join("")}L${x(n - 1).toFixed(2)} 100L${x(0).toFixed(2)} 100Z`}
+                fill={`url(#perf-fill-${s.key})`}
+              />
+            ))}
             {SERIES.map((s) => (
               <path
                 key={s.key}
@@ -95,6 +131,19 @@ export function PerformanceChart({ points }: { points: PerfPoint[] }) {
               style={{ left: `${x(active ?? n - 1)}%`, top: `${y((shown ?? last)[s.key])}%`, background: s.color }}
             />
           ))}
+          {/* Each line's total at its end. They step aside while a day is being read. */}
+          {active === null
+            ? SERIES.map((s, k) => (
+                <span
+                  key={s.key}
+                  aria-hidden
+                  className="absolute right-3 -translate-y-1/2 rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap text-white tabular-nums shadow-[0_4px_10px_-4px_rgb(0_0_0/0.35)]"
+                  style={{ top: `${labelTops[k]}%`, background: s.label }}
+                >
+                  {last[s.key].toLocaleString("en-PH")} {s.name}
+                </span>
+              ))
+            : null}
           {shown && active !== null ? (
             <>
               <span aria-hidden className="absolute inset-y-0 w-px -translate-x-1/2 bg-ink/25" style={{ left: `${x(active)}%` }} />

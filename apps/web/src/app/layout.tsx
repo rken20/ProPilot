@@ -18,7 +18,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#3a2084",
+  themeColor: "#0c2563",
 };
 
 const THEME_SCRIPT = `try{if(localStorage.getItem("pp-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`;

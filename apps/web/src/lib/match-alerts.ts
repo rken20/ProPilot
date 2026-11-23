@@ -38,7 +38,7 @@ const shell = (title: string, body: string) => `<!doctype html><html><body style
 ${body}
 </body></html>`;
 const button = (url: string, label: string) =>
-  `<p><a href="${esc(url)}" style="display:inline-block;background:#3a2084;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">${esc(label)}</a></p>`;
+  `<p><a href="${esc(url)}" style="display:inline-block;background:#124fbf;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">${esc(label)}</a></p>`;
 
 /**
  * Save what a buyer is looking for, unconfirmed, and email them a link to
@@ -191,7 +191,7 @@ export async function sendMatchEmails(admin: SupabaseClient, origin: string, now
         html: shell(
           subject,
           `<p>Hi ${esc((a.name as string | null) ?? "there")},</p>${rows
-            .map((r) => `<p style="margin:14px 0"><a href="${esc(r.url)}" style="color:#3a2084;font-weight:bold">${esc(r.title)}</a><br><span style="color:#6b665d">${esc(r.detail)}</span></p>`)
+            .map((r) => `<p style="margin:14px 0"><a href="${esc(r.url)}" style="color:#124fbf;font-weight:bold">${esc(r.title)}</a><br><span style="color:#6b665d">${esc(r.detail)}</span></p>`)
             .join("")}<p style="color:#6b665d;font-size:13px">${esc(why)} <a href="${esc(manage)}" style="color:#6b665d">Stop these emails and delete my preferences</a></p>`,
         ),
       });
