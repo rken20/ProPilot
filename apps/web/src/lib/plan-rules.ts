@@ -48,7 +48,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "AI-written listing descriptions and captions",
       "Ask MyHomeSeller and the reply helper",
     ],
-    excludes: "Walay Video Ad Maker. Limited buyer finder.",
+    excludes: "No Video Ad Maker. Limited Buyer Finder.",
   },
   pro: {
     tagline: "Para sa mga agent",
