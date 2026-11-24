@@ -46,6 +46,10 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
         <div className="mb-4">
           <Alert tone="success">Property archived. Its public page is off and the assistant won&apos;t mention it.</Alert>
         </div>
+      ) : sp.notice === "deleted" ? (
+        <div className="mb-4">
+          <Alert tone="success">Listing deleted for good, with its photos and public page.</Alert>
+        </div>
       ) : null}
       {error ? <Alert>Couldn&apos;t load properties. Refresh to try again.</Alert> : null}
 

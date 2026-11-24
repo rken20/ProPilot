@@ -9,6 +9,19 @@ import { createClient } from "@/lib/supabase/server";
 import { businessPlan } from "@/lib/plan";
 import { teamSeatsUsed } from "@/lib/plan-limits";
 
+/** Rename the business. Its name shows in the app and as "listed by" on every public listing page. Owners and admins only (the database enforces it too). */
+export async function renameBusiness(_prev: FormState, form: FormData): Promise<FormState> {
+  const biz = await requireBusiness();
+  const name = str(form, "businessName").replace(/\s+/g, " ").trim();
+  if (!can(biz.role, "business.update")) return { error: "Only the owner or an admin can rename the business.", data: { businessName: name } };
+  if (name.length < 2 || name.length > 120) return { fieldErrors: { businessName: "Use 2 to 120 characters." }, data: { businessName: name } };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("businesses").update({ name, updated_at: new Date().toISOString() }).eq("id", biz.businessId).select("id");
+  if (error || !data?.length) return { error: "Couldn't save the name. Please try again.", data: { businessName: name } };
+  revalidatePath("/app", "layout");
+  return { ok: true, message: "Saved. Public listing pages show the new name now.", data: { businessName: name } };
+}
+
 export async function inviteMember(_prev: FormState, form: FormData): Promise<FormState> {
   const user = await requireUser();
   const biz = await requireBusiness();

@@ -3,12 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
-import { can, propertySchema } from "@propilot/shared";
+import { PROPERTY_STATUSES, can, propertySchema } from "@propilot/shared";
 import { requireBusiness, requireUser } from "@/lib/auth";
 import { fieldErrorsFrom, str, type FormState } from "@/lib/form";
 import { pesosToCentavos } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { copyPostPhotos } from "@/lib/post-photos";
+import { MEDIA_BUCKET } from "@/lib/media";
+import { publicListingPath } from "@/lib/public-listing";
+import { isSuperAdmin } from "@/lib/superadmin";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const FORM_KEYS = [
   "name", "type", "location", "price", "reservationFee", "status", "description",
@@ -119,11 +124,38 @@ export async function updateProperty(id: string, _prev: FormState, form: FormDat
   return { ok: true, message: "Saved." };
 }
 
-export async function archiveProperty(id: string) {
+/**
+ * Change a listing's status (available, reserved, sold, archived). This is how
+ * a listing is taken down: nothing is deleted, and its inquiries and history stay.
+ * The database lets owners and admins change any listing, and agents the ones assigned to them.
+ */
+export async function setPropertyStatus(id: string, status: string): Promise<void> {
   const biz = await requireBusiness();
-  if (!can(biz.role, "property.delete")) return;
+  if (!can(biz.role, "property.update") || !UUID.test(id)) return;
+  if (!(PROPERTY_STATUSES as readonly string[]).includes(status)) return;
   const supabase = await createClient();
-  await supabase.from("properties").update({ status: "archived" }).eq("id", id).eq("business_id", biz.businessId);
+  await supabase.from("properties").update({ status, updated_at: new Date().toISOString() }).eq("id", id).eq("business_id", biz.businessId);
   revalidatePath("/app/properties");
-  redirect("/app/properties?notice=archived");
+  revalidatePath(publicListingPath(id));
+  redirect(`/app/properties/${id}?notice=status`);
+}
+
+/**
+ * Delete a listing for good, with its photos, inquiries, views and offers.
+ * Only the app's own admin can (a super admin); the database enforces it too.
+ * Everyone else changes the status instead.
+ */
+export async function deleteProperty(id: string): Promise<void> {
+  const [biz, user] = await Promise.all([requireBusiness(), requireUser()]);
+  if (!UUID.test(id) || !(await isSuperAdmin(user.id))) return;
+  const supabase = await createClient();
+  // The photo files to remove, read before the listing (and its photo records) are gone.
+  const { data: media } = await supabase.from("property_media").select("storage_path, thumb_path").eq("property_id", id).eq("business_id", biz.businessId);
+  const { data: gone } = await supabase.from("properties").delete().eq("id", id).eq("business_id", biz.businessId).select("id");
+  if (!gone?.length) redirect(`/app/properties/${id}?notice=not-deleted`);
+  const files = (media ?? []).flatMap((m) => [m.storage_path, m.thumb_path]).filter((f): f is string => Boolean(f));
+  if (files.length) await supabase.storage.from(MEDIA_BUCKET).remove(files);
+  revalidatePath("/app/properties");
+  revalidatePath(publicListingPath(id));
+  redirect("/app/properties?notice=deleted");
 }

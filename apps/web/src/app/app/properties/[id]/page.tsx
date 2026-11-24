@@ -6,7 +6,11 @@ import { SubmitButton } from "@/components/submit-button";
 import { getOrigin, getUser, requireBusiness } from "@/lib/auth";
 import { centavosToPesosInput } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
-import { archiveProperty, updateProperty } from "../actions";
+import { deleteProperty, setPropertyStatus, updateProperty } from "../actions";
+import { DeleteListing } from "./delete-listing";
+import { isSuperAdmin } from "@/lib/superadmin";
+import { PROPERTY_STATUSES } from "@propilot/shared";
+import { STATUS_LABEL } from "@/lib/property-labels";
 import { PropertyForm } from "../property-form";
 import { RefreshSoon } from "@/components/refresh-soon";
 import { PhotoManager, type Photo } from "./photo-manager";
@@ -24,12 +28,19 @@ import { publicListingPath } from "@/lib/public-listing";
 import { siteOrigin } from "@/lib/site";
 import { daysAgoIso } from "@/lib/time";
 
+const STATUS_ACTION: Record<(typeof PROPERTY_STATUSES)[number], string> = {
+  available: "Mark as available",
+  reserved: "Mark as reserved",
+  sold: "Mark as sold",
+  archived: "Archive",
+};
+
 export default async function PropertyPage({ params, searchParams }: PageProps<"/app/properties/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const [biz, user] = await Promise.all([requireBusiness(), getUser()]);
-  const aiOn = await aiEnabled(biz.businessId);
+  const [aiOn, superAdmin] = await Promise.all([aiEnabled(biz.businessId), user ? isSuperAdmin(user.id) : Promise.resolve(false)]);
   const supabase = await createClient();
   const { data: p } = await supabase
     .from("properties")
@@ -145,6 +156,17 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
           <Alert tone="success">Property saved. The photos from your Facebook post are being added below.</Alert>
           <RefreshSoon />
         </div>
+      ) : sp.notice === "status" ? (
+        <div className="mb-4">
+          <Alert tone="success">
+            Status changed to {STATUS_LABEL[p.status as keyof typeof STATUS_LABEL] ?? p.status}.
+            {p.status === "sold" || p.status === "archived" ? " Its public page is off and the assistant won't offer it. Nothing was deleted." : ""}
+          </Alert>
+        </div>
+      ) : sp.notice === "not-deleted" ? (
+        <div className="mb-4">
+          <Alert>This listing couldn&apos;t be deleted. Only the app admin can delete listings.</Alert>
+        </div>
       ) : sp.notice === "price-updated" ? (
         <div className="mb-4">
           <Alert tone="success">Asking price updated. Buyers and the AI chat see the new price now.</Alert>
@@ -160,7 +182,8 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
         />
       </div>
       <Card>
-        <PropertyForm action={updateProperty.bind(null, p.id)} initial={initial} submitLabel="Save changes" readOnly={!canEdit} aiWrite={aiOn} />
+        {/* The key resets the form when the status is changed with the buttons further down. */}
+        <PropertyForm key={p.status} action={updateProperty.bind(null, p.id)} initial={initial} submitLabel="Save changes" readOnly={!canEdit} aiWrite={aiOn} />
       </Card>
 
       {finder ? (
@@ -194,19 +217,25 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
         />
       ) : null}
 
-      {can(biz.role, "property.delete") && p.status !== "archived" ? (
-        <Card className="mt-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="font-medium">Archive this property</p>
-            <p className="text-sm text-zinc-600">It stays in your records but the assistant stops offering it.</p>
+      {canEdit ? (
+        <Panel title="Listing status" className="mt-6">
+          <p className="mt-1 max-w-2xl text-sm text-muted">
+            Now <span className="font-semibold text-ink">{STATUS_LABEL[p.status as keyof typeof STATUS_LABEL] ?? p.status}</span>. When a property is sold or
+            off the market, change its status. Sold and archived listings leave the public page and the assistant stops offering them, and all their records stay.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {PROPERTY_STATUSES.filter((s) => s !== p.status).map((s) => (
+              <form key={s} action={setPropertyStatus.bind(null, p.id, s)}>
+                <SubmitButton variant="secondary" pendingText="Saving…">
+                  {STATUS_ACTION[s]}
+                </SubmitButton>
+              </form>
+            ))}
           </div>
-          <form action={archiveProperty.bind(null, p.id)}>
-            <SubmitButton variant="danger" pendingText="Archiving…">
-              Archive
-            </SubmitButton>
-          </form>
-        </Card>
+        </Panel>
       ) : null}
+
+      {superAdmin ? <DeleteListing name={p.name} action={deleteProperty.bind(null, p.id)} /> : null}
     </>
   );
 }
