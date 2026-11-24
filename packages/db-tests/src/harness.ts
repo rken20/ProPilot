@@ -15,6 +15,7 @@ const AUTH_STUB = `
     email text,
     -- Supabase sets this when the address is verified; test users are verified unless a test says otherwise.
     email_confirmed_at timestamptz default now(),
+    last_sign_in_at timestamptz,
     raw_user_meta_data jsonb default '{}'::jsonb
   );
   create function auth.uid() returns uuid language sql stable as $$

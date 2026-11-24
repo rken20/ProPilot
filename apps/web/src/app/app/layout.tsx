@@ -58,7 +58,12 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
       : []),
     ...(can(current.role, "billing.view") ? [{ href: "/app/billing", label: "Billing" }] : []),
     // MyHomeSeller staff only: GCash payments waiting for a check.
-    ...(superAdmin ? [{ href: "/admin/payments", label: "Payments to check", count: paymentsWaiting }] : []),
+    ...(superAdmin
+      ? [
+          { href: "/admin/payments", label: "Payments to check", count: paymentsWaiting },
+          { href: "/admin/accounts", label: "Accounts" },
+        ]
+      : []),
   ];
 
   const items: NavItem[] = [

@@ -1,9 +1,8 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { Card, PageHeader, Panel } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPeso } from "@/lib/money";
 import { requireSuperAdmin } from "@/lib/superadmin";
+import { AdminTabs } from "../admin-tabs";
 import { cancelGrant, confirmPayment, grantByEmail, grantPlan, rejectPayment } from "./actions";
 import { GrantByEmail } from "./grant-by-email";
 import { GrantsTable, type Grant } from "./grants-table";
@@ -54,9 +53,7 @@ export default async function AdminPaymentsPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
-      <Link href="/app" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-        <ArrowLeft className="size-4" aria-hidden /> Back to MyHomeSeller
-      </Link>
+      <AdminTabs current="/admin/payments" />
       <PageHeader
         title="Payments to check"
         description="Find each payment in your GCash transaction history by its reference number and amount, then confirm it. Confirming turns the plan on right away."

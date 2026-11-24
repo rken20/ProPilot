@@ -36,8 +36,9 @@ async function ownListings(admin: NonNullable<ReturnType<typeof createAdminClien
   if (!places.length) return [];
   let query = admin
     .from("properties")
-    .select("id, name, location, price_minor")
+    .select("id, name, location, price_minor, businesses!inner(restricted_at)")
     .eq("is_public", true)
+    .is("businesses.restricted_at", null)
     .eq("status", "available")
     .eq("type", input.type)
     .or(places.map((p) => `location.ilike.%${p}%`).join(","))

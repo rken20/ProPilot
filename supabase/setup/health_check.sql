@@ -27,6 +27,7 @@ from (values
   (24, 'Only the app admin can delete listings', exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'properties' and policyname = 'properties_delete' and qual like '%my_is_superadmin%'), 'Run 20261124010000_delete_listings_app_admin_only.sql'),
   (25, 'Video Ad Maker', to_regclass('public.video_ads') is not null, 'Run 20261124020000_video_ads.sql'),
   (26, 'Video templates Price Reveal and Top 3 Reasons', exists (select 1 from pg_constraint where conname = 'video_ads_template_check' and pg_get_constraintdef(oid) like '%reveal%'), 'Run 20261124030000_video_ad_templates.sql'),
-  (27, 'Plans given to beta testers by email', to_regclass('public.plan_grants') is not null and exists (select 1 from pg_proc where proname = 'grant_plan_by_email'), 'Run 20261124040000_plan_grants.sql')
+  (27, 'Plans given to beta testers by email', to_regclass('public.plan_grants') is not null and exists (select 1 from pg_proc where proname = 'grant_plan_by_email'), 'Run 20261124040000_plan_grants.sql'),
+  (28, 'Admin accounts screen (plans, restrict, delete)', exists (select 1 from pg_proc where proname = 'admin_delete_account') and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'businesses' and column_name = 'restricted_at'), 'Run 20261124050000_admin_accounts.sql')
 ) as t(n, item, ok, fix)
 order by n;

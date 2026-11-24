@@ -22,9 +22,23 @@ export const getUser = cache(async () => {
   return user;
 });
 
+/**
+ * Whether the app admin has restricted this account. The database already
+ * shows a restricted person none of their business's data; this is what sends
+ * them to the page that says so. Read once per request.
+ */
+export const accountRestricted = cache(async (): Promise<boolean> => {
+  const user = await getUser();
+  if (!user) return false;
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("status").eq("id", user.id).maybeSingle();
+  return !!data && data.status !== "active";
+});
+
 export async function requireUser() {
   const user = await getUser();
   if (!user) redirect("/login");
+  if (await accountRestricted()) redirect("/restricted");
   return user;
 }
 

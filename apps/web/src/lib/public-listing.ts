@@ -31,9 +31,11 @@ export const getPublicListing = cache(async (id: string): Promise<PublicListing 
   if (!admin) return null;
   const { data: p } = await admin
     .from("properties")
-    .select("id, name, type, location, price_minor, reservation_fee_minor, currency, status, description, financing, created_at, updated_at, businesses(name)")
+    .select("id, name, type, location, price_minor, reservation_fee_minor, currency, status, description, financing, created_at, updated_at, businesses!inner(name, restricted_at)")
     .eq("id", id)
     .eq("is_public", true)
+    // A business the app admin has restricted has no public pages until it is lifted.
+    .is("businesses.restricted_at", null)
     .in("status", ["available", "reserved"])
     .maybeSingle();
   if (!p) return null;
@@ -70,8 +72,9 @@ export async function publicListingIds(limit = 5000): Promise<Array<{ id: string
   try {
     const { data } = await admin
       .from("properties")
-      .select("id, updated_at")
+      .select("id, updated_at, businesses!inner(restricted_at)")
       .eq("is_public", true)
+      .is("businesses.restricted_at", null)
       .in("status", ["available", "reserved"])
       .order("updated_at", { ascending: false })
       .limit(limit);

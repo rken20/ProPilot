@@ -153,8 +153,9 @@ export async function sendMatchEmails(admin: SupabaseClient, origin: string, now
       .limit(300),
     admin
       .from("properties")
-      .select("id, business_id, name, type, location, price_minor, financing")
+      .select("id, business_id, name, type, location, price_minor, financing, businesses!inner(restricted_at)")
       .eq("is_public", true)
+      .is("businesses.restricted_at", null)
       .eq("status", "available")
       .order("updated_at", { ascending: false })
       .limit(3000),

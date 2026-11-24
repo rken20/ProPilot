@@ -27,9 +27,11 @@ export type PlanInfo = {
 const FREE: PlanInfo = { code: FREE_PLAN, name: "Free", ai: false, homeFinderBuyers: 0, teamMembers: 1, aiReplies: 0, negotiation: false, priceChecks: 0, videoAds: 0, periodEnd: null };
 
 /** Plan and limits come back in one query (the subscription with its plan and the plan's limits). */
-const SUB_SELECT = "current_period_end, plans(code, name, plan_entitlements(feature_key, limit))";
+const SUB_SELECT = "current_period_end, plans(code, name, plan_entitlements(feature_key, limit)), businesses(restricted_at)";
 
-function planFrom(sub: { current_period_end: unknown; plans: unknown } | null): PlanInfo {
+function planFrom(sub: { current_period_end: unknown; plans: unknown; businesses?: unknown } | null): PlanInfo {
+  // A business the app admin has restricted gets nothing a paid plan adds (the AI stops replying) until it is lifted.
+  if ((sub?.businesses as { restricted_at: string | null } | null | undefined)?.restricted_at) return FREE;
   const plan = (sub?.plans ?? null) as { code: string; name: string; plan_entitlements?: Array<{ feature_key: string; limit: number | null }> } | null;
   const code = effectivePlanCode(sub && plan ? { code: plan.code, current_period_end: sub.current_period_end as string } : null, new Date());
   if (code === FREE_PLAN || !plan) return FREE;
