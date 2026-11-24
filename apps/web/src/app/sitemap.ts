@@ -3,8 +3,9 @@ import { sitemapEntries } from "@/lib/listing-seo";
 import { publicListingIds } from "@/lib/public-listing";
 import { siteOrigin } from "@/lib/site";
 
-// Listings come and go, so the sitemap is built fresh, at most once an hour.
-export const revalidate = 3600;
+// Built when a search engine asks, not during a deploy: the build can't read the
+// listings (the first version shipped an empty list), and listings come and go.
+export const dynamic = "force-dynamic";
 
 /** The public pages and every listing that has a public page, for search engines. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
