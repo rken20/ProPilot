@@ -21,6 +21,7 @@ import { ShareListing } from "./share-listing";
 import { loadOffers } from "@/lib/offers";
 import { LowestPrice, Offers } from "../../offers";
 import { publicListingPath } from "@/lib/public-listing";
+import { siteOrigin } from "@/lib/site";
 import { daysAgoIso } from "@/lib/time";
 
 export default async function PropertyPage({ params, searchParams }: PageProps<"/app/properties/[id]">) {
@@ -95,7 +96,8 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
           .then((r) => r.count ?? 0),
       ])
     : [0, 0];
-  const publicUrl = `${await getOrigin()}${publicListingPath(p.id)}`;
+  // Share the address search engines list (the production one), so shares and searches land on the same page.
+  const publicUrl = `${siteOrigin() ?? (await getOrigin())}${publicListingPath(p.id)}`;
 
   const financing = (p.financing ?? {}) as Record<string, unknown>;
   const initial = {

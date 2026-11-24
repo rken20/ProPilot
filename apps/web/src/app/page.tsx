@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CircleCheck, Home as HomeIcon, Images, MessageCircle, Zap, type LucideIcon } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -8,6 +9,8 @@ import { getUser, homePathFor } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { Icon3d, type Icon3dName } from "@/components/icon-3d";
 import { HeroChat } from "./_home/hero-chat";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 /** The plans as the Billing page sells them (prices match the plans table). */
 const PLANS: Array<{ name: string; for: string; price: string; icon: Icon3dName; tile: string; lines: string[] }> = [

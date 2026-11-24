@@ -128,7 +128,7 @@ export function NewProperty({ canPaste, pages, pricing }: { canPaste: boolean; p
         <PropertyForm
           key={state.nonce ?? 0}
           action={createProperty}
-          initial={state.values ?? {}}
+          initial={{ isPublic: "on", ...(state.values ?? {}) }}
           submitLabel="Save property"
           aiWrite={aiWrite}
           hidden={state.importRef ? { importPost: state.importRef } : undefined}

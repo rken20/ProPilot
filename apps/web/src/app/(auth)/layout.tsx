@@ -1,5 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+
+// Sign-in pages aren't for search results.
+export const metadata: Metadata = { robots: { index: false, follow: true } };
 
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (

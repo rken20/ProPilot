@@ -21,6 +21,8 @@ export type PublicListing = {
   financing: Listing["financing"];
   business_name: string;
   photos: Array<{ id: string; path: string; thumb: string }>;
+  created_at: string | null;
+  updated_at: string | null;
 };
 
 export const getPublicListing = cache(async (id: string): Promise<PublicListing | null> => {
@@ -29,7 +31,7 @@ export const getPublicListing = cache(async (id: string): Promise<PublicListing 
   if (!admin) return null;
   const { data: p } = await admin
     .from("properties")
-    .select("id, name, type, location, price_minor, reservation_fee_minor, currency, status, description, financing, businesses(name)")
+    .select("id, name, type, location, price_minor, reservation_fee_minor, currency, status, description, financing, created_at, updated_at, businesses(name)")
     .eq("id", id)
     .eq("is_public", true)
     .in("status", ["available", "reserved"])
@@ -55,9 +57,30 @@ export const getPublicListing = cache(async (id: string): Promise<PublicListing 
     description: (p.description as string | null) ?? null,
     financing: (p.financing as Listing["financing"]) ?? null,
     business_name: (p.businesses as unknown as { name: string } | null)?.name ?? "the agent",
+    created_at: (p.created_at as string | null) ?? null,
+    updated_at: (p.updated_at as string | null) ?? null,
     photos: (media ?? []).map((m) => ({ id: m.id as string, path: m.storage_path as string, thumb: (m.thumb_path ?? m.storage_path) as string })),
   };
 });
+
+/** Every listing with a public page, for the sitemap. Ids and dates only. */
+export async function publicListingIds(limit = 5000): Promise<Array<{ id: string; updated_at: string | null }>> {
+  const admin = createAdminClient();
+  if (!admin) return [];
+  try {
+    const { data } = await admin
+      .from("properties")
+      .select("id, updated_at")
+      .eq("is_public", true)
+      .in("status", ["available", "reserved"])
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+    return (data ?? []).map((p) => ({ id: p.id as string, updated_at: (p.updated_at as string | null) ?? null }));
+  } catch {
+    // The sitemap is also built during a deploy; a database hiccup then mustn't fail the deploy.
+    return [];
+  }
+}
 
 /** The shareable address of a listing's public page. */
 export const publicListingPath = (id: string) => `/l/${id}`;

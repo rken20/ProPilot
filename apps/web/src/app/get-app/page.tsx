@@ -12,6 +12,7 @@ import { qrPath } from "@/lib/qr";
 export const metadata: Metadata = {
   title: "Get the app · MyHomeSeller",
   description: "Install MyHomeSeller on your phone or computer. No app store needed.",
+  alternates: { canonical: "/get-app" },
 };
 
 const icon = "inline size-4 align-[-3px]";

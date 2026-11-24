@@ -111,8 +111,9 @@ export function PropertyForm({
           <span>
             <span className="block font-semibold text-ink">Give it a public page</span>
             <span className="block text-sm text-muted">
-              Anyone with the link can see the listing and send you an inquiry, no account needed. Share the link on Facebook,
-              Messenger or by text. Sold and archived listings are always hidden.
+              Anyone with the link can see the listing and send you an inquiry, no account needed, and search engines like Google can
+              list it. Share the link on Facebook, Messenger or by text. Untick to keep it private. Sold and archived listings are
+              always hidden.
             </span>
           </span>
         </Label>

@@ -3,11 +3,21 @@ import { GeistMono } from "geist/font/mono";
 import "@fontsource-variable/plus-jakarta-sans";
 import "@fontsource-variable/newsreader";
 import "./globals.css";
+import { siteOrigin } from "@/lib/site";
+
+const origin = siteOrigin();
+const DESCRIPTION =
+  "MyHomeSeller is the AI sales assistant for property owners and agents in the Philippines. It answers buyers day and night, gives every listing its own public page, and shows you who fits each property.";
 
 export const metadata: Metadata = {
-  title: "MyHomeSeller",
-  description: "The AI sales assistant for property owners and agents.",
+  // Canonical links, the sitemap and link previews all use the production address.
+  ...(origin ? { metadataBase: new URL(origin) } : {}),
+  title: "MyHomeSeller: AI Sales Assistant for Property Owners and Agents",
+  description: DESCRIPTION,
   applicationName: "MyHomeSeller",
+  openGraph: { siteName: "MyHomeSeller", type: "website", locale: "en_PH", description: DESCRIPTION },
+  // Google Search Console's ownership check: set GOOGLE_SITE_VERIFICATION in Vercel.
+  ...(process.env.GOOGLE_SITE_VERIFICATION ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } } : {}),
   // Installed on an iPhone's home screen: no Safari bars, and the page draws
   // under the status bar (globals.css paints that strip grape).
   appleWebApp: { capable: true, title: "MyHomeSeller", statusBarStyle: "black-translucent" },

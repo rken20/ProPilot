@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/logo";
 
-export const metadata: Metadata = { title: "Privacy policy · MyHomeSeller" };
+export const metadata: Metadata = { title: "Privacy policy · MyHomeSeller", alternates: { canonical: "/privacy" } };
 
 const UPDATED = "20 November 2026";
 
