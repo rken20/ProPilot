@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { FPS, MAX_LINES, amountsIn, buildTimeline, cleanPlan, cleanText, defaultText, phrasesFrom, pickTemplate, scenesAt, shortPlace, statesOtherAmount, TEMPLATE_IDS, type AdListing } from "./spec";
+import {
+  FPS,
+  MAX_LINES,
+  TEMPLATE_IDS,
+  amountsIn,
+  buildTimeline,
+  cleanPlan,
+  cleanText,
+  defaultHooks,
+  defaultText,
+  photoSequence,
+  phrasesFrom,
+  pickTemplate,
+  scenesAt,
+  shortPlace,
+  statesOtherAmount,
+  type AdListing,
+} from "./spec";
 
 const house: AdListing = {
   name: "3BR House, Lanag",
@@ -29,6 +46,26 @@ describe("the timeline", () => {
     expect(photoScenes).toHaveLength(4);
     expect(photoScenes.map((s) => s.photo)).toEqual([1, 0, 1, 0]);
     expect(buildTimeline("showcase", 1, []).scenes.every((s) => s.photo === 0)).toBe(true);
+  });
+
+  it("opens on the chosen photo and puts each line over the photo picked for it", () => {
+    const t = buildTimeline("showcase", 5, ["Garage", "Garden", "Kitchen"], { opener: 3, forLines: [4, -1, 0] });
+    expect(t.scenes[0]!.photo).toBe(3);
+    expect(t.scenes[t.scenes.length - 1]!.photo).toBe(3);
+    // The line with no pick gets the first photo nothing else uses; the fourth scene gets the next.
+    expect(t.scenes.filter((s) => s.kind === "photo").map((s) => s.photo)).toEqual([4, 1, 0, 2]);
+  });
+
+  it("ignores picks for photos that don't exist", () => {
+    expect(photoSequence(3, 3, { opener: 9, forLines: [7, 1.5, -2] })).toEqual({ opener: 0, scenes: [1, 2, 0] });
+    expect(photoSequence(0, 2, { opener: 0, forLines: [] })).toEqual({ opener: 0, scenes: [0, 0] });
+  });
+
+  it("counts through exactly the reasons in Top 3 Reasons", () => {
+    const photoScenes = (lines: string[]) => buildTimeline("reasons", 6, lines).scenes.filter((s) => s.kind === "photo");
+    expect(photoScenes(["A", "B", "C", "D", "E"]).map((s) => s.line)).toEqual(["A", "B", "C"]);
+    expect(photoScenes(["A", "B"]).map((s) => s.line)).toEqual(["A", "B"]);
+    expect(photoScenes([])).toHaveLength(1);
   });
 
   it("overlaps neighbouring scenes by the fade, with no gap", () => {
@@ -68,6 +105,12 @@ describe("the words, straight from the listing", () => {
     expect(defaultText({ ...house, status: "reserved" }).hook).toBe("House and lot in Pototan, Iloilo");
   });
 
+  it("offers openings in three shapes, each only the listing's own facts", () => {
+    expect(defaultHooks(house)).toEqual(["₱2,500,000 house and lot in Pototan, Iloilo", "Looking for a house and lot in Pototan, Iloilo?", "House and lot for sale in Pototan, Iloilo"]);
+    expect(defaultHooks({ ...house, typeLabel: "Apartment", status: "reserved" })[1]).toBe("Looking for an apartment in Pototan, Iloilo?");
+    for (const h of defaultHooks(house)) expect(statesOtherAmount(h, house)).toBe(false);
+  });
+
   it("picks a template by simple rules", () => {
     expect(pickTemplate(house, 2)).toBe("facts");
     expect(pickTemplate(house, 6)).toBe("bold");
@@ -95,7 +138,32 @@ describe("amounts the listing doesn't state", () => {
 describe("what the AI proposes", () => {
   it("is kept when it's sound", () => {
     const plan = cleanPlan({ template: "elegant", reason: "Six bright photos.", hook: "  Your family home in Pototan ", lines: ["3 bedrooms", "Covered garage", "3 BEDROOMS"], cta: "Message us today" }, house, 6);
-    expect(plan).toEqual({ template: "elegant", reason: "Six bright photos.", text: { hook: "Your family home in Pototan", lines: ["3 bedrooms", "Covered garage"], cta: "Message us today" } });
+    expect(plan).toEqual({
+      template: "elegant",
+      reason: "Six bright photos.",
+      text: { hook: "Your family home in Pototan", lines: ["3 bedrooms", "Covered garage"], cta: "Message us today" },
+      // With one opening from the AI, the rest come from the listing's facts.
+      hooks: ["Your family home in Pototan", "₱2,500,000 house and lot in Pototan, Iloilo", "Looking for a house and lot in Pototan, Iloilo?"],
+      photos: { opener: 0, forLines: [-1, -1] },
+    });
+  });
+
+  it("keeps up to three openings and drops one with an invented price", () => {
+    const plan = cleanPlan({ template: "reveal", hook: "Ready for a garden of your own?", hooks: ["Now only ₱1.9M in Pototan", "Ten minutes from the plaza", "ready for a garden of your own?"], lines: ["3 bedrooms"], cta: "Message us" }, house, 6);
+    expect(plan.template).toBe("reveal");
+    expect(plan.hooks).toEqual(["Ready for a garden of your own?", "Ten minutes from the plaza", "₱2,500,000 house and lot in Pototan, Iloilo"]);
+    expect(plan.text.hook).toBe(plan.hooks[0]);
+  });
+
+  it("reads photo picks counted from 1 and keeps each with its line", () => {
+    const raw = { template: "reasons", hook: "Three reasons to see this home", lines: ["Was ₱3M", "Covered garage", "Fenced garden", "3 bedrooms"], line_photos: [2, 4, 99, 1], opening_photo: 3, cta: "Message us" };
+    const plan = cleanPlan(raw, house, 5);
+    // The dropped first line takes its photo with it; photo 99 doesn't exist.
+    expect(plan.text.lines).toEqual(["Covered garage", "Fenced garden", "3 bedrooms"]);
+    expect(plan.photos).toEqual({ opener: 2, forLines: [3, -1, 0] });
+    expect(cleanPlan({ ...raw, opening_photo: 0, line_photos: "2" }, house, 5).photos).toEqual({ opener: 0, forLines: [-1, -1, -1] });
+    // No usable lines: the listing's own lines are used, with no photo picks.
+    expect(cleanPlan({ lines: ["Now ₱1"], line_photos: [2] }, house, 5).photos.forLines).toEqual([]);
   });
 
   it("falls back part by part: unknown template, invented price, empty text", () => {

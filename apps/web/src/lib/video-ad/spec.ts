@@ -48,6 +48,18 @@ export const TEMPLATES = {
     bestFor: "Listings with few photos, or buyers who compare details",
     timing: { intro: 2.2, photo: 1.9, outro: 3.4, fade: 0.4 } satisfies Timing,
   },
+  reveal: {
+    label: "Price Reveal",
+    about: "Shows the home first and holds the price back until the last card, so people watch to the end.",
+    bestFor: "Listings whose price is a pleasant surprise for what they offer",
+    timing: { intro: 2.4, photo: 2.2, outro: 4.6, fade: 0.4 } satisfies Timing,
+  },
+  reasons: {
+    label: "Top 3 Reasons",
+    about: "Counts through the three strongest reasons to see the property, one per photo.",
+    bestFor: "Listings with a few clear selling points",
+    timing: { intro: 2.2, photo: 3.0, outro: 3.6, fade: 0.4 } satisfies Timing,
+  },
 } as const;
 export type TemplateId = keyof typeof TEMPLATES;
 export const TEMPLATE_IDS = Object.keys(TEMPLATES) as TemplateId[];
@@ -85,6 +97,28 @@ export type Scene = {
 
 export type Timeline = { scenes: Scene[]; duration: number; fade: number; frames: number };
 
+/** Which photo opens the ad, and which photo each feature line is shown over (indexes into the listing's photos). */
+export type PhotoPlan = { opener: number; forLines: number[] };
+export const NO_PHOTO_PLAN: PhotoPlan = { opener: 0, forLines: [] };
+
+/**
+ * The photo for each photo scene: the one picked for that scene's line if there
+ * is a pick, otherwise the next photo not shown yet (the opener last, since the
+ * ad starts and ends on it).
+ */
+export function photoSequence(photoCount: number, sceneCount: number, plan: PhotoPlan = NO_PHOTO_PLAN): { opener: number; scenes: number[] } {
+  const n = Math.max(1, Math.floor(photoCount));
+  const valid = (i: unknown): i is number => Number.isInteger(i) && (i as number) >= 0 && (i as number) < n;
+  const opener = valid(plan.opener) ? plan.opener : 0;
+  const picked = Array.from({ length: sceneCount }, (_, i) => (valid(plan.forLines[i]) ? plan.forLines[i]! : null));
+  // Photos nobody picked, in their own order. When they run out the ad goes round
+  // again from the photo after the one just shown, so a photo never follows itself.
+  const taken = new Set<number>([opener, ...picked.filter((p): p is number => p !== null)]);
+  const spare = Array.from({ length: n }, (_, i) => i).filter((i) => !taken.has(i));
+  let last = opener;
+  return { opener, scenes: picked.map((p) => (last = p ?? spare.shift() ?? (last + 1) % n)) };
+}
+
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
 /**
@@ -92,21 +126,22 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
  * per feature line, whichever is more), then the closing card. With one or two
  * photos they repeat, moving differently each time.
  */
-export function buildTimeline(template: TemplateId, photoCount: number, lines: string[]): Timeline {
+export function buildTimeline(template: TemplateId, photoCount: number, lines: string[], picks: PhotoPlan = NO_PHOTO_PLAN): Timeline {
   const t = TEMPLATES[template].timing;
   const photos = clamp(Math.floor(photoCount), 1, MAX_PHOTOS);
-  const shown = lines.slice(0, MAX_LINES);
-  const count = clamp(Math.max(photos - 1, shown.length), 2, 7);
+  // Top 3 Reasons shows exactly its reasons, three at most.
+  const shown = lines.slice(0, template === "reasons" ? 3 : MAX_LINES);
+  const count = template === "reasons" ? clamp(shown.length, 1, 3) : clamp(Math.max(photos - 1, shown.length), 2, 7);
+  const order = photoSequence(photos, count, picks);
   const scenes: Scene[] = [];
   let at = 0;
   const add = (kind: Scene["kind"], length: number, photo: number, line: string | null, index: number) => {
     scenes.push({ kind, start: at, end: at + length, photo, line, index });
     at += length - t.fade;
   };
-  add("intro", t.intro, 0, null, 0);
-  // The photo scenes start on the second photo, so the cover isn't shown twice in a row.
-  for (let i = 0; i < count; i++) add("photo", t.photo, (i + 1) % photos, shown[i] ?? null, i);
-  add("outro", t.outro, 0, null, 0);
+  add("intro", t.intro, order.opener, null, 0);
+  for (let i = 0; i < count; i++) add("photo", t.photo, order.scenes[i]!, shown[i] ?? null, i);
+  add("outro", t.outro, order.opener, null, 0);
   const duration = scenes[scenes.length - 1]!.end;
   return { scenes, duration, fade: t.fade, frames: Math.round(duration * FPS) };
 }
@@ -154,6 +189,23 @@ export function defaultText(l: AdListing, language: AdLanguage = "english"): AdT
   return { hook, lines, cta: DEFAULT_CTA[language] };
 }
 
+/**
+ * Opening lines to choose from when the AI isn't used, in the shapes that stop
+ * a scroll: price and place, a question to the buyer, and the plain statement.
+ * Each one is only the listing's own facts.
+ */
+export function defaultHooks(l: AdListing): string[] {
+  const place = shortPlace(l.location);
+  const type = l.typeLabel.toLowerCase();
+  const article = /^[aeiou]/.test(type) ? "an" : "a";
+  const options = [
+    `${l.price} ${type} in ${place}`,
+    `Looking for ${article} ${type} in ${place}?`,
+    `${l.typeLabel}${l.status === "reserved" ? "" : " for sale"} in ${place}`,
+  ];
+  return options.map((h) => tidy(h, LIMITS.hook)).filter((h, i, all) => h.length >= 3 && all.indexOf(h) === i);
+}
+
 /** The template picked by simple rules, used when the AI isn't available. */
 export function pickTemplate(l: Pick<AdListing, "priceMinor" | "typeLabel">, photoCount: number): TemplateId {
   if (photoCount <= 2) return "facts";
@@ -181,27 +233,40 @@ export function statesOtherAmount(text: string, l: Pick<AdListing, "price" | "re
   return amountsIn(text).some((a) => !allowed.has(a));
 }
 
+export type CleanPlan = { template: TemplateId; reason: string; text: AdText; hooks: string[]; photos: PhotoPlan };
+
 /**
  * Check what the AI (or anyone) proposed and fall back, part by part, to the
- * listing's own facts: an unknown template, an empty or over-long text, or a
- * line with an amount the listing doesn't state.
+ * listing's own facts: an unknown template, an empty or over-long text, a line
+ * with an amount the listing doesn't state, or a photo that doesn't exist.
+ * Photo numbers in the proposal count from 1, as the AI is shown them.
  */
-export function cleanPlan(raw: unknown, l: AdListing, photoCount: number, language: AdLanguage = "english"): { template: TemplateId; reason: string; text: AdText } {
+export function cleanPlan(raw: unknown, l: AdListing, photoCount: number, language: AdLanguage = "english"): CleanPlan {
   const r = (raw ?? {}) as Record<string, unknown>;
   const fallback = defaultText(l, language);
   const ok = (s: string) => s.length >= 3 && !statesOtherAmount(s, l);
+  const photo = (v: unknown) => (Number.isInteger(v) && (v as number) >= 1 && (v as number) <= photoCount ? (v as number) - 1 : null);
   const template = TEMPLATE_IDS.includes(r.template as TemplateId) ? (r.template as TemplateId) : pickTemplate(l, photoCount);
-  const hook = tidy(r.hook, LIMITS.hook);
   const cta = tidy(r.cta, LIMITS.cta);
-  const lines = (Array.isArray(r.lines) ? r.lines : [])
-    .map((x) => tidy(x, LIMITS.line))
-    .filter(ok)
-    .filter((x, i, all) => all.findIndex((y) => y.toLowerCase() === x.toLowerCase()) === i)
+
+  // A line and the photo it was written for stay together.
+  const forPhoto = Array.isArray(r.line_photos) ? r.line_photos : [];
+  const seen = new Set<string>();
+  const pairs = (Array.isArray(r.lines) ? r.lines : [])
+    .map((x, i) => ({ line: tidy(x, LIMITS.line), photo: photo(forPhoto[i]) }))
+    .filter((p) => ok(p.line) && !seen.has(p.line.toLowerCase()) && (seen.add(p.line.toLowerCase()), true))
     .slice(0, MAX_LINES);
+
+  const proposed = [r.hook, ...(Array.isArray(r.hooks) ? r.hooks : [])].map((h) => tidy(h, LIMITS.hook)).filter(ok);
+  // Up to three openings to choose from: the AI's first, then ones built from the listing's facts.
+  const hooks = [proposed[0] ?? fallback.hook, ...proposed.slice(1), ...defaultHooks(l)].filter((h, i, all) => all.findIndex((x) => x.toLowerCase() === h.toLowerCase()) === i).slice(0, 3);
+  const usePairs = pairs.length > 0;
   return {
     template,
     reason: tidy(r.reason, 160),
-    text: { hook: ok(hook) ? hook : fallback.hook, lines: lines.length ? lines : fallback.lines, cta: ok(cta) ? cta : fallback.cta },
+    text: { hook: hooks[0]!, lines: usePairs ? pairs.map((p) => p.line) : fallback.lines, cta: ok(cta) ? cta : fallback.cta },
+    hooks,
+    photos: { opener: photo(r.opening_photo) ?? 0, forLines: usePairs ? pairs.map((p) => p.photo ?? -1) : [] },
   };
 }
 

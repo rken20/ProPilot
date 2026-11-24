@@ -54,6 +54,10 @@ describe("making a video ad", () => {
   });
 
   it("takes only the templates and shapes that exist", async () => {
+    // Inside a transaction that is rolled back, so the counts in the next test stay as they were.
+    await db.query("begin");
+    for (const template of ["bold", "elegant", "facts", "reveal", "reasons"]) expect(await start(OWNER, null, listing, biz, template)).toBeTruthy();
+    await db.query("rollback");
     await expect(start(OWNER, null, listing, biz, "fireworks")).rejects.toThrow(/check/);
     await expect(start(OWNER, null, listing, biz, "bold", "round")).rejects.toThrow(/check/);
   });

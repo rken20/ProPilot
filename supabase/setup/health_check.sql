@@ -25,6 +25,7 @@ from (values
   (22, 'App owner can edit their own profile', exists (select 1 from pg_proc where proname = 'my_is_superadmin'), 'Run 20261123000000_superadmin_profile_edits.sql'),
   (23, 'AI closes deals at a pre-approved price', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'listing_floors' and column_name = 'accept_price_minor'), 'Run 20261124000000_ai_closing.sql'),
   (24, 'Only the app admin can delete listings', exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'properties' and policyname = 'properties_delete' and qual like '%my_is_superadmin%'), 'Run 20261124010000_delete_listings_app_admin_only.sql'),
-  (25, 'Video Ad Maker', to_regclass('public.video_ads') is not null, 'Run 20261124020000_video_ads.sql')
+  (25, 'Video Ad Maker', to_regclass('public.video_ads') is not null, 'Run 20261124020000_video_ads.sql'),
+  (26, 'Video templates Price Reveal and Top 3 Reasons', exists (select 1 from pg_constraint where conname = 'video_ads_template_check' and pg_get_constraintdef(oid) like '%reveal%'), 'Run 20261124030000_video_ad_templates.sql')
 ) as t(n, item, ok, fix)
 order by n;

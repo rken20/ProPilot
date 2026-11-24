@@ -13,7 +13,7 @@ import { MAX_PHOTOS, type AdLanguage } from "@/lib/video-ad/spec";
 import { startVideoAd, suggestAd } from "./actions";
 import { VideoMaker, type VideoItem } from "./video-maker";
 
-// The AI's suggestion for an ad takes a few seconds.
+// The AI's suggestion for an ad (it looks at the photos) takes several seconds.
 export const maxDuration = 30;
 
 export default async function VideoAdPage({ searchParams }: PageProps<"/app/video">) {
@@ -25,7 +25,7 @@ export default async function VideoAdPage({ searchParams }: PageProps<"/app/vide
   const header = (
     <PageHeader
       title="Video Ad Maker"
-      description="Turn a listing's photos into a short video ad for Facebook, TikTok and Reels. The AI picks a template and writes the text; you can change both."
+      description="Turn a listing's photos into a short video ad for Facebook, TikTok and Reels. The AI looks at the photos, picks a template and writes the text; you can change all of it."
     />
   );
 
@@ -60,18 +60,19 @@ export default async function VideoAdPage({ searchParams }: PageProps<"/app/vide
   ]);
   const ids = (rows ?? []).map((r) => r.id as string);
   const { data: media } = ids.length
-    ? await supabase.from("property_media").select("property_id, storage_path").in("property_id", ids).eq("kind", "photo").order("sort_order").order("created_at")
+    ? await supabase.from("property_media").select("property_id, storage_path, thumb_path").in("property_id", ids).eq("kind", "photo").order("sort_order").order("created_at")
     : { data: [] };
-  const photos = new Map<string, string[]>();
+  const photos = new Map<string, Array<{ full: string; thumb: string }>>();
   for (const m of media ?? []) {
-    const url = mediaUrl(m.storage_path as string);
+    const full = mediaUrl(m.storage_path as string);
     const list = photos.get(m.property_id as string) ?? [];
-    if (url && list.length < MAX_PHOTOS) photos.set(m.property_id as string, [...list, url]);
+    if (full && list.length < MAX_PHOTOS) photos.set(m.property_id as string, [...list, { full, thumb: mediaUrl((m.thumb_path ?? m.storage_path) as string) ?? full }]);
   }
   const items: VideoItem[] = (rows ?? []).map((r) => ({
     id: r.id as string,
     listing: adListing(r as Parameters<typeof adListing>[0], biz.businessName),
-    photos: photos.get(r.id as string) ?? [],
+    photos: (photos.get(r.id as string) ?? []).map((p) => p.full),
+    thumbs: (photos.get(r.id as string) ?? []).map((p) => p.thumb),
   }));
   const wanted = typeof sp.property === "string" ? items.find((i) => i.id === sp.property)?.id : undefined;
   const language: AdLanguage = settings?.chat_language === "english" ? "english" : "taglish";

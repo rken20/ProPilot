@@ -6,12 +6,29 @@ import { Download, Pause, Play, Plus, Share2, Sparkles, X } from "lucide-react";
 import { Alert, Field, Input, Panel, Select, buttonClass, cx } from "@/components/ui";
 import { drawFrame, timelineFor, type Photo, type RenderAd } from "@/lib/video-ad/draw";
 import { ensureFonts, exportVideo, loadPhotos, type VideoFile } from "@/lib/video-ad/export";
-import { LIMITS, MAX_LINES, SHAPES, SHAPE_IDS, TEMPLATES, TEMPLATE_IDS, cleanPlan, cleanText, type AdLanguage, type AdListing, type AdText, type ShapeId, type TemplateId } from "@/lib/video-ad/spec";
+import {
+  LIMITS,
+  MAX_LINES,
+  SHAPES,
+  SHAPE_IDS,
+  TEMPLATES,
+  TEMPLATE_IDS,
+  amountsIn,
+  cleanPlan,
+  cleanText,
+  type AdLanguage,
+  type AdListing,
+  type AdText,
+  type PhotoPlan,
+  type ShapeId,
+  type TemplateId,
+} from "@/lib/video-ad/spec";
 import type { startVideoAd, suggestAd } from "./actions";
 
-export type VideoItem = { id: string; listing: AdListing; photos: string[] };
+/** A listing to make an ad for. `thumbs` are small versions of `photos`, in the same order. */
+export type VideoItem = { id: string; listing: AdListing; photos: string[]; thumbs: string[] };
 
-type Suggestion = { template: TemplateId; reason: string; byAi: boolean };
+type Suggestion = { template: TemplateId; reason: string; byAi: boolean; sawPhotos: boolean };
 type Making =
   | { kind: "idle" }
   | { kind: "starting" }
@@ -55,6 +72,10 @@ export function VideoMaker({
   const [shape, setShape] = useState<ShapeId>("vertical");
   const [template, setTemplate] = useState<TemplateId>(start.template);
   const [text, setText] = useState<AdText>(start.text);
+  /** Openings to choose from: the AI's, or ones built from the listing's facts. */
+  const [hooks, setHooks] = useState<string[]>(start.hooks);
+  /** Which photo opens the ad and which photo each feature line is shown over. */
+  const [picks, setPicks] = useState<PhotoPlan>(start.photos);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   // The AI's suggestion for the first listing is asked for as soon as the page opens.
   const [planning, setPlanning] = useState(first.photos.length > 0);
@@ -81,10 +102,12 @@ export function VideoMaker({
     if (current.current !== listingId) return;
     setPlanning(false);
     if (!res.plan) return;
-    setSuggestion({ template: res.plan.template, reason: res.plan.reason, byAi: res.plan.byAi });
+    setSuggestion({ template: res.plan.template, reason: res.plan.reason, byAi: res.plan.byAi, sawPhotos: res.plan.sawPhotos });
+    setHooks(res.plan.hooks);
     if (force || !touched.current) {
       setTemplate(res.plan.template);
       setText(res.plan.text);
+      setPicks(res.plan.photos);
       touched.current = false;
     }
   }, [suggest]);
@@ -127,6 +150,8 @@ export function VideoMaker({
     setId(nextId);
     setTemplate(plan.template);
     setText(plan.text);
+    setHooks(plan.hooks);
+    setPicks(plan.photos);
     setSuggestion(null);
     setPlanning(next.photos.length > 0);
     setPhotoError(false);
@@ -136,19 +161,41 @@ export function VideoMaker({
     if (next.photos.length) void askAi(nextId, false);
   }
 
-  const edit = (change: (t: AdText) => AdText) => {
+  /** A finished video is for the ad as it was: any change brings the Make button back. */
+  const changed = () => {
     touched.current = true;
-    setText(change);
     if (making.kind === "done" || making.kind === "error") setMaking({ kind: "idle" });
+  };
+  const edit = (change: (t: AdText) => AdText) => {
+    changed();
+    setText(change);
+  };
+  const removeLine = (i: number) => {
+    edit((t) => ({ ...t, lines: t.lines.filter((_, k) => k !== i) }));
+    // Each line keeps its own photo: drop the removed line's pick, not its neighbour's.
+    setPicks((p) => ({ ...p, forLines: p.forLines.filter((_, k) => k !== i) }));
+  };
+  /** Show the next photo over a line. */
+  const nextPhotoFor = (i: number, now: number) => {
+    changed();
+    setPicks((p) => {
+      const forLines = Array.from({ length: Math.max(p.forLines.length, i + 1) }, (_, k) => p.forLines[k] ?? -1);
+      forLines[i] = (now + 1) % item.photos.length;
+      return { ...p, forLines };
+    });
   };
 
   const ready = photos?.id === id && photos.list.length > 0 && fontsReady;
   const ad = useMemo<RenderAd | null>(
-    () => (ready && photos ? { template, shape, listing: item.listing, text: cleanText(text), photos: photos.list } : null),
-    [ready, photos, template, shape, item.listing, text],
+    () => (ready && photos ? { template, shape, listing: item.listing, text: cleanText(text), photos: photos.list, picks } : null),
+    [ready, photos, template, shape, item.listing, text, picks],
   );
   const timeline = useMemo(() => (ad ? timelineFor(ad) : null), [ad]);
   const busy = making.kind === "starting" || making.kind === "rendering";
+  /** Other openings to offer. Price Reveal keeps the price for the last card, so openings that state it are left out. */
+  const otherHooks = hooks.filter((h) => h !== text.hook && !(template === "reveal" && amountsIn(h).length > 0));
+  /** The photo behind each feature line, as the ad shows it now. */
+  const linePhotos = useMemo(() => (timeline ? timeline.scenes.filter((sc) => sc.kind === "photo").map((sc) => sc.photo) : []), [timeline]);
 
   // The live preview: the same drawing code that makes the file.
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -176,7 +223,7 @@ export function VideoMaker({
     const clean = cleanText(text);
     if (clean.hook.length < 3) return setMaking({ kind: "error", message: "Write a headline for the ad first." });
     setMaking({ kind: "starting" });
-    const key = JSON.stringify([id, template, shape, clean]);
+    const key = JSON.stringify([id, template, shape, clean, picks]);
     if (counted.current !== key) {
       const res = await begin(id, template, shape, clean).catch(() => ({ ok: undefined, left: undefined, error: "Couldn't reach the server. Check your connection and try again." }));
       if (res.error || !res.ok) return setMaking({ kind: "error", message: res.error ?? "Couldn't start the video. Please try again." });
@@ -241,9 +288,35 @@ export function VideoMaker({
               </Link>
             </Alert>
           </div>
-        ) : item.photos.length < 3 ? (
-          <p className="mt-3 text-sm text-muted">With {item.photos.length === 1 ? "one photo" : "two photos"} the ad repeats them. Three or more photos make a better video.</p>
-        ) : null}
+        ) : (
+          <fieldset className="mt-4">
+            <legend className="text-sm font-medium text-ink">Opening photo</legend>
+            <p className="mt-0.5 text-xs text-muted">
+              The first thing people see, so pick the most striking one.
+              {item.photos.length < 3 ? ` With ${item.photos.length === 1 ? "one photo" : "two photos"} the ad repeats them; three or more make a better video.` : ""}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {item.thumbs.map((src, i) => (
+                <button
+                  key={src}
+                  type="button"
+                  disabled={busy}
+                  aria-pressed={picks.opener === i}
+                  aria-label={`Open the video with photo ${i + 1}`}
+                  onClick={() => {
+                    changed();
+                    clock.current.t = 0;
+                    setPicks((p) => ({ ...p, opener: i }));
+                  }}
+                  className={cx("overflow-hidden rounded-xl border-2 transition-colors", picks.opener === i ? "border-grape-600 ring-2 ring-grape-100" : "border-transparent hover:border-grape-300")}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- small thumbnails from storage */}
+                  <img src={src} alt="" loading="lazy" className="h-14 w-20 object-cover" />
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
       </Panel>
 
       <Panel title="Preview" className="lg:sticky lg:top-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
@@ -355,9 +428,9 @@ export function VideoMaker({
         <Panel title="Template">
           <p className="mt-1 text-sm text-muted" role="status">
             {planning
-              ? "The AI is choosing a template and writing the text…"
+              ? "The AI is looking at the photos, choosing a template and writing the text…"
               : suggestion?.byAi
-                ? `The AI suggests ${TEMPLATES[suggestion.template].label}${suggestion.reason ? `: ${suggestion.reason}` : "."}`
+                ? `The AI ${suggestion.sawPhotos ? "looked at the photos and " : ""}suggests ${TEMPLATES[suggestion.template].label}${suggestion.reason ? `: ${suggestion.reason}` : "."}`
                 : "Pick the look of the ad. You can change it any time before making the video."}
           </p>
           <div role="radiogroup" aria-label="Template" className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -391,15 +464,51 @@ export function VideoMaker({
             Every word is yours to change. The price, location, financing and your business name come from the listing and are added for you.
           </p>
           <div className="mt-4 space-y-4">
-            <Field label="Headline" htmlFor="video-hook" hint="The first thing people read. Say what it is and where.">
+            <Field label="Headline" htmlFor="video-hook" hint="People decide in about three seconds. Lead with what makes this property stand out.">
               <Input id="video-hook" value={text.hook} maxLength={LIMITS.hook} disabled={busy} onChange={(e) => edit((t) => ({ ...t, hook: e.target.value }))} />
             </Field>
+            {otherHooks.length ? (
+              <div className="-mt-1">
+                <p className="text-xs text-muted">Or open with:</p>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {otherHooks.map((h) => (
+                    <button
+                      key={h}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        clock.current.t = 0;
+                        edit((t) => ({ ...t, hook: h }));
+                      }}
+                      className="rounded-full border border-grape-100 bg-grape-50 px-3 py-1.5 text-left text-sm font-semibold text-grape-800 hover:border-grape-300"
+                    >
+                      {h}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <fieldset>
               <legend className="text-sm font-medium text-ink">Feature lines</legend>
-              <p className="mt-0.5 text-xs text-muted">One short feature each. They appear one at a time over the photos.</p>
+              <p className="mt-0.5 text-xs text-muted">
+                One short feature each. They appear one at a time over the photos; press a line&apos;s photo to change which one it goes over.
+                {template === "reasons" && text.lines.length > 3 ? " Top 3 Reasons shows the first three." : ""}
+              </p>
               <ul className="mt-2 space-y-2">
                 {text.lines.map((line, i) => (
                   <li key={i} className="flex items-center gap-2">
+                    {linePhotos[i] !== undefined && item.thumbs[linePhotos[i]] ? (
+                      <button
+                        type="button"
+                        disabled={busy || item.photos.length < 2}
+                        onClick={() => nextPhotoFor(i, linePhotos[i]!)}
+                        className="shrink-0 overflow-hidden rounded-lg border border-line hover:border-grape-300"
+                        aria-label={`Feature line ${i + 1} is shown over photo ${linePhotos[i]! + 1}. Press for the next photo.`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- small thumbnails from storage */}
+                        <img src={item.thumbs[linePhotos[i]!]} alt="" className="size-10 object-cover" />
+                      </button>
+                    ) : null}
                     <Input
                       value={line}
                       maxLength={LIMITS.line}
@@ -410,7 +519,7 @@ export function VideoMaker({
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => edit((t) => ({ ...t, lines: t.lines.filter((_, k) => k !== i) }))}
+                      onClick={() => removeLine(i)}
                       className="grid size-10 shrink-0 place-items-center rounded-full text-muted hover:bg-grape-50 hover:text-ink"
                       aria-label={`Remove feature line ${i + 1}`}
                     >

@@ -10,25 +10,27 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { AD_COLUMNS, adListing } from "@/lib/video-ad/listing";
 import { planVideoAd, type AdPlan } from "@/lib/video-ad/plan";
-import { SHAPE_IDS, TEMPLATE_IDS, cleanText, type AdLanguage, type AdText, type ShapeId, type TemplateId } from "@/lib/video-ad/spec";
+import { MAX_PHOTOS, SHAPE_IDS, TEMPLATE_IDS, cleanText, type AdLanguage, type AdText, type ShapeId, type TemplateId } from "@/lib/video-ad/spec";
+import { mediaUrl } from "@/lib/media";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NOT_INCLUDED = "The Video Ad Maker is part of the Pro and Agency plans. An owner can upgrade in Billing.";
 const mayMake = (role: Parameters<typeof can>[0]) => can(role, "content.create") || can(role, "property.update");
 
-/** The listing, its photo count and the business's ad language, as the signed-in teammate may see them. */
+/** The listing, its photos (small versions, in the ad's order) and the business's ad language, as the signed-in teammate may see them. */
 async function load(propertyId: string, businessId: string, businessName: string) {
   const supabase = await createClient();
-  const [{ data: row }, { count }, { data: settings }] = await Promise.all([
+  const [{ data: row }, { data: media }, { data: settings }] = await Promise.all([
     supabase.from("properties").select(AD_COLUMNS).eq("id", propertyId).eq("business_id", businessId).in("status", ["available", "reserved"]).maybeSingle(),
-    supabase.from("property_media").select("id", { count: "exact", head: true }).eq("property_id", propertyId).eq("kind", "photo"),
+    supabase.from("property_media").select("storage_path, thumb_path").eq("property_id", propertyId).eq("business_id", businessId).eq("kind", "photo").order("sort_order").order("created_at").limit(MAX_PHOTOS),
     supabase.from("agent_settings").select("chat_language").eq("business_id", businessId).maybeSingle(),
   ]);
   const language: AdLanguage = settings?.chat_language === "english" ? "english" : "taglish";
-  return { supabase, listing: row ? adListing(row as Parameters<typeof adListing>[0], businessName) : null, photos: count ?? 0, language };
+  const photos = (media ?? []).map((m) => mediaUrl((m.thumb_path ?? m.storage_path) as string)).filter((u): u is string => Boolean(u));
+  return { supabase, listing: row ? adListing(row as Parameters<typeof adListing>[0], businessName) : null, photos, language };
 }
 
-/** The AI's suggestion for a listing's video ad: a template and the words. Nothing is saved or counted. */
+/** The AI's suggestion for a listing's video ad: a template, the words, and which photos go where. Nothing is saved or counted. */
 export async function suggestAd(propertyId: string): Promise<{ plan?: AdPlan; error?: string }> {
   const biz = await requireBusiness();
   if (!mayMake(biz.role) || !UUID.test(propertyId)) return { error: "Your role can't make video ads." };
@@ -40,7 +42,8 @@ export async function suggestAd(propertyId: string): Promise<{ plan?: AdPlan; er
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "video_plan", p_limit: 40, p_window_seconds: 3600 });
   // Without the AI (no key, or too many requests this hour) the plan comes from the listing's own facts.
-  const client = apiKey && allowed === true ? new Anthropic({ apiKey, timeout: 20_000, maxRetries: 0 }) : null;
+  // Looking at the photos takes a little longer than text alone; the page allows 30 seconds in all.
+  const client = apiKey && allowed === true ? new Anthropic({ apiKey, timeout: 13_000, maxRetries: 0 }) : null;
   return { plan: await planVideoAd(client, process.env.ANTHROPIC_MODEL || DEFAULT_MODEL, listing, photos, language) };
 }
 
