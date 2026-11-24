@@ -81,14 +81,14 @@ export async function checkPrice(propertyId: string | null, _prev: PriceState, f
   let report: PricingReport | null = null;
   try {
     const own = await ownListings(admin, input, property);
-    report = await researchPrice(new Anthropic({ apiKey, timeout: 50_000, maxRetries: 0 }), process.env.ANTHROPIC_MODEL || DEFAULT_MODEL, input, own, publicListingPath);
+    report = await researchPrice(new Anthropic({ apiKey, timeout: 55_000, maxRetries: 0 }), process.env.ANTHROPIC_MODEL || DEFAULT_MODEL, input, own, publicListingPath);
   } catch (e) {
     console.error("price check failed", e instanceof Error ? e.message : e);
   }
   if (!report) {
     // Nothing useful came back, so it doesn't count against the month.
     await admin.from("price_checks").delete().eq("id", checkId).eq("business_id", biz.businessId);
-    return { values, error: "Couldn't find enough comparable listings for that. Try a wider area (the city or district), or check the details." };
+    return { values, error: "Couldn't find enough similar listings for that, even in nearby towns. Add the town and province to the address and check the area, then try again. This check wasn't counted." };
   }
   await admin.from("price_checks").update({ result: report }).eq("id", checkId).eq("business_id", biz.businessId);
   revalidatePath("/app/pricing");

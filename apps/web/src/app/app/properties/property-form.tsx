@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import { PROPERTY_STATUSES, PROPERTY_TYPES } from "@propilot/shared";
 import { Alert, Field, Input, Label, Select, Textarea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -17,6 +17,7 @@ export function PropertyForm({
   readOnly = false,
   hidden,
   aiWrite = false,
+  priceHelp,
 }: {
   action: (prev: FormState, form: FormData) => Promise<FormState>;
   initial: PropertyFormValues;
@@ -26,6 +27,8 @@ export function PropertyForm({
   hidden?: Record<string, string>;
   /** Show "Write with AI" for the description (plans with AI only). */
   aiWrite?: boolean;
+  /** Shown under the price fields, e.g. the Pricing Advisor on Add a Property. */
+  priceHelp?: ReactNode;
 }) {
   const [state, formAction] = useActionState(action, { data: initial });
   const v = state.data ?? initial;
@@ -77,6 +80,7 @@ export function PropertyForm({
             <Input id="reservationFee" name="reservationFee" inputMode="decimal" defaultValue={v.reservationFee} placeholder="25,000" />
           </Field>
         </section>
+        {priceHelp && !readOnly ? priceHelp : null}
 
         <section className="space-y-3">
           <p className="text-sm font-medium text-zinc-800">Financing options</p>

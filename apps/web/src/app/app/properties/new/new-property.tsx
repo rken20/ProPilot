@@ -7,11 +7,12 @@ import { MAX_POST_CHARS } from "@/lib/post-import";
 import { createProperty } from "../actions";
 import { importListing, listPagePosts, type ImportState, type PostSummary } from "../import-actions";
 import { PropertyForm } from "../property-form";
+import { PriceHelper, type PriceHelperPlan } from "./price-helper";
 
 type Page = { id: string; name: string };
 
 /** Add property, with an optional "start from a Facebook post" step above the form. */
-export function NewProperty({ canPaste, pages }: { canPaste: boolean; pages: Page[] }) {
+export function NewProperty({ canPaste, pages, pricing }: { canPaste: boolean; pages: Page[]; pricing: PriceHelperPlan | null }) {
   // Writing a description and filling from a post both need AI on the plan.
   const aiWrite = canPaste;
   const [state, action, pending] = useActionState<ImportState, FormData>(importListing, {});
@@ -131,6 +132,7 @@ export function NewProperty({ canPaste, pages }: { canPaste: boolean; pages: Pag
           submitLabel="Save property"
           aiWrite={aiWrite}
           hidden={state.importRef ? { importPost: state.importRef } : undefined}
+          priceHelp={pricing ? <PriceHelper plan={pricing} /> : null}
         />
       </Card>
     </>

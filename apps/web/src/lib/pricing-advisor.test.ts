@@ -26,7 +26,7 @@ describe("the report", () => {
     expect(r.basis).toBe("comparables");
     expect(r.confidence).toBe("good");
     // Quartiles of 100k..150k per sqm, in centavos.
-    expect(r.pricePerSqm).toEqual({ low: 11_250_000, median: 12_500_000, high: 13_750_000, count: 6 });
+    expect(r.pricePerSqm).toEqual({ low: 11_250_000, median: 12_500_000, high: 13_750_000, count: 6, of: "floor" });
     // 50 sqm at the median: ₱6,250,000.
     expect(r.options.market).toBe(625_000_000);
     expect(r.options.fast).toBe(roundPrice(625_000_000 * 0.95));
@@ -88,6 +88,53 @@ describe("the report", () => {
   });
 });
 
+describe("towns and rural areas", () => {
+  const house = pricingInputSchema.parse({ location: "Barangay Lanag, Pototan, Iloilo", type: "house_and_lot", floorArea: "90", lotArea: "200", condition: "good" });
+  const page = "https://portal.example/houses-for-sale/pototan";
+
+  it("keeps several listings from one result page, but not the same listing twice", () => {
+    const onePage = [2, 2.4, 2.8, 3.2].map((m, i) => ({ title: `House ${i}`, url: page, price_php: m * 1_000_000, floor_area_sqm: 80 + i * 10, location: "Pototan" }));
+    const r = buildReport(house, { comparables: [...onePage, onePage[0]], adjustment_percent: 0, adjustment_reason: "", compared_area: "Pototan, Iloilo" }, [page], [], ownUrl)!;
+    expect(r.comparables).toHaveLength(4);
+    expect(r.basis).toBe("comparables");
+    expect(r.comparedArea).toBe("Pototan, Iloilo");
+  });
+
+  it("compares houses by lot area when the listings show only the lot", () => {
+    // ₱8k, 10k and 12k per sqm of lot; the owner's lot is 200 sqm.
+    const lotOnly = [8, 10, 12].map((k, i) => ({ title: `House ${i}`, url: site(40 + i), price_php: k * 1000 * 250, lot_area_sqm: 250, location: "Dingle" }));
+    const r = buildReport(house, { comparables: lotOnly, adjustment_percent: 0, adjustment_reason: "" }, lotOnly.map((c) => c.url), [], ownUrl)!;
+    expect(r.basis).toBe("comparables");
+    expect(r.pricePerSqm).toMatchObject({ median: 1_000_000, of: "lot", count: 3 });
+    expect(r.options.market).toBe(200_000_000);
+  });
+
+  it("uses the typical asking price when listings show a price but no area", () => {
+    const noArea = [1.8, 2, 2.2, 2.4, 2.6].map((m, i) => ({ title: `House ${i}`, url: site(50 + i), price_php: m * 1_000_000, location: "Iloilo province" }));
+    const r = buildReport(house, { comparables: noArea, adjustment_percent: 0, adjustment_reason: "", estimate_low_php: 9_000_000, estimate_high_php: 10_000_000 }, noArea.map((c) => c.url), [], ownUrl)!;
+    expect(r.basis).toBe("prices");
+    expect(r.pricePerSqm).toBeNull();
+    expect(r.options.market).toBe(220_000_000);
+    expect(r.range).toEqual({ low: 200_000_000, high: 240_000_000 });
+    expect(r.confidence).toBe("fair");
+  });
+
+  it("falls back to the AI's range when the town has almost nothing online", () => {
+    const one = [{ title: "House", url: site(60), price_php: 2_500_000, location: "Pototan" }];
+    const r = buildReport(house, { comparables: one, adjustment_percent: 0, adjustment_reason: "", estimate_low_php: 2_000_000, estimate_high_php: 3_000_000, compared_area: "Nearby towns in Iloilo province" }, [site(60)], [], ownUrl)!;
+    expect(r.basis).toBe("estimate");
+    expect(r.confidence).toBe("low");
+    expect(r.comparedArea).toBe("Nearby towns in Iloilo province");
+  });
+
+  it("tells the AI to widen to nearby towns and the province, and always to give a rough range", () => {
+    const { system } = pricingPrompt(house, []);
+    expect(system).toContain("nearby towns in the same province");
+    expect(system).toContain("Always give estimate_low_php and estimate_high_php");
+    expect(system).toContain("report each one separately");
+  });
+});
+
 describe("the prompt", () => {
   it("describes the property, and names MyHomeSeller listings as context only", () => {
     const { system, user } = pricingPrompt(condo, [{ id: "1", name: "2BR unit", location: "Mandurriao", priceMinor: 480_000_000 }]);
@@ -115,7 +162,7 @@ describe("a research run", () => {
     expect(r!.comparables).toHaveLength(6);
     const firstCall = create.mock.calls[0]![0] as { tools: Array<{ name: string; max_uses?: number }> };
     expect(firstCall.tools.map((t) => t.name)).toEqual(["web_search", "report_comparables"]);
-    expect(firstCall.tools[0]!.max_uses).toBe(5);
+    expect(firstCall.tools[0]!.max_uses).toBe(7);
   });
 
   it("asks once for the report if the AI stops without it, then gives up", async () => {

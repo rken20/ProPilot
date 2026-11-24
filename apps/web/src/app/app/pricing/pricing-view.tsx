@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
 import { ExternalLink } from "lucide-react";
-import { Alert, Field, Input, Select, cx } from "@/components/ui";
+import { Alert, Field, Input, Select, buttonClass, cx } from "@/components/ui";
 import { Icon3d, type Icon3dName } from "@/components/icon-3d";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPeso } from "@/lib/money";
@@ -55,7 +55,7 @@ export function PricingAdvisor({
             Checking the price of <span className="font-semibold">{property.name}</span>, now listed at <span className="font-semibold">{formatPeso(property.priceMinor)}</span>.
           </p>
         ) : null}
-        <Field label="Address or area" htmlFor="location" error={e.location} hint="The barangay or subdivision and the city work best.">
+        <Field label="Address or area" htmlFor="location" error={e.location} hint="The barangay or subdivision, the town or city, and the province.">
           <Input id="location" name="location" defaultValue={v.location ?? initial.location} placeholder="Greenwoods, Santa Barbara, Iloilo" required />
         </Field>
         <Field label="Property type" htmlFor="type" error={e.type}>
@@ -118,7 +118,8 @@ export function PricingAdvisor({
   );
 }
 
-export function PriceReport({ report, property }: { report: PricingReport; property: Property | null }) {
+/** The report. On a listing each option can be set as its price; on Add a Property, `onPick` puts it in the price field. */
+export function PriceReport({ report, property, onPick }: { report: PricingReport; property: Property | null; onPick?: (priceMinor: number) => void }) {
   const c = CONFIDENCE[report.confidence];
   const web = report.comparables.filter((x) => x.source === "web").length;
   return (
@@ -137,7 +138,11 @@ export function PriceReport({ report, property }: { report: PricingReport; prope
               <p className="mt-3 text-sm font-bold text-ink/80">{o.name}</p>
               <p className="mt-0.5 text-[1.6rem] leading-tight font-extrabold tracking-tight">{formatPeso(report.options[o.key])}</p>
               <p className="mt-1 flex-1 text-xs text-ink/70">{o.note}</p>
-              {property ? (
+              {onPick ? (
+                <button type="button" onClick={() => onPick(report.options[o.key])} className={cx(buttonClass("secondary"), "mt-4 w-full")}>
+                  Use this price
+                </button>
+              ) : property ? (
                 <form action={setAskingPrice.bind(null, property.id, report.options[o.key])} className="mt-4">
                   <SubmitButton variant="secondary" className="w-full" pendingText="Saving…">
                     Set as asking price
@@ -147,7 +152,7 @@ export function PriceReport({ report, property }: { report: PricingReport; prope
             </div>
           ))}
         </div>
-        {property ? null : (
+        {property || onPick ? null : (
           <p className="mt-3 text-sm text-muted">
             To set one of these on a listing, open the listing and choose <span className="font-semibold text-ink">Check this price</span>, or{" "}
             <Link href="/app/properties/new" className="font-bold text-grape-700 hover:underline">
@@ -167,13 +172,15 @@ export function PriceReport({ report, property }: { report: PricingReport; prope
             </dd>
             <dd className="mt-0.5 text-xs text-muted">
               {report.basis === "comparables"
-                ? `From ${report.pricePerSqm?.count} comparable listings with both a price and an area.`
-                : "Too few comparable listings showed an area, so this is the AI's rough estimate. Treat it with care."}
+                ? `From ${report.pricePerSqm?.count} comparable listings with both a price and ${report.pricePerSqm?.of === "lot" ? "a lot area" : "an area"}.`
+                : report.basis === "prices"
+                  ? "Most listings nearby didn't show an area, so this is the typical asking price of similar listings. Treat it as a guide."
+                  : "Too few similar listings are online here, so this is the AI's rough estimate. Treat it with care."}
             </dd>
           </div>
           {report.pricePerSqm ? (
             <div>
-              <dt className="text-sm text-muted">Price per square meter nearby</dt>
+              <dt className="text-sm text-muted">{report.pricePerSqm.of === "lot" ? "Price per square meter of lot nearby" : "Price per square meter nearby"}</dt>
               <dd className="mt-1 text-xl font-extrabold tracking-tight">{formatPeso(report.pricePerSqm.median)}</dd>
               <dd className="mt-0.5 text-xs text-muted tabular-nums">
                 Mostly between {formatPeso(report.pricePerSqm.low)} and {formatPeso(report.pricePerSqm.high)}
@@ -213,6 +220,11 @@ export function PriceReport({ report, property }: { report: PricingReport; prope
         <h2 id="comps-title" className="text-lg font-extrabold tracking-tight">
           Similar properties listed now
         </h2>
+        {report.comparedArea ? (
+          <p className="mt-0.5 text-sm">
+            Compared with listings in <span className="font-semibold">{report.comparedArea}</span>.
+          </p>
+        ) : null}
         <p className="mt-0.5 text-sm text-muted">
           {web} found online{report.comparables.length > web ? `, ${report.comparables.length - web} on MyHomeSeller` : ""}. Open any of them to check it yourself.
         </p>
