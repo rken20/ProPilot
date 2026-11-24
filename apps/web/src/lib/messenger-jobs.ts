@@ -4,6 +4,7 @@ import { sendEmail, esc } from "./email";
 import { pageWithToken } from "./facebook-pages";
 import { DEFAULT_MODEL } from "./listing-assistant";
 import { messengerReply, type Channel, type MessengerListing, type Turn } from "./messenger-assistant";
+import { OFFERS_PER_LISTING_PER_DAY, dealHoldReply } from "./negotiation";
 import type { NegotiationContext, PriorOffer } from "./negotiation";
 import { formatPeso } from "./money";
 import {
@@ -132,6 +133,8 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
   await typingOn(fetch, cfg, page.pageId, page.token, ev.psid);
   const turn = await aiTurn(admin, { id: conv.id as string, business_id: businessId, property_id: null }, { name: page.name, channel: "messenger", apiKey, negotiate: plan.negotiation });
   if (!turn) return;
+  // A deal is put on record before the buyer is told about it.
+  await commitDeals(admin, conv.id as string, turn);
 
   try {
     const mid = await sendMessage(fetch, cfg, page.pageId, page.token, ev.psid, turn.result.reply);
@@ -148,7 +151,43 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
 
 type Admin = NonNullable<ReturnType<typeof createAdminClient>>;
 type ConvRef = { id: string; business_id: string; property_id: string | null };
-export type Turn2 = { result: Awaited<ReturnType<typeof messengerReply>>; props: MessengerListing[] };
+export type Turn2 = {
+  result: Awaited<ReturnType<typeof messengerReply>>;
+  props: MessengerListing[];
+  language: "taglish" | "english";
+  /** Set by commitDeals: the deal recorded this turn, or why one couldn't be. */
+  deal?: { agreed?: { amount: string; listing: MessengerListing; ref: string }; clash?: string };
+};
+
+/**
+ * Record a deal the AI agreed this turn, before the reply goes out. The database
+ * checks it again (the pre-approved price, one deal per listing). If it refuses,
+ * the buyer gets a neutral reply instead of a deal confirmation, and a person takes over.
+ */
+export async function commitDeals(admin: Admin, conversationId: string, turn: Turn2) {
+  const o = turn.result.offers?.find((x) => x.outcome === "accepted");
+  if (!o) return;
+  const listing = turn.props.find((p) => p.id === o.listingId);
+  const { data: offerId, error } = await admin.rpc("record_offer", {
+    p_property: o.listingId,
+    p_conversation: conversationId,
+    p_amount: o.amountMinor,
+    p_counter: null,
+    p_outcome: "accepted",
+    p_name: o.name ?? null,
+    p_ref: o.ref ?? null,
+  });
+  if (error) log("deal", error.message);
+  if (offerId && listing && o.ref) {
+    turn.deal = { agreed: { amount: formatPeso(o.amountMinor), listing, ref: o.ref } };
+    return;
+  }
+  const why = error?.message.includes("deal_taken") ? "another buyer's deal on this listing came first" : "it couldn't be recorded";
+  const clash = `The buyer's offer of ${formatPeso(o.amountMinor)} for ${listing?.name ?? "a listing"} reached the pre-approved price, but ${why}. The buyer was told an agent will confirm. Please talk to them.`;
+  turn.deal = { clash };
+  turn.result.reply = dealHoldReply(turn.language);
+  turn.result.handover = clash.slice(0, 300);
+}
 
 /**
  * One AI turn for a conversation in AI mode: checks the daily caps, reads the
@@ -185,13 +224,28 @@ export async function aiTurn(admin: Admin, conv: ConvRef, opts: { name: string; 
   // Negotiation (Pro, Agency): the owner's lowest prices stay on the server. The model only gets the result of each check.
   let negotiation: NegotiationContext | undefined;
   if (opts.negotiate) {
-    const [{ data: floors }, { data: offers }] = await Promise.all([
-      admin.from("listing_floors").select("property_id, min_price_minor").eq("business_id", conv.business_id),
-      admin.from("listing_offers").select("property_id, outcome, amount_minor").eq("conversation_id", conv.id).eq("business_id", conv.business_id),
+    const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+    const [{ data: floors }, { data: offers }, { data: deals }, { data: today }] = await Promise.all([
+      admin.from("listing_floors").select("property_id, min_price_minor, accept_price_minor").eq("business_id", conv.business_id),
+      admin.from("listing_offers").select("property_id, outcome, amount_minor, counter_minor").eq("conversation_id", conv.id).eq("business_id", conv.business_id),
+      // Listings with a deal already agreed, in any chat: no second deal on them.
+      admin.from("listing_offers").select("property_id, conversation_id").eq("business_id", conv.business_id).in("outcome", ["accepted", "confirmed"]),
+      admin.from("listing_offers").select("property_id").eq("business_id", conv.business_id).gte("created_at", since).limit(2000),
     ]);
+    const perListing = new Map<string, number>();
+    for (const r of today ?? []) perListing.set(r.property_id as string, (perListing.get(r.property_id as string) ?? 0) + 1);
     negotiation = {
-      floors: Object.fromEntries((floors ?? []).map((f) => [f.property_id as string, Number(f.min_price_minor)])),
-      prior: (offers ?? []).map((o) => ({ listingId: o.property_id as string, outcome: o.outcome as PriorOffer["outcome"], amountMinor: Number(o.amount_minor) })),
+      floors: Object.fromEntries(
+        (floors ?? []).map((f) => [f.property_id as string, { min: Number(f.min_price_minor), accept: f.accept_price_minor === null ? null : Number(f.accept_price_minor) }]),
+      ),
+      prior: (offers ?? []).map((o) => ({
+        listingId: o.property_id as string,
+        outcome: o.outcome as PriorOffer["outcome"],
+        amountMinor: Number(o.amount_minor),
+        counterMinor: o.counter_minor === null ? null : Number(o.counter_minor),
+      })),
+      taken: (deals ?? []).filter((d) => d.conversation_id !== conv.id).map((d) => d.property_id as string),
+      busy: [...perListing].filter(([, n]) => n >= OFFERS_PER_LISTING_PER_DAY).map(([id]) => id),
     };
   }
   const turns: Turn[] = (history ?? []).reverse().map((m) => ({ from: m.sender as Turn["from"], text: m.body as string }));
@@ -211,7 +265,7 @@ export async function aiTurn(admin: Admin, conv: ConvRef, opts: { name: string; 
   // A takeover may have happened while the AI was writing; don't talk over a person.
   const { data: again } = await admin.from("messenger_conversations").select("mode").eq("id", conv.id).single();
   if (again?.mode !== "ai") return null;
-  return { result, props: listings };
+  return { result, props: listings, language: settings?.chat_language === "english" ? "english" : "taglish" };
 }
 
 /** After the reply is delivered: record a viewing request or handover, and email the team about it. */
@@ -238,9 +292,12 @@ export async function applyTurn(
   }
   if (result.handover) Object.assign(updates, { mode: "human", needs_attention: true, attention_reason: result.handover });
 
-  // Put this turn's offers on record. One the owner could accept waits for their answer.
+  // Put this turn's offers on record. One the owner could accept waits for their answer; one at the pre-approved price is a deal.
   let pending: { amount: string; listing: MessengerListing } | null = null;
+  const agreed = turn.deal?.agreed ?? null;
+  const clash = turn.deal?.clash ?? null;
   for (const o of result.offers ?? []) {
+    if (o.outcome === "accepted") continue; // recorded by commitDeals before the reply went out
     const { data: offerId, error } = await admin.rpc("record_offer", {
       p_property: o.listingId,
       p_conversation: conversationId,
@@ -253,7 +310,15 @@ export async function applyTurn(
     const listing = props.find((p) => p.id === o.listingId);
     if (o.outcome === "pending" && offerId && listing) pending = { amount: formatPeso(o.amountMinor), listing };
   }
-  if (pending) {
+  if (clash) Object.assign(updates, { mode: "human", needs_attention: true, attention_reason: clash.slice(0, 300) });
+  else if (agreed) {
+    Object.assign(updates, {
+      property_id: agreed.listing.id,
+      needs_attention: true,
+      attention_reason: `Deal agreed by the AI: ${agreed.amount} for ${agreed.listing.name} (ref. ${agreed.ref}), at or above your pre-approved price. Send the reservation agreement and payment instructions.`,
+    });
+  }
+  if (pending && !agreed && !clash) {
     Object.assign(updates, {
       property_id: pending.listing.id,
       needs_attention: true,
@@ -271,6 +336,24 @@ export async function applyTurn(
         ["Property", `${pending.listing.name}, ${pending.listing.location}`],
         ["Next", "The owner or an admin confirms or declines it. Nothing is final until then."],
       ],
+      url: `${opts.appOrigin}/app/inbox?c=${conversationId}`,
+    });
+  }
+
+  if (agreed || clash) {
+    const l = agreed?.listing;
+    await alertTeam(admin, businessId, {
+      subject: agreed ? `Deal agreed: ${agreed.amount} for ${agreed.listing.name}` : "A deal the AI agreed needs you",
+      lines: agreed
+        ? [
+            ["Agreed price", agreed.amount],
+            ["Reference no.", agreed.ref],
+            ["Asking price", formatPeso(agreed.listing.price_minor)],
+            ["Property", `${agreed.listing.name}, ${agreed.listing.location}`],
+            ["How", "The buyer's offer met the price you pre-approved, so the AI agreed it."],
+            ["Next", "Send the reservation agreement and official payment instructions in the chat. Mark the listing reserved when the fee is paid."],
+          ]
+        : [["What happened", clash!], ...(l ? ([["Property", l.name]] as Array<[string, string]>) : [])],
       url: `${opts.appOrigin}/app/inbox?c=${conversationId}`,
     });
   }

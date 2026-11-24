@@ -1,7 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { amortize } from "@propilot/shared";
 import { formatPeso } from "./money";
-import { decideOffer, type NegotiationContext, type NewOffer, type PriorOffer } from "./negotiation";
+import { dealLine, dealRef, decideOffer, type NegotiationContext, type NewOffer, type PriorOffer } from "./negotiation";
 import { TYPE_LABEL } from "./property-labels";
 
 /**
@@ -87,7 +87,8 @@ ${firstReply ? `- This is your first reply in this conversation: start by saying
 - To book a viewing, get their name, mobile number and preferred date (and the listing), then call save_viewing_request. Then tell them an agent will confirm.
 ${
     opts.negotiate
-      ? `- Price offers: when they name a price they'd pay for a listing, call check_offer with it and do what it tells you. You don't know the lowest price the owner would take, so never guess, hint at or suggest one, and never bring up a discount yourself. You can't accept a price: an offer only goes to the owner, who confirms or declines it. Say that plainly whenever an offer is sent.
+      ? `- Price offers: when they name a price they'd pay for a listing, or say yes to a price you quoted, call check_offer with that amount and do what it tells you. check_offer is the only way a price moves: it decides whether the deal is agreed, goes to the owner, or gets a counteroffer. You don't know the owner's lowest price, so never guess, hint at or suggest one, and never bring up a discount yourself. Only say a deal is agreed when check_offer says so. Never write a deal confirmation, reference number or receipt yourself: the system adds the official one under your message.
+${NEGOTIATION_PLAYBOOK}
 - Call hand_to_agent when they ask for a person, want to change terms other than the price (payment schedule, inclusions, fees), complain, ask something only the agent can answer, or the conversation isn't about these properties. After that, say an agent will reply here soon.`
       : `- Call hand_to_agent when they ask for a person, want to negotiate price or terms, complain, ask something only the agent can answer, or the conversation isn't about these properties. After that, say an agent will reply here soon.`
   }
@@ -99,6 +100,21 @@ ${
 ${listings.map(short).join("\n") || "(no active listings right now)"}
 </listings>`;
 }
+
+/**
+ * How a good agent closes, for the AI chat on plans with negotiation. Every
+ * number still comes from check_offer, so none of this can go under the
+ * owner's lowest price.
+ */
+export const NEGOTIATION_PLAYBOOK = `How to negotiate and close, like a good agent:
+- Value before price: before talking numbers, make sure they know what the price includes and why it's worth it, using only the listing's own details (location, size, inclusions, financing). Show what it costs a month with estimate_monthly_payment; a monthly figure often settles a price worry.
+- Ask before you answer: find out what matters to them (budget, how they'll pay, when they want to move in) with one short question at a time, and connect the listing to it.
+- Counteroffers: when check_offer gives you a price, present it with confidence as the best you can do right now, add one reason from the listing why it's fair, and ask if it works for them. Don't apologise for the price and don't hint that it can go lower.
+- Something for something: if they push for less, ask what they can do in return, for example reserve this week, pay a bigger down payment, or pay in cash or with a loan already approved. Pass that along with their offer; never promise terms yourself.
+- Objections: price, compare the monthly payment; financing, explain the options the listing states (bank, Pag-IBIG, in-house); "I'll think about it", ask what's holding them back and offer a viewing.
+- Be honest: never invent other buyers, deadlines, price increases or features. No pressure, no guilt. If they aren't ready, leave the door open kindly.
+- Ask for the decision: once the price is right for them, ask plainly whether they'd like to go ahead, then call check_offer with the amount.
+- After a deal is agreed: congratulate them, confirm the property and the price, then get what's needed for the reservation: full name, mobile number, how they'll pay (cash, bank loan or Pag-IBIG) and a date for signing the reservation agreement. Save it with save_viewing_request (put "Reservation" and the agreed price in notes). Say an agent will send the reservation agreement and official payment instructions here. Never ask for money, bank or card details, or ID photos in this chat, and tell them to pay only through the instructions the agent sends.`;
 
 export const MESSENGER_TOOLS: Anthropic.Tool[] = [
   {
@@ -122,7 +138,8 @@ export const MESSENGER_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: "save_viewing_request",
-    description: "Save a viewing request once you have the person's name and mobile number. Include the listing and preferred date if known.",
+    description:
+      "Save a viewing request, or the buyer's details for the reservation after a deal is agreed, once you have their name and mobile number. Include the listing and preferred date if known.",
     input_schema: {
       type: "object",
       properties: {
@@ -146,7 +163,7 @@ export const MESSENGER_TOOLS: Anthropic.Tool[] = [
 export const OFFER_TOOL: Anthropic.Tool = {
   name: "check_offer",
   description:
-    "Check a price the person offered for a listing. Call it every time they name an amount they'd pay, including a final offer after you asked for more. It tells you what to say next.",
+    "Check a price the person offered for a listing. Call it every time they name an amount they'd pay, including when they accept a price you quoted or give a final offer. It tells you what to say next: a deal, an offer sent to the owner, or a counteroffer.",
   input_schema: {
     type: "object",
     properties: {
@@ -214,35 +231,67 @@ export function runMessengerTool(listings: MessengerListing[], name: string, inp
       const amountMinor = Math.round(Number(i.amount_php) * 100);
       // Earlier offers for this listing, plus any checked earlier in this same turn.
       const prior: PriorOffer[] = [...negotiation.prior, ...(result.offers ?? [])].filter((o) => o.listingId === l.id);
-      const d = decideOffer({ listingName: l.name, askingMinor: l.price_minor, floorMinor: negotiation.floors[l.id] ?? null, amountMinor, prior });
-      const record = (outcome: NewOffer["outcome"], counterMinor: number | null = null) =>
-        (result.offers ??= []).push({ listingId: l.id, amountMinor, counterMinor, outcome, name: typeof i.name === "string" ? i.name.trim().slice(0, 120) || undefined : undefined });
+      const floor = negotiation.floors[l.id];
+      const d = decideOffer({
+        listingName: l.name,
+        askingMinor: l.price_minor,
+        floorMinor: floor?.min ?? null,
+        acceptMinor: floor?.accept ?? null,
+        amountMinor,
+        prior,
+        taken: negotiation.taken?.includes(l.id),
+        busy: negotiation.busy?.includes(l.id),
+      });
+      const record = (outcome: NewOffer["outcome"], counterMinor: number | null = null, ref?: string) =>
+        (result.offers ??= []).push({
+          listingId: l.id,
+          amountMinor,
+          counterMinor,
+          outcome,
+          name: typeof i.name === "string" ? i.name.trim().slice(0, 120) || undefined : undefined,
+          ...(ref ? { ref } : {}),
+        });
       const offer = formatPeso(amountMinor);
       switch (d.kind) {
         case "unclear":
           return JSON.stringify({ status: "unclear", say: `That amount doesn't look right for a listing priced at ${formatPeso(l.price_minor)}. Ask them to confirm the full amount in pesos.` });
         case "accepted":
-          return JSON.stringify({ status: "already_accepted", say: "The owner already accepted their offer for this listing. Tell them an agent will message them about the next steps." });
+          return JSON.stringify({ status: "already_agreed", say: "Their deal for this listing is already agreed. Help with the reservation details if you don't have them yet; otherwise tell them an agent will message them about the next steps." });
+        case "taken":
+          result.handover = `The buyer offered ${offer} for ${l.name}, which already has an agreed deal with another buyer.`.slice(0, 300);
+          return JSON.stringify({ status: "taken", say: "Tell them kindly that the owner has already agreed a deal with another buyer for this listing, and that an agent will reply here about a backup offer or similar properties. Don't discuss the price further." });
+        case "closed": {
+          // The reference stays on the server: the AI is never told it.
+          record("accepted", null, dealRef());
+          const fee = l.reservation_fee_minor ? ` The reservation fee is ${formatPeso(l.reservation_fee_minor)}.` : "";
+          return JSON.stringify({
+            status: "deal_agreed",
+            say: `Deal agreed: ${offer} meets the owner's pre-approved price, so it's accepted. Congratulate them and confirm the property and price.${fee} Then ask for their full name, mobile number, how they'll pay and a date to sign the reservation agreement, and save them with save_viewing_request. Say an agent will send the reservation agreement and official payment instructions here, and not to send money any other way.`,
+          });
+        }
         case "waiting":
           return JSON.stringify({ status: "with_owner", say: "Their earlier offer is already with the owner. Tell them the owner will answer here. If they want to change it, call hand_to_agent." });
         case "handover":
           result.handover = d.reason.slice(0, 300);
           return JSON.stringify({ status: "handed_to_agent", say: "Tell them you've passed their offer to an agent, who will reply here soon. Don't discuss the price further." });
         case "too_low":
-          record("too_low");
-          if (d.last) {
+          record("too_low", d.counterMinor);
+          if (d.last || d.counterMinor === null) {
             result.handover = `The buyer's offers for ${l.name} are under the lowest price (latest: ${offer}). The AI stopped negotiating.`.slice(0, 300);
             return JSON.stringify({ status: "too_low", say: "Tell them politely the owner wouldn't consider that amount, and that an agent will reply here to talk it through. Don't discuss the price further." });
           }
           return JSON.stringify({
-            status: "too_low",
-            say: `Tell them politely the owner wouldn't consider ${offer}. Don't say or guess what amount would work. The asking price is ${formatPeso(l.price_minor)}; ask for their best offer.`,
+            status: "counteroffer",
+            say:
+              d.counterMinor >= l.price_minor
+                ? `Tell them politely the owner can't do ${offer}; the price is ${formatPeso(l.price_minor)}. Give one reason from the listing why it's fair, ask what they can do in return (reserve soon, bigger down payment), and ask for their best offer. Don't hint at any lower number.`
+                : `Tell them politely the owner can't do ${offer}, and that the best you can offer right now is ${formatPeso(d.counterMinor)}. Give one reason from the listing why it's fair and ask if it works for them. Don't hint at any lower number. If they agree, call check_offer with ${formatPeso(d.counterMinor)}.`,
           });
         case "countered":
           record("countered", d.counterMinor);
           return JSON.stringify({
             status: "ask_for_more",
-            say: `Don't send it to the owner yet. Ask if they can do ${formatPeso(d.counterMinor)}, and say you'd take that to the owner. If they say ${offer} is their final offer, call check_offer again with ${offer}.`,
+            say: `Don't send it to the owner yet. Ask if they can meet at ${formatPeso(d.counterMinor)}, with one reason from the listing why it's fair. If they agree, call check_offer with ${formatPeso(d.counterMinor)}. If they say ${offer} is their final offer, call check_offer again with ${offer}.`,
           });
         case "pending":
           record("pending");
@@ -276,6 +325,9 @@ export function toModelMessages(history: Turn[]): Anthropic.MessageParam[] {
 }
 
 type Client = Pick<Anthropic, "messages">;
+
+/** Lines that look like the server's deal confirmation (see dealLine). The AI may not write these. */
+export const FAKE_CONFIRMATION = /reference\s*(no\b|number|#|code)|ref\.?\s*no\b|deal\s+(recorded|confirmed)|naitala\s+na\s+ang\s+deal|official\s+receipt/i;
 
 /** Write the next reply. Returns the text plus any viewing request or handover the model asked for. */
 export async function messengerReply(
@@ -316,6 +368,10 @@ export async function messengerReply(
       .map((b) => b.text)
       .join("\n")
       .replace(/\*\*(.+?)\*\*/g, "$1")
+      .split("\n")
+      // Only the server writes a deal confirmation: drop any line the AI wrote that looks like one.
+      .filter((line) => !FAKE_CONFIRMATION.test(line))
+      .join("\n")
       .trim();
     result.reply = text.slice(0, MAX_REPLY_CHARS);
     break;
@@ -325,6 +381,11 @@ export async function messengerReply(
       ? "Thanks! I've passed your message to an agent, and they'll reply here soon."
       : "Sorry, I couldn't answer that. I've let an agent know, and they'll reply here soon.";
     result.handover ??= "The assistant couldn't answer.";
+  }
+  // An agreed deal gets the official confirmation, written here and not by the AI. The job removes it if the deal can't be recorded.
+  for (const o of result.offers ?? []) {
+    const l = ctx.listings.find((x) => x.id === o.listingId);
+    if (o.outcome === "accepted" && o.ref && l) result.reply = `${result.reply}\n\n${dealLine(o.amountMinor, l.name, o.ref, ctx.language ?? "taglish")}`;
   }
   return result;
 }

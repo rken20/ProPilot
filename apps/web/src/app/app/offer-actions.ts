@@ -27,6 +27,14 @@ export async function saveLowestPrice(propertyId: string, _prev: FloorState, for
   if (!listing) return { error: "Listing not found." };
 
   const minor = pesosToCentavos(str(form, "lowestPrice"));
+  const accept = pesosToCentavos(str(form, "acceptPrice"));
+  const asking = Number(listing.price_minor);
+  if (accept !== null) {
+    if (Number.isNaN(accept) || accept <= 0) return { error: "Enter the accept-right-away price in pesos, like 4800000." };
+    if (minor === null) return { error: "Set your lowest price first. The accept-right-away price has to be at or above it." };
+    if (!Number.isNaN(minor) && accept < minor) return { error: "The accept-right-away price can't be under your lowest price." };
+    if (accept > asking) return { error: `The accept-right-away price can't be above the asking price (${formatPeso(asking)}).` };
+  }
   if (minor === null) {
     const { error } = await supabase.from("listing_floors").delete().eq("property_id", propertyId);
     if (error) return { error: "Couldn't clear it. Please try again." };
@@ -35,7 +43,7 @@ export async function saveLowestPrice(propertyId: string, _prev: FloorState, for
     if (minor > Number(listing.price_minor)) return { error: `It can't be above the asking price (${formatPeso(Number(listing.price_minor))}).` };
     const { error } = await supabase
       .from("listing_floors")
-      .upsert({ property_id: propertyId, business_id: biz.businessId, min_price_minor: minor }, { onConflict: "property_id" });
+      .upsert({ property_id: propertyId, business_id: biz.businessId, min_price_minor: minor, accept_price_minor: accept }, { onConflict: "property_id" });
     if (error) return { error: "Couldn't save it. Please try again." };
   }
   revalidatePath(`/app/properties/${propertyId}`);
@@ -54,6 +62,7 @@ export async function answerOffer(offerId: string, confirm: boolean): Promise<De
   const supabase = await createClient();
   const { data: outcome } = await supabase.rpc("decide_offer", { p_offer: offerId, p_confirm: confirm });
   if (outcome === "not_pending") return { error: "This offer was already answered." };
+  if (outcome === "deal_taken") return { error: "This listing already has an agreed deal with another buyer, so this offer can't be confirmed. You can decline it." };
   if (outcome !== "confirmed" && outcome !== "declined") return { error: "Only the owner or an admin can answer an offer." };
 
   revalidatePath("/app/inbox");

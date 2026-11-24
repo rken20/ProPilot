@@ -56,7 +56,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Everything in Basic, for 5 team members",
       "Buyer Finder: 20 AI-found potential buyers a month",
       "Up to 10,000 AI replies a month",
-      "AI negotiation: the chat negotiates offers to a lowest price you set, and you confirm every deal",
+      "AI negotiation: the chat negotiates down to a lowest price you set, and closes deals at a price you pre-approve",
       "Video Ad Maker: 10 AI video ads a month from your photos (coming soon)",
     ],
   },

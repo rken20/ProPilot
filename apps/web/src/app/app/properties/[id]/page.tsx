@@ -72,9 +72,10 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
   const manager = biz.role === "owner" || biz.role === "admin";
   const [offers, { data: floorRow }] = await Promise.all([
     sales ? loadOffers(supabase, biz.businessId, { propertyId: p.id }) : Promise.resolve([]),
-    manager ? supabase.from("listing_floors").select("min_price_minor").eq("property_id", p.id).maybeSingle() : Promise.resolve({ data: null }),
+    manager ? supabase.from("listing_floors").select("min_price_minor, accept_price_minor").eq("property_id", p.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const lowestMinor = floorRow ? Number(floorRow.min_price_minor) : null;
+  const acceptMinor = floorRow?.accept_price_minor == null ? null : Number(floorRow.accept_price_minor);
 
   // The public page: its link, and how it's doing over the last 30 days.
   const shareable = p.is_public && (p.status === "available" || p.status === "reserved");
@@ -167,11 +168,11 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       ) : null}
 
       {manager && plan.negotiation && p.status === "available" ? (
-        <LowestPrice propertyId={p.id} askingMinor={Number(p.price_minor)} currentPesos={centavosToPesosInput(lowestMinor)} />
+        <LowestPrice propertyId={p.id} askingMinor={Number(p.price_minor)} currentPesos={centavosToPesosInput(lowestMinor)} acceptPesos={centavosToPesosInput(acceptMinor)} />
       ) : manager && aiOn && !plan.negotiation && p.status === "available" ? (
         <Panel title="AI negotiation" className="mt-6">
           <p className="mt-1 max-w-2xl text-sm text-muted">
-            On Pro and Agency, the AI negotiates price offers in the chat down to a lowest price you set privately, and you confirm every deal.{" "}
+            On Pro and Agency, the AI negotiates price offers in the chat down to a lowest price you set privately, and closes deals at a price you pre-approve.{" "}
             <Link href="/app/billing" className="font-bold text-grape-700 hover:underline">
               See the plans
             </Link>

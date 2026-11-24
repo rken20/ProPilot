@@ -6,11 +6,13 @@ export type OfferRow = {
   id: string;
   amountMinor: number;
   counterMinor: number | null;
-  outcome: "too_low" | "countered" | "pending" | "confirmed" | "declined";
+  outcome: "too_low" | "countered" | "pending" | "confirmed" | "declined" | "accepted";
   buyerName: string | null;
   listingName: string | null;
   conversationId: string | null;
   createdAt: string;
+  /** An agreed deal's reference, as the buyer saw it. */
+  ref?: string | null;
   messages?: { confirm: string; decline: string };
 };
 
@@ -18,7 +20,7 @@ export type OfferRow = {
 export async function loadOffers(supabase: SupabaseClient, businessId: string, by: { conversationId: string } | { propertyId: string }): Promise<OfferRow[]> {
   let query = supabase
     .from("listing_offers")
-    .select("id, amount_minor, counter_minor, outcome, buyer_name, conversation_id, created_at, properties(name)")
+    .select("id, amount_minor, counter_minor, outcome, buyer_name, conversation_id, created_at, deal_ref, properties(name)")
     .eq("business_id", businessId)
     .order("created_at", { ascending: false })
     .limit(6);
@@ -37,6 +39,7 @@ export async function loadOffers(supabase: SupabaseClient, businessId: string, b
       listingName,
       conversationId: (o.conversation_id as string | null) ?? null,
       createdAt: o.created_at as string,
+      ref: (o.deal_ref as string | null) ?? null,
       messages:
         o.outcome === "pending"
           ? { confirm: decisionMessage(true, amountMinor, listingName ?? "the listing", language), decline: decisionMessage(false, amountMinor, listingName ?? "the listing", language) }

@@ -12,21 +12,24 @@ export type Offer = {
   id: string;
   amountMinor: number;
   counterMinor: number | null;
-  outcome: "too_low" | "countered" | "pending" | "confirmed" | "declined";
+  outcome: "too_low" | "countered" | "pending" | "confirmed" | "declined" | "accepted";
   buyerName: string | null;
   listingName: string | null;
   conversationId: string | null;
   createdAt: string;
+  /** An agreed deal's reference, as the buyer saw it. */
+  ref?: string | null;
   /** What the buyer is told for each answer (pending offers only). */
   messages?: { confirm: string; decline: string };
 };
 
 const OUTCOME: Record<Offer["outcome"], { label: string; tone: "neutral" | "brand" | "hot" }> = {
-  too_low: { label: "Too low", tone: "neutral" },
+  too_low: { label: "Too low, AI countered", tone: "neutral" },
   countered: { label: "AI asked for more", tone: "neutral" },
   pending: { label: "Waiting for the owner", tone: "hot" },
   confirmed: { label: "Confirmed", tone: "brand" },
   declined: { label: "Declined", tone: "neutral" },
+  accepted: { label: "Deal agreed by the AI", tone: "brand" },
 };
 
 /** Offers the AI collected, newest first. Owners and admins answer the pending one here. */
@@ -62,6 +65,18 @@ function OfferRow({ offer: o, canDecide, showListing, linkToChat }: { offer: Off
         </p>
       </div>
       {o.outcome === "countered" && o.counterMinor ? <p className="mt-1 text-xs text-muted">The AI asked if they can do {formatPeso(o.counterMinor)}.</p> : null}
+      {o.outcome === "too_low" && o.counterMinor ? <p className="mt-1 text-xs text-muted">The AI offered {formatPeso(o.counterMinor)} back.</p> : null}
+      {o.outcome === "accepted" ? (
+        <p className="mt-1 text-xs text-muted">
+          {o.ref ? (
+            <>
+              Reference no. <span className="font-bold text-ink tabular-nums">{o.ref}</span>.{" "}
+            </>
+          ) : null}
+          It met the price you pre-approved, so the AI agreed it and is collecting the buyer&apos;s details for the reservation. Send the reservation agreement and
+          official payment instructions in the chat. A deal only counts if its reference is listed here.
+        </p>
+      ) : null}
       {o.outcome === "pending" ? (
         canDecide && o.messages ? (
           <div className="mt-3 rounded-2xl bg-tile-lemon p-4">
@@ -105,22 +120,29 @@ function OfferRow({ offer: o, canDecide, showListing, linkToChat }: { offer: Off
   );
 }
 
-/** The private lowest price for one listing (owners and admins, on plans with AI negotiation). */
-export function LowestPrice({ propertyId, askingMinor, currentPesos }: { propertyId: string; askingMinor: number; currentPesos: string }) {
+/** The private prices for one listing (owners and admins, on plans with AI negotiation). */
+export function LowestPrice({ propertyId, askingMinor, currentPesos, acceptPesos }: { propertyId: string; askingMinor: number; currentPesos: string; acceptPesos: string }) {
   const [state, action] = useActionState<FloorState, FormData>(saveLowestPrice.bind(null, propertyId), {});
   return (
     <Panel title="AI negotiation" className="mt-6">
       <p className="mt-1 max-w-2xl text-sm text-muted">
-        When a buyer names a price in the chat, the AI turns down offers under your lowest price, asks once for more on the rest, then sends the offer to you. You
-        confirm or decline every offer. Only you and your admins can see this number, and the AI is never told it.
+        When a buyer names a price in the chat, the AI negotiates like an agent: it offers counteroffers that come down in smaller and smaller steps, never under
+        your lowest price. Only you and your admins can see these numbers, and the AI is never told them.
       </p>
-      <form action={action} className="mt-4 flex flex-wrap items-end gap-3">
-        <div className="w-full max-w-xs">
+      <form action={action} className="mt-4">
+        <div className="grid max-w-2xl gap-x-4 sm:grid-cols-2">
           <Field label="Lowest price you'd accept (₱)" htmlFor="lowestPrice" hint={`Asking price: ${formatPeso(askingMinor)}. Leave empty to have a person handle every offer.`}>
             <Input id="lowestPrice" name="lowestPrice" inputMode="decimal" defaultValue={currentPesos} placeholder="4500000" />
           </Field>
+          <Field
+            label="Accept right away at or above (₱)"
+            htmlFor="acceptPrice"
+            hint="Optional. The AI closes the deal by itself at this price or more. Offers between this and your lowest price still come to you to confirm."
+          >
+            <Input id="acceptPrice" name="acceptPrice" inputMode="decimal" defaultValue={acceptPesos} placeholder="4800000" />
+          </Field>
         </div>
-        <SubmitButton variant="secondary" pendingText="Saving…" className="mb-6">
+        <SubmitButton variant="secondary" pendingText="Saving…" className="mb-2">
           Save
         </SubmitButton>
       </form>
