@@ -4,7 +4,9 @@ import { Card, PageHeader, Panel } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPeso } from "@/lib/money";
 import { requireSuperAdmin } from "@/lib/superadmin";
-import { confirmPayment, grantPlan, rejectPayment } from "./actions";
+import { cancelGrant, confirmPayment, grantByEmail, grantPlan, rejectPayment } from "./actions";
+import { GrantByEmail } from "./grant-by-email";
+import { GrantsTable, type Grant } from "./grants-table";
 
 export const metadata = { title: "Payments · MyHomeSeller admin" };
 
@@ -30,20 +32,28 @@ type Row = {
 /** MyHomeSeller super admins only: check GCash payments and turn plans on. */
 export default async function AdminPaymentsPage() {
   const { admin } = await requireSuperAdmin();
+  // A tester may have signed up since the plan was given: turn on any that can be now.
+  await admin.rpc("claim_plan_grants").then(({ error }) => error && console.error("[billing] claim grants failed:", error.message));
   const cols = "id, business_id, months, amount_minor, method, reference, payer_name, status, reject_reason, period_end, created_at, plans(name), businesses(name)";
-  const [{ data: pending }, { data: recent }, { data: businesses }, { data: plans }, { data: subs }] = await Promise.all([
+  const [{ data: pending }, { data: recent }, { data: businesses }, { data: plans }, { data: subs }, { data: grantRows }] = await Promise.all([
     admin.from("payments").select(cols).eq("status", "pending").order("created_at").limit(100),
     admin.from("payments").select(cols).neq("status", "pending").order("created_at", { ascending: false }).limit(30),
     admin.from("businesses").select("id, name").order("name").limit(1000),
     admin.from("plans").select("code, name, price_minor").eq("is_active", true).neq("price_minor", 0).order("sort_order"),
     admin.from("subscriptions").select("business_id, current_period_end, plans(name)"),
+    admin
+      .from("plan_grants")
+      .select("id, email, months, note, created_at, claimed_at, cancelled_at, plans(name), businesses(name), payments(period_end)")
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
+  const grants = (grantRows ?? []) as unknown as Grant[];
   const payer = (p: Row) => p.businesses?.name ?? "Business";
   const subOf = new Map((subs ?? []).map((s) => [s.business_id as string, s]));
   const rows = (pending ?? []) as unknown as Row[];
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
       <Link href="/app" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
         <ArrowLeft className="size-4" aria-hidden /> Back to MyHomeSeller
       </Link>
@@ -103,9 +113,19 @@ export default async function AdminPaymentsPage() {
         </Card>
       )}
 
-      <Panel title="Give a plan for free" className="mt-8">
+      <Panel title="Give a plan to beta testers" className="mt-8">
         <p className="mt-1 mb-4 text-sm text-muted">
-          For beta testers and partners. It works like a confirmed payment of ₱0 and shows in their payment history.
+          Type the email each tester signs in with. If they already have a business here, the plan is on at once. If they haven&apos;t signed up yet, it
+          turns on by itself when they sign up with that email and set up their business. The months start counting when the plan turns on.
+        </p>
+        <GrantByEmail plans={(plans ?? []).map((p) => ({ code: p.code as string, name: p.name as string }))} give={grantByEmail} />
+
+        <GrantsTable grants={grants} cancel={cancelGrant} />
+      </Panel>
+
+      <Panel title="Give a plan to a business" className="mt-8">
+        <p className="mt-1 mb-4 text-sm text-muted">
+          Pick a business that is already here. It works like a confirmed payment of ₱0 and shows in their payment history.
         </p>
         <form action={grantPlan} className="flex flex-wrap items-end gap-3">
           <label className="min-w-56 flex-1 text-xs font-medium text-muted">

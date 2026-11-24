@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
   const usageEmails = await sendUsageEmails(admin, origin).catch(() => 0);
   // Buyers who agreed get the listings that fit them, paid sellers' listings first.
   const matches = await sendMatchEmails(admin, origin).catch(() => ({ emails: 0, listings: 0 }));
+  // Plans given to beta testers by email that can turn on now (the tester has since signed up).
+  const { data: grantsUsed } = await admin.rpc("claim_plan_grants");
   const result = await runScheduledAgents(admin);
-  return NextResponse.json({ ...result, usageEmails, matchEmails: matches.emails });
+  return NextResponse.json({ ...result, usageEmails, matchEmails: matches.emails, planGrants: typeof grantsUsed === "number" ? grantsUsed : 0 });
 }
