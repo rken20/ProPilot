@@ -260,6 +260,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       }
       facebookConnected={pagesConnected}
       pricingAdvisor={plan.priceChecks !== 0}
+      videoAds={plan.videoAds !== 0}
       usage={usage}
       canSeeBilling={can(biz.role, "billing.view")}
       recent={recent}

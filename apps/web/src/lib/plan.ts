@@ -18,11 +18,13 @@ export type PlanInfo = {
   negotiation: boolean;
   /** Pricing Advisor price checks a month; null = unlimited, 0 = not included. */
   priceChecks: number | null;
+  /** Video Ad Maker videos a month; null = unlimited, 0 = not included. */
+  videoAds: number | null;
   /** When the paid period ends (null on Free). */
   periodEnd: string | null;
 };
 
-const FREE: PlanInfo = { code: FREE_PLAN, name: "Free", ai: false, homeFinderBuyers: 0, teamMembers: 1, aiReplies: 0, negotiation: false, priceChecks: 0, periodEnd: null };
+const FREE: PlanInfo = { code: FREE_PLAN, name: "Free", ai: false, homeFinderBuyers: 0, teamMembers: 1, aiReplies: 0, negotiation: false, priceChecks: 0, videoAds: 0, periodEnd: null };
 
 /** Plan and limits come back in one query (the subscription with its plan and the plan's limits). */
 const SUB_SELECT = "current_period_end, plans(code, name, plan_entitlements(feature_key, limit))";
@@ -48,6 +50,7 @@ function planFrom(sub: { current_period_end: unknown; plans: unknown } | null): 
     aiReplies: limit("ai_replies", null),
     negotiation: negotiation === null || negotiation > 0,
     priceChecks: limit("ai_price_checks"),
+    videoAds: limit("ai_video_generations"),
     periodEnd: sub!.current_period_end as string,
   };
 }

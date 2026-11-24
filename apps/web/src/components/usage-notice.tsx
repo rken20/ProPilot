@@ -63,7 +63,7 @@ export function UsageMeters({ items }: { items: UsageItem[] }) {
         return (
           <div key={i.key}>
             <dt className="flex items-baseline justify-between gap-2 text-sm font-semibold">
-              {{ replies: "AI replies", finder: "Buyer Finder buyers", priceChecks: "Price checks" }[i.key]}
+              {{ replies: "AI replies", finder: "Buyer Finder buyers", priceChecks: "Price checks", videoAds: "Video ads" }[i.key]}
               {i.level !== "ok" ? <span className={cx("text-xs font-bold", i.level === "out" ? "text-hot" : "text-brass-700")}>{LEVEL_TEXT[i.level]}</span> : null}
             </dt>
             <dd className="mt-1.5">

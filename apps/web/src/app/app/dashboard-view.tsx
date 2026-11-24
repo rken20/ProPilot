@@ -74,6 +74,8 @@ export type DashboardData = {
   facebookConnected: boolean;
   /** Whether the plan includes the Pricing Advisor (Agency). The button shows either way. */
   pricingAdvisor: boolean;
+  /** Whether the plan includes the Video Ad Maker. */
+  videoAds: boolean;
   /** This month's AI allowances; a notice shows when one is low or used up. */
   usage: UsageItem[];
   canSeeBilling: boolean;
@@ -118,6 +120,7 @@ export function DashboardView({
   performance,
   facebookConnected,
   pricingAdvisor,
+  videoAds,
   usage,
   canSeeBilling,
   now,
@@ -407,7 +410,7 @@ export function DashboardView({
               tone="from-[#0e97a9] to-[#0a7183]"
               label={canCreateProperty ? "Add a Property" : "Open Properties"}
             />
-            <Action icon={Video} tone="from-[#2f7af5] to-[#1a5fe0]" label="Video Ad Maker" note="Coming soon" />
+            <Action href="/app/video" icon={Video} tone="from-[#2f7af5] to-[#1a5fe0]" label="Video Ad Maker" note={videoAds ? undefined : "Pro plan"} />
             <Action
               href={facebookConnected ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/integrations"}
               icon={Megaphone}

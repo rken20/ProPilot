@@ -57,7 +57,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Buyer Finder: 20 AI-found potential buyers a month",
       "Up to 10,000 AI replies a month",
       "AI negotiation: the chat negotiates down to a lowest price you set, and closes deals at a price you pre-approve",
-      "Video Ad Maker: 10 AI video ads a month from your photos (coming soon)",
+      "Video Ad Maker: 10 video ads a month from your listing photos, with AI-picked templates and text",
     ],
   },
   agency: {
@@ -67,7 +67,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Buyer Finder: 60 AI-found potential buyers a month",
       "Up to 25,000 AI replies a month",
       "Pricing Advisor: 20 AI price checks a month, with comparable listings",
-      "Video Ad Maker: 30 AI video ads a month from your photos (coming soon)",
+      "Video Ad Maker: 30 video ads a month from your listing photos, with AI-picked templates and text",
     ],
   },
 };

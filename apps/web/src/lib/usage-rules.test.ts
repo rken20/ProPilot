@@ -15,13 +15,13 @@ describe("allowance levels", () => {
   });
 
   it("covers only what the plan includes with a limit", () => {
-    const items = usageItems(pro, { replies: 8_400, finder: 20, priceChecks: 0 });
+    const items = usageItems(pro, { replies: 8_400, finder: 20, priceChecks: 0, videoAds: 0 });
     expect(items).toEqual([
       { key: "replies", used: 8_400, limit: 10_000, level: "low" },
       { key: "finder", used: 20, limit: 20, level: "out" },
     ]);
-    expect(usageItems({ ...pro, aiReplies: null }, { replies: 99_999, finder: 1, priceChecks: 0 })).toEqual([{ key: "finder", used: 1, limit: 20, level: "ok" }]);
-    expect(usageItems({ ai: false, aiReplies: 0, homeFinderBuyers: 0, priceChecks: 0 }, { replies: 0, finder: 0, priceChecks: 0 })).toEqual([]);
+    expect(usageItems({ ...pro, aiReplies: null }, { replies: 99_999, finder: 1, priceChecks: 0, videoAds: 0 })).toEqual([{ key: "finder", used: 1, limit: 20, level: "ok" }]);
+    expect(usageItems({ ai: false, aiReplies: 0, homeFinderBuyers: 0, priceChecks: 0 }, { replies: 0, finder: 0, priceChecks: 0, videoAds: 0 })).toEqual([]);
   });
 
   it("says what is low and what stops when it's used up", () => {

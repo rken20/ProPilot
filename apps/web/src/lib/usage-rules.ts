@@ -6,7 +6,7 @@
 /** From this share of an allowance on, people are told it's running low. */
 export const LOW_AT = 0.8;
 
-export type UsageKey = "replies" | "finder" | "priceChecks";
+export type UsageKey = "replies" | "finder" | "priceChecks" | "videoAds";
 export type UsageLevel = "ok" | "low" | "out";
 export type UsageItem = { key: UsageKey; used: number; limit: number; level: UsageLevel };
 
@@ -14,6 +14,7 @@ export const USAGE_LABEL: Record<UsageKey, { name: string; unit: string; whenOut
   replies: { name: "AI replies", unit: "replies", whenOut: "New buyer messages wait for a person until then." },
   finder: { name: "Buyer Finder", unit: "AI-found buyers", whenOut: "Buyer Finder adds no more buyers until then." },
   priceChecks: { name: "Pricing Advisor", unit: "price checks", whenOut: "No more price checks can run until then." },
+  videoAds: { name: "Video Ad Maker", unit: "video ads", whenOut: "No more video ads can be made until then." },
 };
 
 export function usageLevel(used: number, limit: number): UsageLevel {
@@ -21,7 +22,7 @@ export function usageLevel(used: number, limit: number): UsageLevel {
   return used >= Math.ceil(limit * LOW_AT) ? "low" : "ok";
 }
 
-type Limits = { ai: boolean; aiReplies: number | null; homeFinderBuyers: number | null; priceChecks: number | null };
+type Limits = { ai: boolean; aiReplies: number | null; homeFinderBuyers: number | null; priceChecks: number | null; videoAds?: number | null };
 
 /** One item per allowance the plan includes with a limit. Unlimited (null) and not included (0) are left out. */
 export function usageItems(plan: Limits, used: Record<UsageKey, number>): UsageItem[] {
@@ -30,6 +31,7 @@ export function usageItems(plan: Limits, used: Record<UsageKey, number>): UsageI
     ["replies", plan.aiReplies],
     ["finder", plan.homeFinderBuyers],
     ["priceChecks", plan.priceChecks],
+    ["videoAds", plan.videoAds ?? 0],
   ];
   return limits.flatMap(([key, limit]) => (limit === null || limit <= 0 ? [] : [{ key, used: used[key], limit, level: usageLevel(used[key], limit) }]));
 }

@@ -10,6 +10,7 @@ const SOURCES: Record<UsageKey, { table: string; ai?: boolean }> = {
   replies: { table: "messenger_messages", ai: true },
   finder: { table: "listing_matches" },
   priceChecks: { table: "price_checks" },
+  videoAds: { table: "video_ads" },
 };
 
 async function countUsed(db: SupabaseClient, businessId: string, key: UsageKey, from: string, before?: string): Promise<number> {
@@ -22,9 +23,9 @@ async function countUsed(db: SupabaseClient, businessId: string, key: UsageKey, 
 /** This month's use of each AI allowance on the business's plan (Manila calendar month). */
 export async function businessUsage(db: SupabaseClient, businessId: string, plan: PlanInfo, before?: string): Promise<UsageItem[]> {
   const from = manilaMonthStart();
-  const keys = usageItems(plan, { replies: 0, finder: 0, priceChecks: 0 }).map((i) => i.key);
+  const keys = usageItems(plan, { replies: 0, finder: 0, priceChecks: 0, videoAds: 0 }).map((i) => i.key);
   const counts = await Promise.all(keys.map((k) => countUsed(db, businessId, k, from, before)));
-  const used = { replies: 0, finder: 0, priceChecks: 0, ...Object.fromEntries(keys.map((k, i) => [k, counts[i]!])) };
+  const used = { replies: 0, finder: 0, priceChecks: 0, videoAds: 0, ...Object.fromEntries(keys.map((k, i) => [k, counts[i]!])) };
   return usageItems(plan, used);
 }
 

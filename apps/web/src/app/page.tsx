@@ -16,8 +16,8 @@ export const metadata: Metadata = { alternates: { canonical: "/" } };
 const PLANS: Array<{ name: string; for: string; price: string; icon: Icon3dName; tile: string; lines: string[] }> = [
   { name: "Free", for: "To try it out", price: "₱0", icon: "key", tile: "bg-white", lines: ["Listings with public pages", "Inquiries, Leads and inbox", "1 team member, no AI"] },
   { name: "Basic", for: "Property owners", price: "₱499", icon: "house", tile: "bg-tile-mint", lines: ["AI replies, up to 3,000 a month", "Buyer Finder: 5 buyers a month", "Lead scoring and AI writing", "2 team members"] },
-  { name: "Pro", for: "Agents", price: "₱999", icon: "rocket", tile: "bg-tile-lavender", lines: ["AI replies, up to 10,000 a month", "Buyer Finder: 20 buyers a month", "Video Ad Maker (coming soon)", "5 team members"] },
-  { name: "Agency", for: "Brokerages and teams", price: "₱2,499", icon: "trophy", tile: "bg-tile-peach", lines: ["AI replies, up to 25,000 a month", "Buyer Finder: 60 buyers a month", "Video Ad Maker (coming soon)", "15 team members"] },
+  { name: "Pro", for: "Agents", price: "₱999", icon: "rocket", tile: "bg-tile-lavender", lines: ["AI replies, up to 10,000 a month", "Buyer Finder: 20 buyers a month", "Video Ad Maker: 10 video ads a month", "5 team members"] },
+  { name: "Agency", for: "Brokerages and teams", price: "₱2,499", icon: "trophy", tile: "bg-tile-peach", lines: ["AI replies, up to 25,000 a month", "Buyer Finder: 60 buyers a month", "Video Ad Maker: 30 video ads a month", "15 team members"] },
 ];
 
 const wrap = "mx-auto w-full max-w-6xl px-6 lg:px-8";

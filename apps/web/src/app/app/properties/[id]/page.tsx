@@ -141,9 +141,16 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
         description={p.location}
         action={
           canEdit && p.status !== "archived" ? (
-            <Link href={`/app/pricing?property=${p.id}`} className={buttonClass("secondary")}>
-              Check this price
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              {p.status !== "sold" ? (
+                <Link href={`/app/video?property=${p.id}`} className={buttonClass("secondary")}>
+                  Make a video ad
+                </Link>
+              ) : null}
+              <Link href={`/app/pricing?property=${p.id}`} className={buttonClass("secondary")}>
+                Check this price
+              </Link>
+            </div>
           ) : null
         }
       />

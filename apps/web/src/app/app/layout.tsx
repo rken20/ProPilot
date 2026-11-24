@@ -63,7 +63,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
 
   const items: NavItem[] = [
     { href: "/app", label: "Dashboard", icon: "dashboard", match: ["/app/reports"] },
-    { href: "/app/properties", label: "Properties", icon: "properties", match: ["/app/pricing"] },
+    { href: "/app/properties", label: "Properties", icon: "properties", match: ["/app/pricing", "/app/video"] },
     ...(sales ? [{ href: "/app/pipeline", label: "Leads", icon: "pipeline" as const, count: waiting, match: ["/app/leads", "/app/agents"] }] : []),
     ...(can(current.role, "conversation.reply") ? [{ href: "/app/inbox", label: "Messages", icon: "inbox" as const }] : []),
     ...(settingsTabs.length
