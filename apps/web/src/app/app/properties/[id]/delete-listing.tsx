@@ -20,7 +20,8 @@ export function DeleteListing({ name, action }: { name: string; action: () => Pr
       {asking ? (
         <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-semibold text-red-900">
-            Delete <q>{name}</q> for good? This can&apos;t be undone.
+            {say("Delete", "Buburahin na talaga ang")} <q>{name}</q>
+            {say(" for good? This can't be undone.", "? Hindi na ito maibabalik.")}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <form action={action}>

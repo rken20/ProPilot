@@ -123,8 +123,9 @@ export default async function BillingPage() {
       ) : lastRejected ? (
         <div className="mb-6">
           <Alert>
-            We couldn&apos;t find your GCash payment with reference {lastRejected.reference}.
-            {lastRejected.reject_reason ? ` ${lastRejected.reject_reason}` : ""} Check the number on your receipt and send it again below.
+            {say(`We couldn't find your GCash payment with reference ${lastRejected.reference}.`, `Hindi namin nahanap ang GCash payment mo na may reference ${lastRejected.reference}.`)}
+            {lastRejected.reject_reason ? ` ${lastRejected.reject_reason}` : ""}{" "}
+            {say("Check the number on your receipt and send it again below.", "I-check ang number sa resibo mo at i-send ulit sa baba.")}
           </Alert>
         </div>
       ) : null}

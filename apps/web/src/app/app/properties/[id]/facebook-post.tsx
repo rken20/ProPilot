@@ -69,7 +69,7 @@ export function FacebookPost({
         <form action={action} className="mt-5 space-y-4">
           {state.postedTo && !pending ? (
             <Alert tone="success">
-              Posted to {state.postedTo}.{" "}
+              {say(`Posted to ${state.postedTo}.`, `Na-post na sa ${state.postedTo}.`)}{" "}
               {state.link ? (
                 <a href={state.link} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">
                   View the post
@@ -128,8 +128,8 @@ export function FacebookPost({
           {photoCount ? (
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="photos" defaultChecked className="size-4 accent-brand-600" />
-              Include photos ({Math.min(photoCount, 10)}
-              {photoCount > 10 ? ` of ${photoCount}, the first 10` : ""})
+              {say("Include photos", "Isama ang photos")} ({Math.min(photoCount, 10)}
+              {photoCount > 10 ? say(` of ${photoCount}, the first 10`, ` sa ${photoCount}, ang unang 10`) : ""})
             </label>
           ) : (
             <p className="text-sm text-muted">{say("This listing has no photos yet, so the post will be text only.", "Wala pang photos ang listing na ito, kaya text lang ang post.")}</p>

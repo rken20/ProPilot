@@ -54,7 +54,8 @@ export function PricingAdvisor({
       <form action={action} className="h-fit space-y-4 rounded-[1.5rem] border border-line bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
         {property ? (
           <p className="rounded-xl bg-tile-lavender px-3 py-2 text-sm">
-            Checking the price of <span className="font-semibold">{property.name}</span>, now listed at <span className="font-semibold">{formatPeso(property.priceMinor)}</span>.
+            {say("Checking the price of", "Chine-check ang presyo ng")} <span className="font-semibold">{property.name}</span>
+            {say(", now listed at", ", na naka-list ngayon sa")} <span className="font-semibold">{formatPeso(property.priceMinor)}</span>.
           </p>
         ) : null}
         <Field label="Address or area" htmlFor="location" error={e.location} hint={say("The barangay or subdivision, the town or city, and the province.", "Barangay o subdivision, town o city, at province.")}>
@@ -161,11 +162,13 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
         </div>
         {property || onPick ? null : (
           <p className="mt-3 text-sm text-muted">
-            To set one of these on a listing, open the listing and choose <span className="font-semibold text-ink">Check this price</span>, or{" "}
+            {say("To set one of these on a listing, open the listing and choose", "Para i-set ang isa sa mga ito sa listing, buksan ang listing at piliin ang")}{" "}
+            <span className="font-semibold text-ink">Check this price</span>
+            {say(", or", ", o")}{" "}
             <Link href="/app/properties/new" className="font-bold text-grape-700 hover:underline">
-              add a property
+              {say("add a property", "mag-add ng property")}
             </Link>{" "}
-            with the price you pick.
+            {say("with the price you pick.", "gamit ang presyong napili mo.")}
           </p>
         )}
       </section>
@@ -193,7 +196,7 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
               <dt className="text-sm text-muted">{report.pricePerSqm.of === "lot" ? "Price per square meter of lot nearby" : "Price per square meter nearby"}</dt>
               <dd className="mt-1 text-xl font-extrabold tracking-tight">{formatPeso(report.pricePerSqm.median)}</dd>
               <dd className="mt-0.5 text-xs text-muted tabular-nums">
-                Mostly between {formatPeso(report.pricePerSqm.low)} and {formatPeso(report.pricePerSqm.high)}
+                {say("Mostly between", "Kadalasan nasa pagitan ng")} {formatPeso(report.pricePerSqm.low)} {say("and", "at")} {formatPeso(report.pricePerSqm.high)}
               </dd>
             </div>
           ) : null}
@@ -232,7 +235,7 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
         </h2>
         {report.comparedArea ? (
           <p className="mt-0.5 text-sm">
-            Compared with listings in <span className="font-semibold">{report.comparedArea}</span>.
+            {say("Compared with listings in", "Ikinumpara sa listings sa")} <span className="font-semibold">{report.comparedArea}</span>.
           </p>
         ) : null}
         <p className="mt-0.5 text-sm text-muted">

@@ -46,8 +46,10 @@ export default async function AlertPage({ params, searchParams }: PageProps<"/al
                 ))}
               </ul>
               <p className="mt-4 text-sm text-muted">
-                When a listing on MyHomeSeller fits, we email it to you, at most once every {EMAIL_EVERY_DAYS} days. Sellers don&apos;t get your details unless you
-                send them an inquiry. We keep these preferences for 12 months, or until you stop.{" "}
+                {say(
+                  `When a listing on MyHomeSeller fits, we email it to you, at most once every ${EMAIL_EVERY_DAYS} days. Sellers don't get your details unless you send them an inquiry. We keep these preferences for 12 months, or until you stop.`,
+                  `Kapag may listing sa MyHomeSeller na bagay sa hanap mo, ie-email namin ito sa'yo, hindi hihigit sa isang beses kada ${EMAIL_EVERY_DAYS} araw. Hindi makukuha ng sellers ang details mo maliban kung mag-send ka sa kanila ng inquiry. Itatago namin ang preferences na ito nang 12 months, o hanggang ihinto mo.`,
+                )}{" "}
                 <Link href="/privacy" className="font-semibold text-grape-700 hover:underline">
                   Privacy policy
                 </Link>

@@ -333,7 +333,10 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
             <details className="rounded-2xl border border-line bg-white px-5 py-3 text-sm">
               <summary className="cursor-pointer text-muted">Delete this lead</summary>
               <p className="mt-2 text-muted">
-                Removes the lead and its timeline. Viewing requests and chats stay where they are. This can&apos;t be undone.
+                {say(
+                  "Removes the lead and its timeline. Viewing requests and chats stay where they are. This can't be undone.",
+                  "Mabubura ang lead at ang timeline nito. Mananatili ang viewing requests at chats. Hindi na ito maibabalik.",
+                )}
               </p>
               <form action={deleteProspect.bind(null, p.id)} className="mt-3 mb-1">
                 <SubmitButton variant="danger" pendingText="Deleting…">

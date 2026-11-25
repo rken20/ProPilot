@@ -284,7 +284,7 @@ export function VideoMaker({
         {item.photos.length === 0 ? (
           <div className="mt-3">
             <Alert tone="info">
-              This listing has no photos yet. A video ad is made from its photos.{" "}
+              {say("This listing has no photos yet. A video ad is made from its photos.", "Wala pang photos ang listing na ito. Ginagawa ang video ad mula sa photos nito.")}{" "}
               <Link href={`/app/properties/${item.id}`} className="font-bold text-grape-700 hover:underline">
                 Add photos
               </Link>
@@ -365,7 +365,7 @@ export function VideoMaker({
           ) : making.kind === "done" ? (
             <div>
               <Alert tone="success">
-                Your video is ready: {Math.round(making.file.seconds)} seconds, {(making.file.blob.size / 1_000_000).toFixed(1)} MB.
+                {say("Your video is ready:", "Ready na ang video mo:")} {Math.round(making.file.seconds)} {say("seconds", "segundo")}, {(making.file.blob.size / 1_000_000).toFixed(1)} MB.
               </Alert>
               <div className="mt-3 flex flex-wrap gap-2">
                 <a href={making.url} download={making.name} className={buttonClass("primary")}>
@@ -378,7 +378,10 @@ export function VideoMaker({
                 ) : null}
               </div>
               <p className="mt-3 text-xs text-muted">
-                The video has no sound. Add music when you post it: Facebook, TikTok and Instagram offer songs you&apos;re allowed to use.
+                {say(
+                  "The video has no sound. Add music when you post it: Facebook, TikTok and Instagram offer songs you're allowed to use.",
+                  "Walang sound ang video. Lagyan ng music kapag ipo-post mo na: may mga kantang puwedeng gamitin sa Facebook, TikTok at Instagram.",
+                )}
               </p>
             </div>
           ) : (
@@ -505,8 +508,11 @@ export function VideoMaker({
             <fieldset>
               <legend className="text-sm font-medium text-ink">Feature lines</legend>
               <p className="mt-0.5 text-xs text-muted">
-                One short feature each. They appear one at a time over the photos; press a line&apos;s photo to change which one it goes over.
-                {template === "reasons" && text.lines.length > 3 ? " Top 3 Reasons shows the first three." : ""}
+                {say(
+                  "One short feature each. They appear one at a time over the photos; press a line's photo to change which one it goes over.",
+                  "Isang maikling feature kada line. Isa-isa silang lalabas sa ibabaw ng photos; pindutin ang photo ng line para palitan kung saang photo ito lalabas.",
+                )}
+                {template === "reasons" && text.lines.length > 3 ? say(" Top 3 Reasons shows the first three.", " Ang unang tatlo lang ang ipapakita ng Top 3 Reasons.") : ""}
               </p>
               <ul className="mt-2 space-y-2">
                 {text.lines.map((line, i) => (

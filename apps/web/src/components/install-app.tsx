@@ -61,19 +61,23 @@ function useInstall() {
 }
 
 function IosSteps() {
+  const say = useSay();
   return (
     <>
-      In Safari, tap <Share className="mx-0.5 inline size-4 align-[-3px]" aria-label="Share" />, then{" "}
+      {say("In Safari, tap", "Sa Safari, i-tap ang")} <Share className="mx-0.5 inline size-4 align-[-3px]" aria-label="Share" />
+      {say(", then", ", tapos")}{" "}
       <span className="font-semibold text-ink">Add to Home Screen</span>.
     </>
   );
 }
 
 function AndroidSteps() {
+  const say = useSay();
   return (
     <>
-      In Chrome, tap <EllipsisVertical className="-mx-1 inline size-4 align-[-3px]" aria-label="the menu" />, then{" "}
-      <span className="font-semibold text-ink">Install app</span> or <span className="font-semibold text-ink">Add to Home screen</span>.
+      {say("In Chrome, tap", "Sa Chrome, i-tap ang")} <EllipsisVertical className="-mx-1 inline size-4 align-[-3px]" aria-label={say("the menu", "menu")} />
+      {say(", then", ", tapos")}{" "}
+      <span className="font-semibold text-ink">Install app</span> {say("or", "o")} <span className="font-semibold text-ink">Add to Home screen</span>.
     </>
   );
 }

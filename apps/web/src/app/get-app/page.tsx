@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { Icon3d, type Icon3dName } from "@/components/icon-3d";
 import { InstallHere } from "@/components/install-app";
 import { Logo } from "@/components/logo";
+import { SiteLangToggle } from "@/components/site-lang-toggle";
 import { buttonClass, cx } from "@/components/ui";
 import { getOrigin } from "@/lib/auth";
 import { qrPath } from "@/lib/qr";
@@ -59,28 +60,31 @@ export default async function GetAppPage() {
           <Device icon="phone" tile="bg-tile-mint" name="Android">
             <li>{say("Open this page in Chrome.", "Buksan ang page na ito sa Chrome.")}</li>
             <li>
-              Tap the menu <EllipsisVertical className={`${icon} -mx-1`} aria-hidden />, then <b>Install app</b> or <b>Add to Home screen</b>.
+              {say("Tap the menu", "I-tap ang menu")} <EllipsisVertical className={`${icon} -mx-1`} aria-hidden />
+              {say(", then", ", tapos")} <b>Install app</b> {say("or", "o")} <b>Add to Home screen</b>.
             </li>
             <li>
-              Tap <b>Install</b>. MyHomeSeller appears with your other apps.
+              {say("Tap", "I-tap ang")} <b>Install</b>. {say("MyHomeSeller appears with your other apps.", "Lalabas ang MyHomeSeller kasama ng ibang apps mo.")}
             </li>
           </Device>
           <Device icon="phone" tile="bg-tile-sky" name="iPhone and iPad">
             <li>{say("Open this page in Safari.", "Buksan ang page na ito sa Safari.")}</li>
             <li>
-              Tap Share <Share className={icon} aria-hidden />, then <b>Add to Home Screen</b>.
+              {say("Tap Share", "I-tap ang Share")} <Share className={icon} aria-hidden />
+              {say(", then", ", tapos")} <b>Add to Home Screen</b>.
             </li>
             <li>
-              Tap <b>Add</b>. MyHomeSeller appears on your home screen.
+              {say("Tap", "I-tap ang")} <b>Add</b>. {say("MyHomeSeller appears on your home screen.", "Lalabas ang MyHomeSeller sa home screen mo.")}
             </li>
           </Device>
           <Device icon="laptop" tile="bg-tile-peach" name="Computer">
             <li>{say("Open this page in Chrome or Edge.", "Buksan ang page na ito sa Chrome o Edge.")}</li>
             <li>
-              Click the install icon <MonitorDown className={icon} aria-hidden /> at the end of the address bar.
+              {say("Click the install icon", "I-click ang install icon")} <MonitorDown className={icon} aria-hidden />{" "}
+              {say("at the end of the address bar.", "sa dulo ng address bar.")}
             </li>
             <li>
-              Click <b>Install</b>. MyHomeSeller opens in its own window.
+              {say("Click", "I-click ang")} <b>Install</b>. {say("MyHomeSeller opens in its own window.", "Magbubukas ang MyHomeSeller sa sarili nitong window.")}
             </li>
           </Device>
         </div>
@@ -96,6 +100,10 @@ export default async function GetAppPage() {
             <p className="mt-3 truncate font-mono text-sm text-ink">{url}</p>
           </div>
         </section>
+
+        <div className="mt-8 flex justify-center">
+          <SiteLangToggle lang={lang} />
+        </div>
       </main>
       </LangProvider>
     </div>

@@ -85,8 +85,8 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
         >
           {metaMissing.length ? (
             <p>
-              Connect Facebook isn&apos;t switched on yet.{" "}
-              {manageFacebook ? <span className="text-muted">Missing server settings: {metaMissing.join(", ")}.</span> : null}
+              {say("Connect Facebook isn't switched on yet.", "Hindi pa naka-on ang Connect Facebook.")}{" "}
+              {manageFacebook ? <span className="text-muted">{say("Missing server settings:", "Kulang na server settings:")} {metaMissing.join(", ")}.</span> : null}
             </p>
           ) : (
             <div className="space-y-4">
@@ -155,14 +155,14 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
         >
           {!googleReady ? (
             <p>
-              Connect Google isn&apos;t switched on yet.{" "}
-              {manage ? <span className="text-muted">Missing server settings: {missing.join(", ")}.</span> : null}
+              {say("Connect Google isn't switched on yet.", "Hindi pa naka-on ang Connect Google.")}{" "}
+              {manage ? <span className="text-muted">{say("Missing server settings:", "Kulang na server settings:")} {missing.join(", ")}.</span> : null}
             </p>
           ) : conn ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p>
-                Connected as <span className="font-medium text-ink">{conn.google_email}</span>. MyHomeSeller can only see files and
-                calendars it created.
+                {say("Connected as", "Naka-connect bilang")} <span className="font-medium text-ink">{conn.google_email}</span>.{" "}
+                {say("MyHomeSeller can only see files and calendars it created.", "Ang nakikita lang ng MyHomeSeller ay ang files at calendars na ginawa nito.")}
               </p>
               <form action={disconnectGoogle}>
                 <SubmitButton variant="secondary" pendingText="Disconnecting…">
