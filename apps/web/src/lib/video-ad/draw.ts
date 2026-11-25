@@ -2,10 +2,16 @@
  * Draws one frame of a video ad on a canvas. The preview and the exported video
  * both call drawFrame, so what the owner sees is what the file contains.
  *
- * Photos are drawn as they are: cropped to fill the frame and moved slowly
- * (zoom and pan), never altered. Everything else is text and flat shapes.
+ * The ad is cut like a reel: the headline is on screen from the first frame,
+ * each photo is a short clip with a camera move that starts fast and settles,
+ * captions are large and come in word by word, and scenes change with a hard
+ * move on the beat, not a slow dissolve.
+ *
+ * Photos are drawn as they are: cropped to fill the frame and moved (zoom and
+ * pan), never altered. Everything else is text and flat shapes. Text stays out
+ * of the top and bottom of a vertical video, where apps put their own buttons.
  */
-import { SHAPES, buildTimeline, scenesAt, shortPlace, type AdListing, type AdText, type PhotoPlan, type Scene, type ShapeId, type TemplateId, type Timeline } from "./spec";
+import { CAPTION_AT, PRICE_AT, SHAPES, amountsIn, buildTimeline, sceneAt, shortPlace, shortPrice, termsOf, type AdListing, type AdText, type PhotoPlan, type Scene, type ShapeId, type TemplateId, type Timeline } from "./spec";
 
 export type Photo = CanvasImageSource & { width: number; height: number };
 export type RenderAd = { template: TemplateId; shape: ShapeId; listing: AdListing; text: AdText; photos: Photo[]; picks?: PhotoPlan };
@@ -34,13 +40,19 @@ const DEEP = "#081a47";
 const BLUE = "#1565e6";
 const SUN = "#f8c423";
 const GOLD = "#d8b46a";
+const INK = "rgba(6,14,40,0.92)";
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const easeOut = (x: number) => 1 - Math.pow(1 - clamp01(x), 3);
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+/** Overshoots a little and settles: the "pop" of a caption or a sticker. */
+const backOut = (x: number) => {
+  const a = clamp01(x) - 1;
+  return 1 + 2.70158 * a * a * a + 1.70158 * a * a;
+};
 
 /** How far an element has come in: `a` for opacity, `rise` for how much it still has to move (1 → 0). */
-function enter(local: number, delay = 0.2, length = 0.5) {
+function enter(local: number, delay = 0.2, length = 0.35) {
   const a = clamp01((local - delay) / length);
   return { a, rise: 1 - easeOut(a) };
 }
@@ -94,8 +106,17 @@ function rounded(ctx: Ctx, r: Rect, radius: number) {
   ctx.closePath();
 }
 
-/** Fill the rectangle with the photo (cropping the overflow), zoomed and panned for the slow camera move. */
-function photo(env: Env, index: number, r: Rect, zoom: number, panX: number, panY: number) {
+const full = (env: Env): Rect => ({ x: 0, y: 0, w: env.W, h: env.H });
+/** The width text may take: the frame less its margins, and not the whole of a wide frame. */
+const textWidth = (env: Env) => (env.ad.shape === "wide" ? env.W * 0.72 : env.W - env.pad.x * 2);
+const lengthOf = (scene: Scene) => scene.end - scene.start;
+
+// ---------------------------------------------------------------- photos and the camera
+
+type Camera = { zoom: number; panX: number; panY: number };
+
+/** Fill the rectangle with the photo (cropping the overflow), zoomed and panned for the camera move. */
+function photo(env: Env, index: number, r: Rect, cam: Camera) {
   const { ctx, ad } = env;
   const img = ad.photos[index % Math.max(1, ad.photos.length)];
   ctx.save();
@@ -106,27 +127,60 @@ function photo(env: Env, index: number, r: Rect, zoom: number, panX: number, pan
     ctx.fillStyle = NAVY;
     ctx.fillRect(r.x, r.y, r.w, r.h);
   } else {
-    const s = Math.max(r.w / img.width, r.h / img.height) * zoom;
+    const s = Math.max(r.w / img.width, r.h / img.height) * Math.max(1, cam.zoom);
     const dw = img.width * s;
     const dh = img.height * s;
     const ox = (dw - r.w) / 2;
     const oy = (dh - r.h) / 2;
-    ctx.drawImage(img, r.x - ox + panX * ox, r.y - oy + panY * oy, dw, dh);
+    const px = Math.max(-1, Math.min(1, cam.panX));
+    const py = Math.max(-1, Math.min(1, cam.panY));
+    ctx.drawImage(img, r.x - ox - px * ox, r.y - oy - py * oy, dw, dh);
   }
   ctx.restore();
 }
 
-/** The slow zoom and drift for a scene. Neighbouring scenes move in opposite directions. */
-function camera(scene: Scene, progress: number, strength: number) {
-  const n = scene.kind === "intro" ? 0 : scene.kind === "outro" ? 5 : scene.index + 1;
-  const dir = n % 2 === 0 ? 1 : -1;
-  const p = easeInOut(clamp01(progress));
-  return {
-    zoom: 1.04 + 0.11 * strength * (dir > 0 ? p : 1 - p),
-    panX: dir * (p - 0.5) * 0.9 * strength,
-    panY: ((n % 3) - 1) * (p - 0.5) * 0.6 * strength,
-  };
+/**
+ * The camera for a scene. Every move starts fast and settles into a glide, so a
+ * cut lands with energy and the photo is never still. The moves take turns:
+ * push in, travel across the photo, pull back, rise. A photo wider than the
+ * frame is travelled across, which shows far more of it than a centre crop.
+ */
+function camera(scene: Scene, local: number, energy: number): Camera {
+  const x = local / Math.max(0.1, lengthOf(scene));
+  const p = 0.42 * easeOut(local / 0.55) + 0.58 * x;
+  if (scene.kind === "intro") return { zoom: 1.3 - 0.2 * easeOut(local / 0.6) + 0.07 * x * energy, panX: 0, panY: 0 };
+  if (scene.kind === "outro") return { zoom: 1.08 + 0.08 * x, panX: 0, panY: 0 };
+  const e = energy;
+  switch (scene.index % 4) {
+    case 0:
+      return { zoom: 1.03 + 0.17 * e * p, panX: 0, panY: 0 };
+    case 1:
+      return { zoom: 1.08, panX: (-0.55 + 1.05 * p) * Math.min(1, e), panY: 0 };
+    case 2:
+      return { zoom: 1.03 + 0.19 * e * (1 - Math.min(1, p)), panX: 0.1, panY: 0 };
+    default:
+      return { zoom: 1.1, panX: (-0.4 + 0.75 * p) * Math.min(1, e), panY: 0.5 - 0.9 * Math.min(1, p) };
+  }
 }
+
+/** A dark wash over part of the frame so text reads on any photo. `from` and `to` are fractions of the height; the wash is strongest at `to`. */
+function wash(env: Env, from: number, to: number, color: string, strength: number) {
+  const { ctx, W, H } = env;
+  const y0 = H * Math.min(from, to);
+  const y1 = H * Math.max(from, to);
+  const g = ctx.createLinearGradient(0, H * from, 0, H * to);
+  const hex = (a: number) =>
+    Math.round(clamp01(a) * 255)
+      .toString(16)
+      .padStart(2, "0");
+  g.addColorStop(0, `${color}00`);
+  g.addColorStop(0.6, `${color}${hex(strength * 0.7)}`);
+  g.addColorStop(1, `${color}${hex(strength)}`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, y0, W, y1 - y0);
+}
+
+// ---------------------------------------------------------------- small parts
 
 function pin(ctx: Ctx, x: number, y: number, size: number, color: string) {
   ctx.save();
@@ -135,10 +189,6 @@ function pin(ctx: Ctx, x: number, y: number, size: number, color: string) {
   ctx.arc(x + size / 2, y + size * 0.4, size * 0.4, Math.PI, 0);
   ctx.quadraticCurveTo(x + size * 0.9, y + size * 0.72, x + size / 2, y + size * 1.05);
   ctx.quadraticCurveTo(x + size * 0.1, y + size * 0.72, x + size * 0.1, y + size * 0.4);
-  ctx.fill();
-  ctx.globalCompositeOperation = "destination-out";
-  ctx.beginPath();
-  ctx.arc(x + size / 2, y + size * 0.4, size * 0.15, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
@@ -161,11 +211,11 @@ function check(ctx: Ctx, cx: number, cy: number, r: number, fill: string) {
   ctx.restore();
 }
 
-/** A pill with text in it. Returns its size so the caller can stack things under it. */
+/** A pill with text in it, with its left (or right) edge at x. Returns its size so the caller can stack things beside it. */
 function pill(ctx: Ctx, text: string, x: number, y: number, size: number, bg: string, fg: string, weight = 800, alignRight = false) {
   font(ctx, weight, size);
-  const padX = size * 0.75;
-  const h = size * 1.9;
+  const padX = size * 0.8;
+  const h = size * 1.95;
   const w = ctx.measureText(text).width + padX * 2;
   const left = alignRight ? x - w : x;
   ctx.fillStyle = bg;
@@ -178,45 +228,156 @@ function pill(ctx: Ctx, text: string, x: number, y: number, size: number, bg: st
   return { w, h };
 }
 
-function scrim(env: Env, from: number, color: string) {
-  const { ctx, W, H } = env;
-  const g = ctx.createLinearGradient(0, H * from, 0, H);
-  g.addColorStop(0, `${color}00`);
-  g.addColorStop(0.6, `${color}99`);
-  g.addColorStop(1, `${color}e0`);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, H * from, W, H * (1 - from));
-}
-
-const full = (env: Env): Rect => ({ x: 0, y: 0, w: env.W, h: env.H });
-const textWidth = (env: Env) => (env.ad.shape === "wide" ? env.W * 0.6 : env.W - env.pad.x * 2);
-
-/** Lines of text stacked upward from a bottom edge. Returns the y of the top line. */
-function stackUp(ctx: Ctx, lines: string[], x: number, bottom: number, size: number, leading = 1.12) {
-  ctx.textBaseline = "alphabetic";
+/** The place with a pin, on one line starting at x (or centred on it). */
+function placeLine(env: Env, x: number, y: number, size: number, centred: boolean, color = "rgba(255,255,255,0.95)") {
+  const { ctx, ad } = env;
+  const text = fit(ctx, shortPlace(ad.listing.location), textWidth(env) - size * 2, 1, size, size * 0.72, 700);
+  font(ctx, 700, text.size);
+  const line = text.lines[0] ?? "";
+  const w = ctx.measureText(line).width + text.size * 1.3;
+  const left = centred ? x - w / 2 : x;
+  pin(ctx, left, y + text.size * 0.05, text.size, SUN);
+  ctx.fillStyle = color;
   ctx.textAlign = "left";
-  lines.forEach((l, i) => ctx.fillText(l, x, bottom - (lines.length - 1 - i) * size * leading));
-  return bottom - lines.length * size * leading;
-}
-
-/** Lines of text stacked downward from a top edge. Returns the y under the last line. */
-function stackDown(ctx: Ctx, lines: string[], x: number, top: number, size: number, leading = 1.12) {
   ctx.textBaseline = "alphabetic";
-  ctx.textAlign = "left";
-  lines.forEach((l, i) => ctx.fillText(l, x, top + size * 0.82 + i * size * leading));
-  return top + lines.length * size * leading;
+  ctx.fillText(line, left + text.size * 1.3, y + text.size * 0.95);
+  return text.size * 1.3;
 }
 
-/** A dark wash down from the top edge, so a headline at the top reads over any photo. */
-function scrimTop(env: Env, to: number, color: string) {
-  const { ctx, W, H } = env;
-  const g = ctx.createLinearGradient(0, 0, 0, H * to);
-  g.addColorStop(0, `${color}e6`);
-  g.addColorStop(0.55, `${color}a6`);
-  g.addColorStop(1, `${color}00`);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H * to);
+/** One segment per clip across the top, filling as the ad plays: it tells the viewer how much is left, which keeps them watching. */
+function progress(env: Env, scene: Scene, local: number) {
+  const { ctx, W, u, pad, tl } = env;
+  const clips = tl.scenes.filter((s) => s.kind === "photo");
+  const gap = u * 1.1;
+  const segW = (W - pad.x * 2 - gap * (clips.length - 1)) / clips.length;
+  const y = pad.top - u * 3.4;
+  clips.forEach((clip, i) => {
+    const done = scene.kind === "intro" ? 0 : scene.kind === "outro" || i < scene.index ? 1 : i === scene.index ? clamp01(local / lengthOf(clip)) : 0;
+    const x = pad.x + i * (segW + gap);
+    ctx.fillStyle = "rgba(255,255,255,0.42)";
+    rounded(ctx, { x, y, w: segW, h: u * 0.9 }, u * 0.45);
+    ctx.fill();
+    if (done > 0) {
+      ctx.fillStyle = SUN;
+      rounded(ctx, { x, y, w: Math.max(u * 0.9, segW * done), h: u * 0.9 }, u * 0.45);
+      ctx.fill();
+    }
+  });
 }
+
+// ---------------------------------------------------------------- big words
+
+/** The words of a caption worth a second look: a number or an amount (with the word it counts), otherwise the longest word. */
+function keyWords(words: string[]): Set<number> {
+  const keys = new Set<number>();
+  words.forEach((w, i) => {
+    if (!/\d/.test(w)) return;
+    keys.add(i);
+    // A bare count takes the word it counts with it: "2 cars", "15 min".
+    if (/^\d{1,3}$/.test(w) && i + 1 < words.length) keys.add(i + 1);
+  });
+  if (keys.size === 0 && words.length > 1) {
+    let best = -1;
+    words.forEach((w, i) => {
+      if (w.replace(/[^\p{L}]/gu, "").length >= 4 && (best < 0 || w.length > words[best]!.length)) best = i;
+    });
+    if (best >= 0) keys.add(best);
+  }
+  return keys;
+}
+
+type Words = {
+  /** Centre of the text block, and the edge it is placed from. */
+  cx: number;
+  y: number;
+  anchor: "top" | "bottom" | "middle";
+  maxW: number;
+  maxLines: number;
+  size: number;
+  min: number;
+  weight?: number;
+  family?: string;
+  fill?: string;
+  /** The colour of the key words. */
+  key?: string;
+  /** Put the key words on a block of the key colour instead of colouring the letters. */
+  keyBlock?: boolean;
+  outline?: boolean;
+  align?: "center" | "left";
+  leading?: number;
+  /** When the first word comes in, and how long after it each next word follows. A negative start shows every word from the first frame. */
+  start?: number;
+  stagger?: number;
+};
+
+/**
+ * Large text, word by word. Each word pops in, and the key words take the
+ * accent colour, so the caption reads at a glance with the sound off. Returns
+ * the block's top and bottom.
+ */
+function words(env: Env, text: string, local: number, o: Words) {
+  const { ctx, u } = env;
+  const weight = o.weight ?? 800;
+  const family = o.family ?? SANS;
+  const fitted = fit(ctx, text, o.maxW, o.maxLines, o.size, o.min, weight, family);
+  const size = fitted.size;
+  const leading = size * (o.leading ?? 1.16);
+  const blockH = fitted.lines.length * leading;
+  const top = o.anchor === "top" ? o.y : o.anchor === "bottom" ? o.y - blockH : o.y - blockH / 2;
+  const all = fitted.lines.flatMap((l) => l.split(" "));
+  const keys = o.key ? keyWords(all) : new Set<number>();
+  const start = o.start ?? 0.12;
+  const stagger = o.stagger ?? 0.07;
+  font(ctx, weight, size, family);
+  const space = ctx.measureText(" ").width;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.lineJoin = "round";
+  let n = 0;
+  fitted.lines.forEach((line, row) => {
+    const parts = line.split(" ");
+    const widths = parts.map((w) => ctx.measureText(w).width);
+    const lineW = widths.reduce((a, b) => a + b, 0) + space * (parts.length - 1);
+    let x = o.align === "left" ? o.cx : o.cx - lineW / 2;
+    const base = top + row * leading + size * 0.86;
+    parts.forEach((word, k) => {
+      const i = n++;
+      const a = start < 0 ? 1 : clamp01((local - start - i * stagger) / 0.16);
+      const w = widths[k]!;
+      if (a > 0) {
+        const s = start < 0 ? 1 : 0.6 + 0.4 * backOut(a);
+        ctx.save();
+        ctx.globalAlpha *= Math.min(1, a * 1.8);
+        ctx.translate(x + w / 2, base - size * 0.32);
+        ctx.scale(s, s);
+        const isKey = keys.has(i);
+        if (isKey && o.keyBlock) {
+          ctx.fillStyle = o.key!;
+          rounded(ctx, { x: -w / 2 - size * 0.16, y: -size * 0.62, w: w + size * 0.32, h: size * 1.2 }, size * 0.2);
+          ctx.fill();
+          ctx.fillStyle = NAVY;
+        } else {
+          if (o.outline !== false) {
+            ctx.strokeStyle = INK;
+            ctx.lineWidth = size * 0.17;
+            ctx.strokeText(word, -w / 2, size * 0.32);
+          }
+          ctx.fillStyle = isKey ? o.key! : (o.fill ?? "#ffffff");
+        }
+        ctx.shadowColor = "rgba(4,10,30,0.45)";
+        ctx.shadowBlur = isKey && o.keyBlock ? 0 : u * 1.4;
+        ctx.shadowOffsetY = isKey && o.keyBlock ? 0 : u * 0.3;
+        ctx.fillText(word, -w / 2, size * 0.32);
+        ctx.restore();
+      }
+      x += w + space;
+    });
+  });
+  return { top, bottom: top + blockH, size, lines: fitted.lines.length };
+}
+
+/** Where a caption's bottom edge sits: above the buttons apps draw over a vertical video. */
+const captionBottom = (env: Env) => env.H - env.pad.bottom;
 
 // ---------------------------------------------------------------- the closing card (shared)
 
@@ -229,83 +390,151 @@ type Closing = {
   ctaBg: string;
   ctaFg: string;
   ctaOutline?: boolean;
-  /** Price Reveal: the price is wiped in after a beat, and everything under it waits for it. */
+  /** Price Reveal: the price is held back for a beat, and everything under it waits for it. */
   reveal?: boolean;
 };
 
-function closing(env: Env, scene: Scene, local: number, progress: number, style: Closing) {
+/**
+ * The handoff: the price, the place, what it takes to get in, and one thing to
+ * do next. Everything is in within about a second and then holds, so there is
+ * time to read it.
+ */
+function closing(env: Env, scene: Scene, local: number, style: Closing) {
   const { ctx, W, H, u, tu, pad, ad } = env;
-  const cam = camera(scene, progress, 0.6);
-  photo(env, scene.photo, full(env), cam.zoom, cam.panX, cam.panY);
-  ctx.globalAlpha *= 1;
+  photo(env, scene.photo, full(env), camera(scene, local, 1));
   ctx.save();
   ctx.fillStyle = style.bg;
   ctx.globalAlpha *= style.overlay;
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
+  // A band of the accent colour wipes across the top as the card lands.
+  ctx.fillStyle = style.accent;
+  ctx.fillRect(0, 0, W * easeOut(local / 0.45), u * 1.4);
 
   const centered = style.align === "center";
   const maxW = centered ? W - pad.x * 2 : textWidth(env);
   const x = centered ? W / 2 : pad.x;
   const l = ad.listing;
-  const rows: Array<{ h: number; draw: (y: number, a: number) => void }> = [];
-  const add = (h: number, draw: (y: number, a: number) => void) => rows.push({ h, draw });
+  const priceAt = style.reveal ? PRICE_AT.reveal : PRICE_AT.normal;
+  const rows: Array<{ h: number; at: number; draw: (y: number, a: number) => void }> = [];
+  const add = (h: number, at: number, draw: (y: number, a: number) => void) => rows.push({ h, at, draw });
   ctx.textAlign = centered ? "center" : "left";
 
-  const name = fit(ctx, l.name, maxW, 3, tu * 5.2, tu * 3.6, 700, style.family);
-  add(name.lines.length * name.size * 1.18 + tu * 1.8, (y) => {
+  const name = fit(ctx, l.name, maxW, 2, tu * 4.8, tu * 3.2, 700, style.family);
+  add(name.lines.length * name.size * 1.2 + tu * 1.4, 0.08, (y) => {
     font(ctx, 700, name.size, style.family);
-    ctx.fillStyle = "#ffffff";
-    name.lines.forEach((t, i) => ctx.fillText(t, x, y + (i + 0.85) * name.size * 1.18));
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    name.lines.forEach((t, i) => ctx.fillText(t, x, y + (i + 0.85) * name.size * 1.2));
   });
+
+  // The price is the biggest thing on the card and lands with a pop.
   const priceText = l.status === "reserved" ? `${l.price} · Reserved` : l.price;
-  const price = fit(ctx, priceText, maxW, 1, u * 12.5, u * 6, 800, style.family);
-  add(price.size * 1.2 + u * 1.2, (y) => {
+  const price = fit(ctx, priceText, maxW, 1, u * 17, u * 6.5, 800, style.family);
+  add(price.size * 1.2 + u * 1.4, -1, (y) => {
     font(ctx, 800, price.size, style.family);
-    const shownText = price.lines[0] ?? priceText;
-    const w = ctx.measureText(shownText).width;
+    const shown = price.lines[0] ?? priceText;
+    const w = ctx.measureText(shown).width;
     const left = centered ? x - w / 2 : x;
-    ctx.save();
-    if (style.reveal) {
-      // The price is uncovered from left to right. It is the listing's real price the whole time, never a count-up through other numbers.
-      const open = easeOut((local - 0.9) / 0.7);
-      ctx.fillStyle = "rgba(255,255,255,0.22)";
-      rounded(ctx, { x: left, y: y + price.size * 0.2, w, h: price.size * 0.9 }, price.size * 0.2);
-      if (open < 1) ctx.fill();
-      ctx.beginPath();
-      ctx.rect(left - 2, y - price.size * 0.2, (w + 4) * open, price.size * 1.6);
-      ctx.clip();
+    const a = clamp01((local - priceAt) / 0.22);
+    if (style.reveal && a < 1) {
+      // Until the price lands its place is held, so the viewer knows it is coming. It is the listing's real price, never a count-up through other numbers.
+      ctx.save();
+      ctx.globalAlpha *= 1 - a;
+      ctx.fillStyle = "rgba(255,255,255,0.2)";
+      rounded(ctx, { x: left, y: y + price.size * 0.12, w, h: price.size * 1.0 }, price.size * 0.2);
+      ctx.fill();
+      font(ctx, 800, price.size * 0.5, style.family);
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.textAlign = "center";
+      ctx.fillText("₱ ?", left + w / 2, y + price.size * 0.8);
+      ctx.restore();
     }
+    if (a <= 0) return;
+    const s = 0.7 + 0.3 * backOut(a);
+    ctx.save();
+    ctx.globalAlpha *= Math.min(1, a * 2);
+    ctx.translate(left + w / 2, y + price.size * 0.62);
+    ctx.scale(s, s);
+    font(ctx, 800, price.size, style.family);
+    ctx.textAlign = "center";
     ctx.fillStyle = style.accent;
-    ctx.fillText(shownText, x, y + price.size * 0.95);
+    ctx.fillText(shown, 0, price.size * 0.33);
     ctx.restore();
   });
-  const place = fit(ctx, l.location, maxW - tu * 5, 2, tu * 3.7, tu * 2.8, 500);
-  add(place.lines.length * place.size * 1.3 + tu * 2.6, (y) => {
+
+  const after = priceAt + 0.18;
+  const place = fit(ctx, l.location, maxW - tu * 5, 2, tu * 4, tu * 3, 500);
+  add(place.lines.length * place.size * 1.3 + tu * 2.2, after, (y) => {
     font(ctx, 500, place.size);
-    ctx.fillStyle = "rgba(255,255,255,0.88)";
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
     const first = place.lines[0] ?? "";
     const w = ctx.measureText(first).width;
     const px = centered ? x - w / 2 - place.size * 1.25 : x;
     pin(ctx, px, y + place.size * 0.12, place.size * 0.95, style.accent);
     place.lines.forEach((t, i) => ctx.fillText(t, centered ? x + place.size * 0.5 : x + place.size * 1.3, y + (i + 0.9) * place.size * 1.3));
   });
-  if (l.financing.length) {
-    const fin = fit(ctx, l.financing.join("  ·  "), maxW, 1, tu * 3.1, tu * 2.3, 600);
-    add(fin.size * 1.5 + tu * 3, (y) => {
-      font(ctx, 600, fin.size);
-      ctx.fillStyle = "rgba(255,255,255,0.72)";
-      ctx.fillText(fin.lines[0] ?? "", x, y + fin.size);
+
+  // What it takes to get in, as tags: the owner's own financing and fees.
+  const tags = termsOf(l);
+  if (tags.length) {
+    const size = tu * 3.4;
+    font(ctx, 700, size);
+    const padX = size * 0.85;
+    const tagH = size * 2;
+    const gap = size * 0.55;
+    const widths = tags.map((t) => ctx.measureText(t).width + padX * 2);
+    const lines: number[][] = [[]];
+    let used = 0;
+    widths.forEach((w, i) => {
+      if (used > 0 && used + gap + w > maxW) {
+        lines.push([]);
+        used = 0;
+      }
+      lines[lines.length - 1]!.push(i);
+      used += (used > 0 ? gap : 0) + w;
+    });
+    add(lines.length * (tagH + gap) + tu * 2.2, after + 0.12, (y) => {
+      lines.forEach((line, r) => {
+        const lineW = line.reduce((n, i) => n + widths[i]!, 0) + gap * (line.length - 1);
+        let tx = centered ? x - lineW / 2 : x;
+        line.forEach((i, k) => {
+          const a = clamp01((local - after - 0.12 - (r * 2 + k) * 0.06) / 0.2);
+          ctx.save();
+          ctx.globalAlpha *= a;
+          ctx.fillStyle = "rgba(255,255,255,0.14)";
+          rounded(ctx, { x: tx, y: y + r * (tagH + gap), w: widths[i]!, h: tagH }, tagH / 2);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.45)";
+          ctx.lineWidth = Math.max(1.5, u * 0.16);
+          ctx.stroke();
+          font(ctx, 700, size);
+          ctx.fillStyle = "#ffffff";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(tags[i]!, tx + padX, y + r * (tagH + gap) + tagH / 2 + size * 0.04);
+          ctx.restore();
+          tx += widths[i]! + gap;
+        });
+      });
+      ctx.textBaseline = "alphabetic";
     });
   }
+
   if (ad.text.cta) {
-    const cta = fitShort(ctx, ad.text.cta, maxW - tu * 8, tu * 4.2, tu * 3, 800, tu * 3.8);
-    const boxH = cta.lines.length * cta.size * 1.25 + cta.size * 1.3;
-    add(boxH + tu * 3.4, (y) => {
+    const cta = fitShort(ctx, ad.text.cta, maxW - tu * 7, tu * 5.2, tu * 3.4, 800, tu * 4.4);
+    const boxH = cta.lines.length * cta.size * 1.25 + cta.size * 1.4;
+    const at = after + 0.32;
+    add(boxH + tu * 3.2, at, (y) => {
       font(ctx, 800, cta.size);
-      const w = Math.max(...cta.lines.map((t) => ctx.measureText(t).width)) + cta.size * 2.4;
+      const w = Math.max(...cta.lines.map((t) => ctx.measureText(t).width)) + cta.size * 2.6;
       const bx = centered ? x - w / 2 : x;
-      rounded(ctx, { x: bx, y, w, h: boxH }, Math.min(boxH / 2, cta.size * 1.6));
+      // Once it's in, the button breathes: the one thing on the card that keeps moving is the thing to press.
+      const beat = Math.max(0, local - at - 0.5);
+      const pulse = 1 + 0.035 * Math.sin((beat / (env.tl.beat * 2)) * Math.PI * 2);
+      ctx.save();
+      ctx.translate(bx + w / 2, y + boxH / 2);
+      ctx.scale(pulse, pulse);
+      rounded(ctx, { x: -w / 2, y: -boxH / 2, w, h: boxH }, Math.min(boxH / 2, cta.size * 1.7));
       if (style.ctaOutline) {
         ctx.strokeStyle = style.ctaBg;
         ctx.lineWidth = Math.max(2, u * 0.3);
@@ -315,13 +544,15 @@ function closing(env: Env, scene: Scene, local: number, progress: number, style:
         ctx.fill();
       }
       ctx.fillStyle = style.ctaFg;
-      cta.lines.forEach((t, i) => ctx.fillText(t, centered ? x : bx + cta.size * 1.2, y + cta.size * 0.65 + (i + 0.82) * cta.size * 1.25));
+      ctx.textAlign = "center";
+      cta.lines.forEach((t, i) => ctx.fillText(t, 0, -boxH / 2 + cta.size * 0.7 + (i + 0.82) * cta.size * 1.25));
+      ctx.restore();
     });
   }
-  const biz = fit(ctx, l.business, maxW, 1, tu * 3.3, tu * 2.4, 600);
-  add(biz.size * 1.4, (y) => {
+  const biz = fit(ctx, l.business, maxW, 1, tu * 3.6, tu * 2.6, 600);
+  add(biz.size * 1.4, after + 0.42, (y) => {
     font(ctx, 600, biz.size);
-    ctx.fillStyle = "rgba(255,255,255,0.82)";
+    ctx.fillStyle = "rgba(255,255,255,0.84)";
     ctx.fillText(biz.lines[0] ?? "", x, y + biz.size);
   });
 
@@ -329,9 +560,9 @@ function closing(env: Env, scene: Scene, local: number, progress: number, style:
   const room = H - pad.top - pad.bottom;
   let y = pad.top + Math.max(0, (room - total) / 2);
   ctx.textBaseline = "alphabetic";
-  rows.forEach((row, i) => {
-    // Price Reveal: the name comes first, the price row draws its own reveal, and the rest follow it.
-    const e = style.reveal && i === 1 ? { a: 1, rise: 0 } : enter(local, 0.25 + i * 0.12 + (style.reveal && i > 1 ? 1.3 : 0), 0.5);
+  rows.forEach((row) => {
+    // The price row draws its own entrance.
+    const e = row.at < 0 ? { a: 1, rise: 0 } : enter(local, row.at, 0.3);
     ctx.save();
     ctx.globalAlpha *= e.a;
     ctx.textAlign = centered ? "center" : "left";
@@ -343,135 +574,122 @@ function closing(env: Env, scene: Scene, local: number, progress: number, style:
 
 // ---------------------------------------------------------------- Showcase
 
-function showcase(env: Env, scene: Scene, local: number, progress: number) {
-  const { ctx, H, u, tu, pad, ad } = env;
-  if (scene.kind === "outro") return closing(env, scene, local, progress, { bg: DEEP, overlay: 0.84, accent: SUN, family: SANS, align: "left", ctaBg: SUN, ctaFg: NAVY });
-  const cam = camera(scene, progress, 1);
-  photo(env, scene.photo, full(env), cam.zoom, cam.panX, cam.panY);
-  if (scene.kind !== "intro") scrim(env, 0.5, DEEP);
+function showcase(env: Env, scene: Scene, local: number) {
+  const { ctx, W, H, u, tu, pad, ad } = env;
+  if (scene.kind === "outro") return closing(env, scene, local, { bg: DEEP, overlay: 0.86, accent: SUN, family: SANS, align: "center", ctaBg: SUN, ctaFg: NAVY });
+  photo(env, scene.photo, full(env), camera(scene, local, 1));
   const maxW = textWidth(env);
-  const bottom = H - pad.bottom;
-  ctx.shadowColor = "rgba(4,12,36,0.45)";
-  ctx.shadowBlur = u * 1.2;
 
   if (scene.kind === "intro") {
-    // The headline is at the top, large, from the very first frame: that frame is what stops a scroll.
-    ctx.shadowColor = "transparent";
-    scrimTop(env, 0.6, DEEP);
-    ctx.shadowColor = "rgba(4,12,36,0.45)";
-    const hook = fit(ctx, ad.text.hook, maxW, 4, u * 9.6, u * 5.2, 800);
-    font(ctx, 800, hook.size);
-    ctx.fillStyle = "#ffffff";
-    const under = stackDown(ctx, hook.lines, pad.x, pad.top, hook.size);
-    const e = enter(local, 0.35);
-    const place = fit(ctx, shortPlace(ad.listing.location), maxW - tu * 5, 1, tu * 3.9, tu * 2.8, 600);
+    // The headline is on screen, large, from the very first frame: that frame is what stops a scroll.
+    ctx.fillStyle = "rgba(6,14,40,0.34)";
+    ctx.fillRect(0, 0, W, H);
+    wash(env, 0.75, 0, DEEP, 0.55);
+    const settle = 1 + 0.06 * (1 - easeOut(local / 0.45));
+    ctx.save();
+    ctx.translate(W / 2, H * 0.36);
+    ctx.scale(settle, settle);
+    ctx.translate(-W / 2, -H * 0.36);
+    const block = words(env, ad.text.hook, local, { cx: W / 2, y: H * (ad.shape === "vertical" ? 0.36 : 0.4), anchor: "middle", maxW, maxLines: 4, size: u * 11.5, min: u * 6, key: SUN, start: -1 });
+    ctx.restore();
+    const e = enter(local, 0.3);
     ctx.save();
     ctx.globalAlpha *= e.a;
-    font(ctx, 600, place.size);
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.textBaseline = "alphabetic";
-    ctx.textAlign = "left";
-    const py = under + tu * 1.2 + e.rise * u * 2;
-    pin(ctx, pad.x, py + place.size * 0.05, place.size, SUN);
-    ctx.fillText(place.lines[0] ?? "", pad.x + place.size * 1.35, py + place.size * 0.95);
-    ctx.shadowColor = "transparent";
-    pill(ctx, ad.listing.status === "reserved" ? "Reserved" : "For Sale", pad.x, py + place.size * 1.9, tu * 3.1, SUN, NAVY);
+    const y = block.bottom + tu * 2.4 + e.rise * u * 2.5;
+    const row = placeLine(env, W / 2, y, tu * 3.8, true);
+    font(ctx, 800, tu * 3.1);
+    const tag = ad.listing.status === "reserved" ? "Reserved" : "For Sale";
+    const tw = ctx.measureText(tag).width + tu * 3.1 * 1.6;
+    pill(ctx, tag, W / 2 - tw / 2, y + row + tu * 1.4, tu * 3.1, SUN, NAVY);
     ctx.restore();
     return;
   }
-  // A photo scene: the price stays in the corner, the feature line sits at the bottom.
-  ctx.save();
-  ctx.shadowColor = "transparent";
-  pill(ctx, ad.listing.price, pad.x, pad.top, tu * 3.6, "#ffffff", NAVY);
-  ctx.restore();
-  const text = scene.line ?? ad.listing.name;
-  const e = enter(local, 0.3);
-  const cap = fit(ctx, text, maxW - u * 3, 2, scene.line ? tu * 6.2 : tu * 4.4, tu * 3.6, scene.line ? 800 : 600);
-  ctx.save();
-  ctx.globalAlpha *= e.a;
-  const shift = e.rise * u * 3;
-  font(ctx, scene.line ? 800 : 600, cap.size);
-  ctx.fillStyle = "#ffffff";
-  const top = stackUp(ctx, cap.lines, pad.x + u * 2.4, bottom + shift, cap.size);
-  ctx.shadowColor = "transparent";
-  ctx.fillStyle = SUN;
-  rounded(ctx, { x: pad.x, y: top + cap.size * 0.28, w: u * 0.9, h: bottom + shift - top - cap.size * 0.1 }, u * 0.45);
-  ctx.fill();
-  ctx.restore();
+  // A clip: the price stays in the corner for anyone who joins late, the caption comes in word by word.
+  wash(env, 0.42, 1, DEEP, 0.72);
+  wash(env, 0.24, 0, DEEP, 0.4);
+  pill(ctx, shortPrice(ad.listing), pad.x, pad.top, tu * 3.7, "#ffffff", NAVY);
+  if (scene.line) words(env, scene.line, local, { cx: W / 2, y: captionBottom(env), anchor: "bottom", maxW, maxLines: 3, size: u * 9.4, min: u * 5.4, key: SUN, start: CAPTION_AT });
 }
 
 // ---------------------------------------------------------------- Bold Deal
 
-/** Text on tight blocks of colour, tilted a little: the look of a hand-made social caption. */
-function blocks(env: Env, lines: string[], size: number, x: number, edge: number, bg: string, fg: string, tilt: number, fromTop = false) {
+/** Text on tight blocks of colour, tilted a little, each line slamming in after the one above: the look of a hand-made social caption. */
+function blocks(env: Env, lines: string[], size: number, x: number, edge: number, bg: string, fg: string, tilt: number, local: number, start: number, fromTop = false) {
   const { ctx } = env;
   font(ctx, 800, size);
   const h = size * 1.42;
+  const step = h + size * 0.08;
   ctx.save();
   ctx.translate(x, edge);
   ctx.rotate(tilt);
   lines.forEach((t, i) => {
-    const y = fromTop ? i * (h + size * 0.08) : -(lines.length - i) * (h + size * 0.08);
+    const a = start < 0 ? 1 : clamp01((local - start - i * 0.09) / 0.16);
+    if (a <= 0) return;
+    const y = fromTop ? i * step : -(lines.length - i) * step;
     const w = ctx.measureText(t).width + size * 0.9;
+    const s = start < 0 ? 1 : 1.5 - 0.5 * easeOut(a);
+    ctx.save();
+    ctx.globalAlpha *= Math.min(1, a * 2);
+    ctx.translate(w / 2, y + h / 2);
+    ctx.scale(s, s);
     ctx.fillStyle = bg;
-    ctx.fillRect(0, y, w, h);
+    ctx.fillRect(-w / 2, -h / 2, w, h);
     ctx.fillStyle = fg;
     ctx.textBaseline = "middle";
     ctx.textAlign = "left";
-    ctx.fillText(t, size * 0.45, y + h / 2 + size * 0.05);
+    ctx.fillText(t, -w / 2 + size * 0.45, size * 0.05);
+    ctx.restore();
   });
   ctx.restore();
-  return lines.length * (h + size * 0.08);
+  return lines.length * step;
 }
 
-function bold(env: Env, scene: Scene, local: number, progress: number) {
-  const { ctx, W, H, u, tu, pad, ad, tl, t } = env;
-  if (scene.kind === "outro") closing(env, scene, local, progress, { bg: BLUE, overlay: 0.9, accent: SUN, family: SANS, align: "left", ctaBg: "#ffffff", ctaFg: NAVY });
+function bold(env: Env, scene: Scene, local: number) {
+  const { ctx, W, u, tu, pad, ad, tl, t } = env;
+  if (scene.kind === "outro") closing(env, scene, local, { bg: BLUE, overlay: 0.9, accent: SUN, family: SANS, align: "left", ctaBg: "#ffffff", ctaFg: NAVY });
   else {
-    const cam = camera(scene, progress, 1.5);
-    photo(env, scene.photo, full(env), cam.zoom, cam.panX, cam.panY);
-    ctx.fillStyle = "rgba(6,16,46,0.22)";
-    ctx.fillRect(0, 0, W, H);
+    photo(env, scene.photo, full(env), camera(scene, local, 1.35));
+    ctx.fillStyle = "rgba(6,16,46,0.2)";
+    ctx.fillRect(0, 0, W, env.H);
     const maxW = textWidth(env) - u * 4;
-    const bottom = H - pad.bottom;
     if (scene.kind === "intro") {
-      // Headline at the top from the first frame; the price lands under it a beat later.
-      const hook = fit(ctx, ad.text.hook, maxW, 4, u * 9.5, u * 5.2, 800);
-      const used = blocks(env, hook.lines, hook.size, pad.x, pad.top + u * 2, NAVY, "#ffffff", -0.03, true);
-      const e = enter(local, 0.3, 0.3);
-      const price = fit(ctx, ad.listing.price, maxW, 1, u * 8.5, u * 5, 800);
-      ctx.save();
-      ctx.globalAlpha *= e.a;
-      blocks(env, [price.lines[0] ?? ad.listing.price], price.size, pad.x + u * 1.5 + e.rise * -u * 5, pad.top + u * 2 + used + u * 3, SUN, NAVY, 0.03, true);
-      ctx.restore();
+      // Headline from the first frame.
+      wash(env, 0.7, 0, DEEP, 0.45);
+      const hook = fit(ctx, ad.text.hook.toUpperCase(), maxW, 4, u * 10.5, u * 5.4, 800);
+      const top = pad.top + u * 3;
+      const used = blocks(env, hook.lines, hook.size, pad.x, top, NAVY, "#ffffff", -0.035, local, -1, true);
+      // The price slams in under it, unless the headline already says it: then the place does.
+      const second = amountsIn(ad.text.hook).length ? shortPlace(ad.listing.location).toUpperCase() : shortPrice(ad.listing);
+      const price = fit(ctx, second, maxW, 1, u * 13, u * 5, 800);
+      blocks(env, [price.lines[0] ?? second], price.size, pad.x + u * 1.5, top + used + u * 3, SUN, NAVY, 0.03, local, 0.32, true);
     } else {
-      const e = enter(local, 0.12, 0.3);
+      wash(env, 0.5, 1, DEEP, 0.5);
+      // The price rides along on a tilted sticker.
       ctx.save();
       ctx.translate(pad.x, pad.top);
-      ctx.rotate(-0.03);
-      font(ctx, 800, tu * 4.4);
-      const pw = ctx.measureText(ad.listing.price).width + tu * 4;
+      ctx.rotate(-0.035);
+      font(ctx, 800, tu * 4.6);
+      const label = shortPrice(ad.listing);
+      const pw = ctx.measureText(label).width + tu * 4;
       ctx.fillStyle = SUN;
-      ctx.fillRect(0, 0, pw, tu * 7);
+      ctx.fillRect(0, 0, pw, tu * 7.2);
       ctx.fillStyle = NAVY;
       ctx.textBaseline = "middle";
       ctx.textAlign = "left";
-      ctx.fillText(ad.listing.price, tu * 2, tu * 3.7);
+      ctx.fillText(label, tu * 2, tu * 3.8);
       ctx.restore();
-      const text = scene.line ?? ad.listing.name;
-      const cap = fit(ctx, text, maxW, 3, tu * 7.4, tu * 4.2, 800);
-      ctx.save();
-      ctx.globalAlpha *= e.a;
-      blocks(env, cap.lines, cap.size, pad.x + e.rise * -u * 5, bottom, "#ffffff", NAVY, -0.03);
-      ctx.restore();
+      if (scene.line) {
+        const cap = fit(ctx, scene.line.toUpperCase(), maxW, 3, u * 9.6, u * 5, 800);
+        blocks(env, cap.lines, cap.size, pad.x, captionBottom(env), "#ffffff", NAVY, -0.035, local, 0.1);
+      }
     }
   }
   // A bar across the top fills as the video plays.
   ctx.save();
   ctx.fillStyle = "rgba(255,255,255,0.28)";
-  ctx.fillRect(0, 0, W, u * 1.1);
+  ctx.fillRect(0, 0, W, u * 1.2);
   ctx.fillStyle = SUN;
-  ctx.fillRect(0, 0, W * clamp01(t / tl.duration), u * 1.1);
+  ctx.fillRect(0, 0, W * clamp01(t / tl.duration), u * 1.2);
   ctx.restore();
 }
 
@@ -482,10 +700,10 @@ function spaced(ctx: Ctx, em: number) {
   if ("letterSpacing" in ctx) (ctx as unknown as { letterSpacing: string }).letterSpacing = `${em}px`;
 }
 
-function elegant(env: Env, scene: Scene, local: number, progress: number) {
+function elegant(env: Env, scene: Scene, local: number) {
   const { ctx, W, H, u, tu, pad, ad } = env;
   if (scene.kind === "outro") {
-    closing(env, scene, local, progress, { bg: "#0b0b0d", overlay: 0.9, accent: GOLD, family: SERIF, align: "center", ctaBg: GOLD, ctaFg: "#ffffff", ctaOutline: true });
+    closing(env, scene, local, { bg: "#0b0b0d", overlay: 0.9, accent: GOLD, family: SERIF, align: "center", ctaBg: GOLD, ctaFg: "#ffffff", ctaOutline: true });
     ctx.save();
     ctx.strokeStyle = "rgba(216,180,106,0.55)";
     ctx.lineWidth = Math.max(1.5, u * 0.18);
@@ -493,68 +711,65 @@ function elegant(env: Env, scene: Scene, local: number, progress: number) {
     ctx.restore();
     return;
   }
-  const bar = ad.shape === "vertical" ? H * 0.12 : H * 0.11;
-  const frame: Rect = { x: 0, y: bar, w: W, h: H - bar * 2 };
-  ctx.fillStyle = "#0b0b0d";
-  ctx.fillRect(0, 0, W, H);
-  const cam = camera(scene, progress, 0.65);
-  photo(env, scene.photo, frame, cam.zoom, cam.panX, cam.panY);
+  // The photograph fills the frame and moves slowly; the words are few and quiet.
+  photo(env, scene.photo, full(env), camera(scene, local, 0.6));
   ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
   if (scene.kind === "intro") {
-    ctx.fillStyle = "rgba(8,8,10,0.42)";
-    ctx.fillRect(frame.x, frame.y, frame.w, frame.h);
-    // The headline is there from the first frame; it only settles into place.
-    const e = { a: 1, rise: 1 - easeOut(local / 1.2) };
-    const hook = fit(ctx, ad.text.hook, W - pad.x * 2.6, 3, u * 8.2, u * 4.6, 500, SERIF);
-    const blockH = hook.lines.length * hook.size * 1.16;
+    ctx.fillStyle = "rgba(8,8,10,0.46)";
+    ctx.fillRect(0, 0, W, H);
+    const rise = (1 - easeOut(local / 1.1)) * u * 2;
+    const cy = H * (ad.shape === "vertical" ? 0.4 : 0.46) + rise;
+    const block = words(env, ad.text.hook, local, { cx: W / 2, y: cy, anchor: "middle", maxW: W - pad.x * 2.4, maxLines: 4, size: u * 10, min: u * 5.2, weight: 500, family: SERIF, key: GOLD, outline: false, start: -1, leading: 1.14 });
+    ctx.fillStyle = GOLD;
+    ctx.fillRect(W / 2 - u * 6, block.top - u * 4.4, u * 12 * easeOut(local / 0.7), Math.max(1.5, u * 0.24));
+    const e = enter(local, 0.4, 0.6);
     ctx.save();
     ctx.globalAlpha *= e.a;
-    const cy = H / 2 + e.rise * u * 2;
-    ctx.fillStyle = GOLD;
-    ctx.fillRect(W / 2 - u * 5, cy - blockH / 2 - u * 4, u * 10, Math.max(1.5, u * 0.22));
-    font(ctx, 500, hook.size, SERIF);
-    ctx.fillStyle = "#ffffff";
-    hook.lines.forEach((t, i) => ctx.fillText(t, W / 2, cy - blockH / 2 + (i + 0.5) * hook.size * 1.16));
-    font(ctx, 600, tu * 2.7);
-    spaced(ctx, tu * 0.35);
-    ctx.fillStyle = "rgba(255,255,255,0.82)";
-    ctx.fillText(shortPlace(ad.listing.location), W / 2, cy + blockH / 2 + u * 4.2);
+    font(ctx, 600, tu * 2.9);
+    spaced(ctx, tu * 0.4);
+    ctx.fillStyle = "rgba(255,255,255,0.88)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(shortPlace(ad.listing.location).toUpperCase(), W / 2, block.bottom + u * 5);
     spaced(ctx, 0);
     ctx.restore();
     return;
   }
-  // The bars carry the words, so the photograph stays clear.
-  const top = fit(ctx, ad.listing.price, W - pad.x * 2, 1, tu * 4.2, tu * 3, 500, SERIF);
-  font(ctx, 500, top.size, SERIF);
+  wash(env, 0.5, 1, "#0b0b0d", 0.82);
+  wash(env, 0.22, 0, "#0b0b0d", 0.55);
+  // The price sits small at the top; the caption fades up under the photograph's subject.
+  font(ctx, 500, tu * 4, SERIF);
   ctx.fillStyle = GOLD;
-  ctx.fillText(top.lines[0] ?? "", W / 2, bar / 2 + (ad.shape === "vertical" ? bar * 0.18 : 0));
-  const text = scene.line ?? ad.listing.name;
-  const e = enter(local, 0.5, 0.9);
-  const cap = fit(ctx, text, W - pad.x * 2, 2, tu * 3.6, tu * 2.6, 500);
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "center";
+  ctx.fillText(shortPrice(ad.listing), W / 2, pad.top + tu * 3.4);
+  if (!scene.line) return;
+  const e = enter(local, 0.3, 0.7);
   ctx.save();
   ctx.globalAlpha *= e.a;
-  font(ctx, 500, cap.size);
-  spaced(ctx, u * 0.12);
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
-  const cy = H - bar / 2 - (ad.shape === "vertical" ? bar * 0.18 : 0);
-  cap.lines.forEach((t, i) => ctx.fillText(t, W / 2, cy + (i - (cap.lines.length - 1) / 2) * cap.size * 1.3));
-  spaced(ctx, 0);
+  const block = words(env, scene.line, local, { cx: W / 2, y: captionBottom(env) + e.rise * u * 2, anchor: "bottom", maxW: W - pad.x * 2.4, maxLines: 3, size: u * 8, min: u * 4.6, weight: 500, family: SERIF, outline: false, start: -1, leading: 1.18 });
+  ctx.fillStyle = GOLD;
+  ctx.fillRect(W / 2 - u * 4, block.top - u * 2.6, u * 8, Math.max(1.5, u * 0.22));
   ctx.restore();
 }
 
 // ---------------------------------------------------------------- Fact Sheet
 
-function facts(env: Env, scene: Scene, local: number, progress: number) {
+function facts(env: Env, scene: Scene, local: number) {
   const { ctx, W, H, u, tu, pad, ad } = env;
-  if (scene.kind === "outro") return closing(env, scene, local, progress, { bg: NAVY, overlay: 0.93, accent: SUN, family: SANS, align: "left", ctaBg: SUN, ctaFg: NAVY });
+  if (scene.kind === "outro") return closing(env, scene, local, { bg: NAVY, overlay: 0.93, accent: SUN, family: SANS, align: "left", ctaBg: SUN, ctaFg: NAVY });
   // Vertical: the photo above the facts. Square and wide: side by side.
   const stacked = ad.shape === "vertical";
-  const pic: Rect = stacked ? { x: 0, y: 0, w: W, h: H * 0.4 } : { x: 0, y: 0, w: W * (ad.shape === "wide" ? 0.52 : 0.44), h: H };
+  const pic: Rect = stacked ? { x: 0, y: 0, w: W, h: H * 0.34 } : { x: 0, y: 0, w: W * (ad.shape === "wide" ? 0.52 : 0.44), h: H };
   const panel: Rect = stacked ? { x: 0, y: pic.h, w: W, h: H - pic.h } : { x: pic.w, y: 0, w: W - pic.w, h: H };
-  const cam = camera(scene, progress, 0.9);
-  photo(env, scene.photo, { ...pic, h: pic.h + (stacked ? u * 4 : 0) }, cam.zoom, cam.panX, cam.panY);
+  // The panel stays put from scene to scene; only the photo changes, with a quick punch on the cut.
+  const cam = camera(scene, local, 0.9);
+  const punch = scene.kind === "photo" ? 0.14 * (1 - easeOut(local / 0.3)) : 0;
+  photo(env, scene.photo, { ...pic, h: pic.h + (stacked ? u * 4 : 0) }, { ...cam, zoom: cam.zoom + punch });
+  if (scene.kind === "photo" && local < 0.12) {
+    ctx.fillStyle = `rgba(255,255,255,${0.35 * (1 - local / 0.12)})`;
+    ctx.fillRect(pic.x, pic.y, pic.w, pic.h);
+  }
   ctx.fillStyle = NAVY;
   if (stacked) {
     rounded(ctx, { x: panel.x, y: panel.y, w: panel.w, h: panel.h + u * 6 }, u * 4);
@@ -563,44 +778,52 @@ function facts(env: Env, scene: Scene, local: number, progress: number) {
   const x = panel.x + (stacked ? pad.x : u * 5);
   const maxW = panel.w - (stacked ? pad.x * 2 : u * 10);
   const top = panel.y + (stacked ? u * 5 : pad.top);
-  const bottom = H - (stacked ? pad.bottom * 0.75 : pad.bottom);
+  const bottom = H - (stacked ? pad.bottom * 0.72 : pad.bottom);
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
 
-  const price = fit(ctx, ad.listing.price, maxW, 1, tu * 7.6, tu * 4.4, 800);
+  const price = fit(ctx, ad.listing.price, maxW, 1, tu * 7.6, tu * 4.6, 800);
   font(ctx, 800, price.size);
   ctx.fillStyle = SUN;
   ctx.fillText(price.lines[0] ?? "", x, top + price.size * 0.9);
-  const title = fit(ctx, scene.kind === "intro" ? ad.text.hook : ad.listing.name, maxW, 2, tu * 3.7, tu * 2.8, 700);
-  font(ctx, 700, title.size);
-  ctx.fillStyle = "#ffffff";
   let y = top + price.size * 1.2;
-  title.lines.forEach((t, i) => ctx.fillText(t, x, y + (i + 0.9) * title.size * 1.2));
-  y += title.lines.length * title.size * 1.2 + tu * 1;
-  const place = fit(ctx, shortPlace(ad.listing.location), maxW - tu * 4, 1, tu * 2.9, tu * 2.3, 500);
-  font(ctx, 500, place.size);
-  ctx.fillStyle = "rgba(255,255,255,0.8)";
-  pin(ctx, x, y + place.size * 0.1, place.size * 0.95, SUN);
-  ctx.fillText(place.lines[0] ?? "", x + place.size * 1.3, y + place.size * 0.95);
-  y += place.size * 1.5 + tu * 1.8;
+  // The headline while the ad opens (and beside the photo, where there is room); after that the space goes to the facts.
+  if (scene.kind === "intro" || !stacked) {
+    const title = fit(ctx, scene.kind === "intro" ? ad.text.hook : ad.listing.name, maxW, 2, tu * 4, tu * 2.9, 700);
+    font(ctx, 700, title.size);
+    ctx.fillStyle = "#ffffff";
+    title.lines.forEach((t, i) => ctx.fillText(t, x, y + (i + 0.9) * title.size * 1.2));
+    y += title.lines.length * title.size * 1.2 + tu * 1;
+  } else y += tu * 0.6;
+  y += placeLine(env, x, y, tu * 3, false, "rgba(255,255,255,0.82)") + tu * 1.6;
   ctx.fillStyle = "rgba(255,255,255,0.16)";
   ctx.fillRect(x, y, maxW, Math.max(1.5, u * 0.18));
   y += tu * 1.6;
 
-  // Every fact has its place from the start, faint, and lights up in its own scene.
+  // Every fact has its place from the start, faint, and ticks on in its own scene.
   const lines = env.tl.scenes.filter((s) => s.kind === "photo" && s.line).map((s) => s.line!);
   if (!lines.length) return;
-  const row = Math.min(tu * 8, (bottom - y) / lines.length);
-  const size = Math.min(tu * 3.9, row * 0.44);
+  const row = Math.min(tu * 9.5, (bottom - y) / lines.length);
+  const size = Math.min(tu * 4.6, row * 0.5);
   lines.forEach((text, i) => {
-    const lit = scene.kind === "intro" ? 0 : i < scene.index ? 1 : i === scene.index ? enter(local, 0.15, 0.4).a : 0;
+    const now = scene.kind === "photo" && i === scene.index;
+    const lit = scene.kind === "intro" ? 0 : i < scene.index ? 1 : now ? clamp01((local - 0.1) / 0.2) : 0;
     const cy = y + row * (i + 0.5);
     // One line where it fits; two smaller lines only if the row is tall enough for them.
-    const fitted = fitShort(ctx, text, maxW - size * 2.3, size, size * 0.72, 600, Math.min(size * 0.8, row / 2.6));
+    const fitted = fitShort(ctx, text, maxW - size * 2.3, size, size * 0.72, 700, Math.min(size * 0.8, row / 2.6));
+    if (now && lit > 0) {
+      // The fact being shown now sits on a lighter band.
+      ctx.save();
+      ctx.globalAlpha *= 0.14 * lit;
+      ctx.fillStyle = "#ffffff";
+      rounded(ctx, { x: x - size * 0.5, y: cy - row * 0.44, w: maxW + size, h: row * 0.88 }, size * 0.7);
+      ctx.fill();
+      ctx.restore();
+    }
     const drawRow = (alpha: number, filled: boolean) => {
       ctx.save();
       ctx.globalAlpha *= alpha;
-      if (filled) check(ctx, x + size * 0.7, cy, size * 0.7, "#2f7af5");
+      if (filled) check(ctx, x + size * 0.7, cy, size * 0.7 * (now ? 0.6 + 0.4 * backOut(lit) : 1), "#2f7af5");
       else {
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = Math.max(1.5, size * 0.09);
@@ -608,9 +831,10 @@ function facts(env: Env, scene: Scene, local: number, progress: number) {
         ctx.arc(x + size * 0.7, cy, size * 0.62, 0, Math.PI * 2);
         ctx.stroke();
       }
-      font(ctx, 600, fitted.size);
+      font(ctx, 700, fitted.size);
       ctx.fillStyle = "#ffffff";
       ctx.textBaseline = "middle";
+      ctx.textAlign = "left";
       fitted.lines.forEach((t, k) => ctx.fillText(t, x + size * 2.1, cy + (k - (fitted.lines.length - 1) / 2) * fitted.size * 1.15 + fitted.size * 0.05));
       ctx.restore();
     };
@@ -621,172 +845,173 @@ function facts(env: Env, scene: Scene, local: number, progress: number) {
 
 // ---------------------------------------------------------------- Price Reveal
 
-function reveal(env: Env, scene: Scene, local: number, progress: number) {
-  const { ctx, W, H, u, tu, pad, ad, tl } = env;
-  if (scene.kind === "outro") return closing(env, scene, local, progress, { bg: DEEP, overlay: 0.88, accent: SUN, family: SANS, align: "center", ctaBg: SUN, ctaFg: NAVY, reveal: true });
-  const cam = camera(scene, progress, 1);
-  photo(env, scene.photo, full(env), cam.zoom, cam.panX, cam.panY);
+function reveal(env: Env, scene: Scene, local: number) {
+  const { ctx, W, H, u, tu, pad, ad } = env;
+  if (scene.kind === "outro") return closing(env, scene, local, { bg: DEEP, overlay: 0.9, accent: SUN, family: SANS, align: "center", ctaBg: SUN, ctaFg: NAVY, reveal: true });
+  photo(env, scene.photo, full(env), camera(scene, local, 1.1));
   const maxW = textWidth(env);
+  // The tag that promises the price stays on screen the whole way: it is the reason to keep watching.
+  const tag = (y: number, centred: boolean) => {
+    font(ctx, 800, tu * 3.4);
+    const label = "Guess the price";
+    const w = ctx.measureText(label).width + tu * 3.4 * 1.6;
+    pill(ctx, label, centred ? W / 2 - w / 2 : pad.x, y, tu * 3.4, SUN, NAVY);
+  };
   if (scene.kind === "intro") {
-    scrimTop(env, 0.62, DEEP);
-    const hook = fit(ctx, ad.text.hook, maxW, 4, u * 9.4, u * 5.2, 800);
-    font(ctx, 800, hook.size);
-    ctx.fillStyle = "#ffffff";
-    ctx.shadowColor = "rgba(4,12,36,0.45)";
-    ctx.shadowBlur = u * 1.2;
-    const under = stackDown(ctx, hook.lines, pad.x, pad.top, hook.size);
-    ctx.shadowColor = "transparent";
-    const e = enter(local, 0.4);
+    ctx.fillStyle = "rgba(6,14,40,0.36)";
+    ctx.fillRect(0, 0, W, H);
+    wash(env, 0.75, 0, DEEP, 0.55);
+    const block = words(env, ad.text.hook, local, { cx: W / 2, y: H * (ad.shape === "vertical" ? 0.36 : 0.4), anchor: "middle", maxW, maxLines: 4, size: u * 11, min: u * 6, key: SUN, start: -1 });
+    const e = enter(local, 0.3);
     ctx.save();
     ctx.globalAlpha *= e.a;
-    pill(ctx, "Price at the end", pad.x, under + tu * 1.6 + e.rise * u * 2, tu * 3.3, SUN, NAVY);
+    tag(block.bottom + tu * 2.6 + e.rise * u * 2.5, true);
     ctx.restore();
     return;
   }
-  // The price's place is held by a tag; the features sit on a card at the bottom.
-  pill(ctx, "Price at the end", pad.x, pad.top, tu * 3.2, "#ffffff", NAVY);
-  const scenes = tl.scenes.filter((s) => s.kind === "photo").length;
-  const text = scene.line ?? ad.listing.name;
-  const cardW = Math.min(W - pad.x * 2, ad.shape === "wide" ? W * 0.62 : W);
-  const cap = fit(ctx, text, cardW - tu * 8, 2, tu * 5.2, tu * 3.4, 800);
-  const cardH = cap.lines.length * cap.size * 1.2 + tu * 8.5;
-  const e = enter(local, 0.2, 0.45);
-  const x = (W - cardW) / 2;
-  const y = H - pad.bottom - cardH + e.rise * u * 4;
-  ctx.save();
-  ctx.globalAlpha *= e.a;
-  ctx.shadowColor = "rgba(4,12,36,0.35)";
-  ctx.shadowBlur = u * 3;
-  ctx.shadowOffsetY = u;
-  ctx.fillStyle = "#ffffff";
-  rounded(ctx, { x, y, w: cardW, h: cardH }, tu * 3.2);
-  ctx.fill();
-  ctx.shadowColor = "transparent";
-  font(ctx, 800, cap.size);
-  ctx.fillStyle = NAVY;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const mid = y + tu * 3.2 + (cap.lines.length * cap.size * 1.2) / 2;
-  cap.lines.forEach((t, i) => ctx.fillText(t, W / 2, mid + (i - (cap.lines.length - 1) / 2) * cap.size * 1.2));
-  // One dot per photo scene, the current one wider.
-  const dot = tu * 1.1;
-  const widths = Array.from({ length: scenes }, (_, i) => (i === scene.index ? dot * 3 : dot));
-  let dx = W / 2 - (widths.reduce((n, w) => n + w, 0) + (scenes - 1) * dot * 0.8) / 2;
-  widths.forEach((w, i) => {
-    ctx.fillStyle = i === scene.index ? BLUE : "#c9d6ee";
-    rounded(ctx, { x: dx, y: y + cardH - tu * 3.4, w, h: dot }, dot / 2);
-    ctx.fill();
-    dx += w + dot * 0.8;
-  });
-  ctx.restore();
+  wash(env, 0.42, 1, DEEP, 0.72);
+  wash(env, 0.24, 0, DEEP, 0.4);
+  tag(pad.top, false);
+  if (scene.line) words(env, scene.line, local, { cx: W / 2, y: captionBottom(env), anchor: "bottom", maxW, maxLines: 3, size: u * 9.4, min: u * 5.4, key: SUN, keyBlock: true, start: CAPTION_AT });
 }
 
 // ---------------------------------------------------------------- Top 3 Reasons
 
-function reasons(env: Env, scene: Scene, local: number, progress: number) {
+function reasons(env: Env, scene: Scene, local: number) {
   const { ctx, W, H, u, tu, pad, ad, tl } = env;
-  if (scene.kind === "outro") return closing(env, scene, local, progress, { bg: NAVY, overlay: 0.9, accent: SUN, family: SANS, align: "left", ctaBg: SUN, ctaFg: NAVY });
-  const cam = camera(scene, progress, 0.9);
-  photo(env, scene.photo, full(env), cam.zoom, cam.panX, cam.panY);
+  if (scene.kind === "outro") return closing(env, scene, local, { bg: NAVY, overlay: 0.9, accent: SUN, family: SANS, align: "center", ctaBg: SUN, ctaFg: NAVY });
+  photo(env, scene.photo, full(env), camera(scene, local, 0.9));
   const maxW = textWidth(env);
   const count = tl.scenes.filter((s) => s.kind === "photo").length;
 
-  // A bar per reason across the top, filling as each one plays.
-  const gap = u * 1.2;
-  const segW = (W - pad.x * 2 - gap * (count - 1)) / count;
-  const segY = pad.top - u * 3.2;
-  for (let i = 0; i < count; i++) {
-    const done = scene.kind === "intro" ? 0 : i < scene.index ? 1 : i === scene.index ? clamp01(progress) : 0;
-    const sx = pad.x + i * (segW + gap);
-    ctx.fillStyle = "rgba(255,255,255,0.4)";
-    rounded(ctx, { x: sx, y: segY, w: segW, h: u * 0.9 }, u * 0.45);
-    ctx.fill();
-    if (done > 0) {
-      ctx.fillStyle = SUN;
-      rounded(ctx, { x: sx, y: segY, w: Math.max(u * 0.9, segW * done), h: u * 0.9 }, u * 0.45);
-      ctx.fill();
-    }
-  }
-
-  ctx.shadowColor = "rgba(4,12,36,0.5)";
-  ctx.shadowBlur = u * 1.4;
   if (scene.kind === "intro") {
-    scrimTop(env, 0.62, NAVY);
-    const hook = fit(ctx, ad.text.hook, maxW, 4, u * 9.4, u * 5.2, 800);
-    font(ctx, 800, hook.size);
-    ctx.fillStyle = "#ffffff";
-    const under = stackDown(ctx, hook.lines, pad.x, pad.top, hook.size);
-    const e = enter(local, 0.35);
-    const place = fit(ctx, shortPlace(ad.listing.location), maxW - tu * 5, 1, tu * 3.9, tu * 2.8, 600);
+    ctx.fillStyle = "rgba(6,14,40,0.36)";
+    ctx.fillRect(0, 0, W, H);
+    wash(env, 0.75, 0, NAVY, 0.55);
+    progress(env, scene, local);
+    const block = words(env, ad.text.hook, local, { cx: W / 2, y: H * (ad.shape === "vertical" ? 0.36 : 0.42), anchor: "middle", maxW, maxLines: 4, size: u * 11, min: u * 6, key: SUN, start: -1 });
+    const e = enter(local, 0.3);
     ctx.save();
     ctx.globalAlpha *= e.a;
-    font(ctx, 600, place.size);
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    const py = under + tu * 1.2 + e.rise * u * 2;
-    pin(ctx, pad.x, py + place.size * 0.05, place.size, SUN);
-    ctx.textBaseline = "alphabetic";
-    ctx.textAlign = "left";
-    ctx.fillText(place.lines[0] ?? "", pad.x + place.size * 1.35, py + place.size * 0.95);
+    font(ctx, 800, tu * 3.4);
+    const label = count === 1 ? "The reason to see it" : `${count} reasons to see it`;
+    const w = ctx.measureText(label).width + tu * 3.4 * 1.6;
+    pill(ctx, label, W / 2 - w / 2, block.bottom + tu * 2.6 + e.rise * u * 2.5, tu * 3.4, SUN, NAVY);
     ctx.restore();
     return;
   }
-  scrim(env, 0.38, NAVY);
-  ctx.save();
-  ctx.shadowColor = "transparent";
-  pill(ctx, ad.listing.price, pad.x, pad.top, tu * 3.6, "#ffffff", NAVY);
-  ctx.restore();
-  // The big number, then the reason beside it (wide) or under it.
-  const bottom = H - pad.bottom;
-  const numSize = u * (ad.shape === "wide" ? 24 : 26);
-  const e = enter(local, 0.15, 0.45);
+  wash(env, 0.34, 1, NAVY, 0.8);
+  wash(env, 0.24, 0, NAVY, 0.45);
+  progress(env, scene, local);
+  pill(ctx, shortPrice(ad.listing), pad.x, pad.top, tu * 3.7, "#ffffff", NAVY);
+  // The number slams in, then the reason reads out beside it (wide) or under it.
   const text = scene.line ?? ad.listing.name;
   const beside = ad.shape === "wide";
+  const numSize = u * (beside ? 26 : 30);
   font(ctx, 800, numSize);
-  const numW = ctx.measureText(String(scene.index + 1)).width;
-  const reason = fit(ctx, text, beside ? maxW - numW - u * 5 : maxW, 3, tu * 6.6, tu * 4, 800);
-  const textH = reason.lines.length * reason.size * 1.14;
+  const digit = String(scene.index + 1);
+  const numW = ctx.measureText(digit).width;
+  const bottom = captionBottom(env);
+  const reasonW = beside ? maxW - numW - u * 5 : maxW;
+  const probe = fit(ctx, text, reasonW, 3, u * 8.6, u * 5, 800);
+  const textH = probe.lines.length * probe.size * 1.16;
+  const a = clamp01((local - 0.06) / 0.2);
+  const s = 1.6 - 0.6 * easeOut(a);
+  const nx = beside ? pad.x : W / 2 - numW / 2;
+  const ny = beside ? bottom : bottom - textH - u * 2;
   ctx.save();
-  ctx.globalAlpha *= e.a;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  const shift = e.rise * u * 4;
-  const numBase = beside ? bottom + shift : bottom - textH - u * 1.5 + shift;
+  ctx.globalAlpha *= Math.min(1, a * 2);
+  ctx.translate(nx + numW / 2, ny - numSize * 0.36);
+  ctx.scale(s, s);
   font(ctx, 800, numSize);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = numSize * 0.08;
+  ctx.strokeText(digit, 0, numSize * 0.36);
   ctx.fillStyle = SUN;
-  ctx.fillText(String(scene.index + 1), pad.x - numSize * 0.04, numBase);
-  font(ctx, 800, reason.size);
-  ctx.fillStyle = "#ffffff";
-  if (beside) reason.lines.forEach((t, i) => ctx.fillText(t, pad.x + numW + u * 4, bottom + shift - (reason.lines.length - 1 - i) * reason.size * 1.14 - numSize * 0.08));
-  else reason.lines.forEach((t, i) => ctx.fillText(t, pad.x, bottom + shift - (reason.lines.length - 1 - i) * reason.size * 1.14));
+  ctx.fillText(digit, 0, numSize * 0.36);
   ctx.restore();
+  if (beside) words(env, text, local, { cx: pad.x + numW + u * 5, y: bottom, anchor: "bottom", maxW: reasonW, maxLines: 3, size: u * 8.6, min: u * 5, align: "left", start: 0.24 });
+  else words(env, text, local, { cx: W / 2, y: bottom, anchor: "bottom", maxW: reasonW, maxLines: 3, size: u * 8.6, min: u * 5, start: 0.24 });
 }
 
-const DRAW: Record<TemplateId, (env: Env, scene: Scene, local: number, progress: number) => void> = { showcase, bold, elegant, facts, reveal, reasons };
+const DRAW: Record<TemplateId, (env: Env, scene: Scene, local: number) => void> = { showcase, bold, elegant, facts, reveal, reasons };
+
+// ---------------------------------------------------------------- cuts
+
+/**
+ * How one scene gives way to the next, over the first `cut` seconds of the new
+ * one. Hard and quick, on the beat: a punch (the new scene lands slightly
+ * zoomed and snaps back, with a flash), a push sideways or upward, or, for the
+ * quiet template only, a dissolve.
+ */
+type Cut = "punch" | "left" | "up" | "fade" | "none";
+const CUTS: Record<TemplateId, Cut[]> = {
+  showcase: ["punch", "left"],
+  bold: ["left", "up"],
+  elegant: ["fade"],
+  facts: ["none"],
+  reveal: ["punch", "punch", "left"],
+  reasons: ["up"],
+};
+const cutFor = (template: TemplateId, scene: Scene, index: number): Cut => {
+  const list = CUTS[template];
+  if (scene.kind === "outro") return template === "elegant" ? "fade" : "up";
+  return list[index % list.length]!;
+};
 
 /** Draw the ad as it looks at time t (seconds). */
 export function drawFrame(ctx: Ctx, ad: RenderAd, timeline: Timeline, t: number) {
   const { width: W, height: H } = SHAPES[ad.shape];
   const u = Math.min(W, H) / 100;
   const vertical = ad.shape === "vertical";
-  const env: Env = { ctx, W, H, u, tu: u * (vertical ? 1.3 : 1), pad: { x: u * (vertical ? 7 : 6), top: vertical ? H * 0.1 : u * 7, bottom: vertical ? H * 0.17 : u * 8 }, ad, tl: timeline, t };
+  const env: Env = { ctx, W, H, u, tu: u * (vertical ? 1.3 : ad.shape === "wide" ? 1.2 : 1), pad: { x: u * (vertical ? 7 : 6), top: vertical ? H * 0.11 : u * 7, bottom: vertical ? H * 0.2 : u * 9 }, ad, tl: timeline, t };
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, W, H);
   const time = Math.max(0, Math.min(timeline.duration - 1e-4, t));
-  for (const { scene, local, progress } of scenesAt(timeline, time)) {
-    // A scene comes in over the fade: most by dissolving, Bold Deal by sliding in from the right.
-    const inn = scene.kind === "intro" ? 1 : clamp01(local / timeline.fade);
+  const { index, scene, local } = sceneAt(timeline, time);
+  const draw = (s: Scene, at: number, place?: () => void) => {
     ctx.save();
-    if (ad.template === "bold" && inn < 1) {
-      ctx.translate((1 - easeOut(inn)) * W, 0);
-      ctx.beginPath();
-      ctx.rect(0, 0, W, H);
-      ctx.clip();
-    } else ctx.globalAlpha = ad.template === "elegant" ? easeInOut(inn) : inn;
-    DRAW[ad.template](env, scene, local, progress);
+    place?.();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, H);
+    ctx.clip();
+    ctx.shadowColor = "transparent";
+    DRAW[ad.template](env, s, at);
     ctx.restore();
+  };
+  const cut = index > 0 && local < timeline.cut ? cutFor(ad.template, scene, index) : "none";
+  if (cut === "none") draw(scene, local);
+  else {
+    const prev = timeline.scenes[index - 1]!;
+    const p = clamp01(local / timeline.cut);
+    const e = easeInOut(p);
+    const before = lengthOf(prev) + local;
+    if (cut === "fade") {
+      draw(prev, before);
+      draw(scene, local, () => (ctx.globalAlpha = e));
+    } else if (cut === "left") {
+      draw(prev, before, () => ctx.translate(-e * W, 0));
+      draw(scene, local, () => ctx.translate((1 - e) * W, 0));
+    } else if (cut === "up") {
+      draw(prev, before, () => ctx.translate(0, -e * H));
+      draw(scene, local, () => ctx.translate(0, (1 - e) * H));
+    } else {
+      // A hard cut that lands zoomed in and snaps back, under a flash that is gone in a few frames.
+      const s = 1 + 0.1 * (1 - easeOut(p));
+      draw(scene, local, () => {
+        ctx.translate(W / 2, H / 2);
+        ctx.scale(s, s);
+        ctx.translate(-W / 2, -H / 2);
+      });
+      ctx.fillStyle = `rgba(255,255,255,${0.3 * (1 - p)})`;
+      ctx.fillRect(0, 0, W, H);
+    }
   }
   ctx.restore();
 }

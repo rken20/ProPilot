@@ -12,7 +12,9 @@ import {
   photoSequence,
   phrasesFrom,
   pickTemplate,
-  scenesAt,
+  sceneAt,
+  shortPrice,
+  termsOf,
   shortPlace,
   statesOtherAmount,
   type AdListing,
@@ -68,14 +70,45 @@ describe("the timeline", () => {
     expect(photoScenes([])).toHaveLength(1);
   });
 
-  it("overlaps neighbouring scenes by the fade, with no gap", () => {
+  it("runs scene after scene on the beat, with no gap and no overlap", () => {
     for (const id of TEMPLATE_IDS) {
-      const t = buildTimeline(id, 6, ["A", "B", "C"]);
-      for (let i = 1; i < t.scenes.length; i++) expect(t.scenes[i]!.start).toBeCloseTo(t.scenes[i - 1]!.end - t.fade, 6);
+      const t = buildTimeline(id, 5, ["a", "b", "c"]);
+      expect(t.beat).toBeCloseTo(60 / t.bpm, 9);
+      expect(t.scenes[0]!.start).toBe(0);
+      for (let i = 1; i < t.scenes.length; i++) expect(t.scenes[i]!.start).toBeCloseTo(t.scenes[i - 1]!.end, 9);
+      // Every cut lands on a beat of the music.
+      for (const sc of t.scenes) expect(Math.abs(sc.start / t.beat - Math.round(sc.start / t.beat))).toBeLessThan(1e-6);
+      expect(t.duration).toBeCloseTo(t.scenes[t.scenes.length - 1]!.end, 9);
       expect(t.frames).toBe(Math.round(t.duration * FPS));
-      // Every moment of the video has something on screen.
-      for (let f = 0; f < t.frames; f += 7) expect(scenesAt(t, f / FPS).length).toBeGreaterThanOrEqual(1);
+      expect(t.cut).toBeLessThan(0.5);
+      for (let f = 0; f < t.frames; f += 7) {
+        const at = sceneAt(t, f / FPS);
+        expect(at.scene).toBe(t.scenes[at.index]);
+        expect(at.local).toBeGreaterThanOrEqual(0);
+        expect(at.local).toBeLessThanOrEqual(at.scene.end - at.scene.start);
+      }
+      expect(sceneAt(t, t.duration + 5).index).toBe(t.scenes.length - 1);
     }
+  });
+
+  it("cuts like a reel: a hook of about two seconds, clips of one to three, and a closing card long enough to read", () => {
+    for (const id of TEMPLATE_IDS) {
+      const t = buildTimeline(id, 8, ["a", "b", "c"]);
+      const [hook, ...rest] = t.scenes;
+      const close = rest.pop()!;
+      expect(hook!.end - hook!.start).toBeGreaterThanOrEqual(1.8);
+      expect(hook!.end - hook!.start).toBeLessThanOrEqual(3);
+      for (const clip of rest) {
+        expect(clip.end - clip.start).toBeGreaterThanOrEqual(0.9);
+        expect(clip.end - clip.start).toBeLessThanOrEqual(3);
+      }
+      expect(close.end - close.start).toBeGreaterThanOrEqual(4);
+      expect(close.end - close.start).toBeLessThanOrEqual(5.5);
+    }
+    // A clip with a caption stays long enough to read it; one without is a quick cut.
+    const t = buildTimeline("showcase", 8, ["a"]);
+    const clips = t.scenes.filter((sc) => sc.kind === "photo");
+    expect(clips[0]!.end - clips[0]!.start).toBeGreaterThan(clips[1]!.end - clips[1]!.start);
   });
 
   it("stays a short ad however many photos and lines it's given", () => {
@@ -96,19 +129,33 @@ describe("the words, straight from the listing", () => {
     expect(phrasesFrom(house.description)).toEqual(["3 bedrooms", "2 bathrooms", "Covered garage", "fenced garden", "Ten minutes from the town plaza"]);
   });
 
-  it("builds a default ad with no AI", () => {
+  it("builds a default ad with no AI: captions from the description, the terms kept for the closing card", () => {
     const text = defaultText(house);
-    expect(text.hook).toBe("House and lot for sale in Pototan, Iloilo");
-    expect(text.lines).toEqual(["3 bedrooms", "2 bathrooms", "Covered garage", "Bank financing, Pag-IBIG accepted", "Reservation fee ₱20,000", "20% downpayment"]);
+    expect(text.hook).toBe("₱2.5M house and lot in Pototan, Iloilo");
+    expect(text.lines).toEqual(["3 bedrooms", "2 bathrooms", "Covered garage", "fenced garden", "Ten minutes from the town plaza"]);
     expect(text.lines.length).toBeLessThanOrEqual(MAX_LINES);
-    expect(defaultText(house, "taglish").cta).toContain("para mag-schedule");
-    expect(defaultText({ ...house, status: "reserved" }).hook).toBe("House and lot in Pototan, Iloilo");
+    expect(text.lines.join(" ")).not.toMatch(/financing|Reservation|downpayment/i);
+    expect(termsOf(house)).toEqual(["Bank financing", "Pag-IBIG", "Reservation ₱20,000", "20% downpayment"]);
+    expect(termsOf({ ...house, financing: [], reservationFee: null, downpaymentPercent: null })).toEqual([]);
+    expect(defaultText(house, "taglish").cta).toBe("I-message kami para mag-viewing");
+  });
+
+  it("shortens a price only when the short form is exactly the price", () => {
+    expect(shortPrice(house)).toBe("₱2.5M");
+    expect(shortPrice({ price: "₱8,000,000", priceMinor: 800_000_000 })).toBe("₱8M");
+    expect(shortPrice({ price: "₱12,450,000", priceMinor: 1_245_000_000 })).toBe("₱12.45M");
+    expect(shortPrice({ price: "₱2,499,000", priceMinor: 249_900_000 })).toBe("₱2,499,000");
+    expect(shortPrice({ price: "₱850,000", priceMinor: 85_000_000 })).toBe("₱850,000");
+    expect(shortPrice({ price: "$250,000.00", priceMinor: 25_000_000_00 })).toBe("$250,000.00");
+    // The ad's own check agrees the short form states the listing's price.
+    expect(amountsIn(shortPrice(house))).toEqual([2_500_000]);
   });
 
   it("offers openings in three shapes, each only the listing's own facts", () => {
-    expect(defaultHooks(house)).toEqual(["₱2,500,000 house and lot in Pototan, Iloilo", "Looking for a house and lot in Pototan, Iloilo?", "House and lot for sale in Pototan, Iloilo"]);
+    expect(defaultHooks(house)).toEqual(["₱2.5M house and lot in Pototan, Iloilo", "Looking for a house and lot in Pototan, Iloilo?", "Take a look inside this house and lot in Pototan, Iloilo"]);
     expect(defaultHooks({ ...house, typeLabel: "Apartment", status: "reserved" })[1]).toBe("Looking for an apartment in Pototan, Iloilo?");
-    for (const h of defaultHooks(house)) expect(statesOtherAmount(h, house)).toBe(false);
+    expect(defaultHooks(house, "taglish").slice(1)).toEqual(["Naghahanap ng house and lot sa Pototan, Iloilo?", "Silipin ang house and lot na ito sa Pototan, Iloilo"]);
+    for (const h of [...defaultHooks(house), ...defaultHooks(house, "taglish")]) expect(statesOtherAmount(h, house)).toBe(false);
   });
 
   it("picks a template by simple rules", () => {
@@ -143,7 +190,7 @@ describe("what the AI proposes", () => {
       reason: "Six bright photos.",
       text: { hook: "Your family home in Pototan", lines: ["3 bedrooms", "Covered garage"], cta: "Message us today" },
       // With one opening from the AI, the rest come from the listing's facts.
-      hooks: ["Your family home in Pototan", "₱2,500,000 house and lot in Pototan, Iloilo", "Looking for a house and lot in Pototan, Iloilo?"],
+      hooks: ["Your family home in Pototan", "₱2.5M house and lot in Pototan, Iloilo", "Looking for a house and lot in Pototan, Iloilo?"],
       photos: { opener: 0, forLines: [-1, -1] },
     });
   });
@@ -151,8 +198,11 @@ describe("what the AI proposes", () => {
   it("keeps up to three openings and drops one with an invented price", () => {
     const plan = cleanPlan({ template: "reveal", hook: "Ready for a garden of your own?", hooks: ["Now only ₱1.9M in Pototan", "Ten minutes from the plaza", "ready for a garden of your own?"], lines: ["3 bedrooms"], cta: "Message us" }, house, 6);
     expect(plan.template).toBe("reveal");
-    expect(plan.hooks).toEqual(["Ready for a garden of your own?", "Ten minutes from the plaza", "₱2,500,000 house and lot in Pototan, Iloilo"]);
+    // Price Reveal: the openings that don't state the price come first.
+    expect(plan.hooks).toEqual(["Ready for a garden of your own?", "Ten minutes from the plaza", "Looking for a house and lot in Pototan, Iloilo?"]);
     expect(plan.text.hook).toBe(plan.hooks[0]);
+    expect(cleanPlan({ template: "reveal" }, house, 6).text.hook).toBe("Looking for a house and lot in Pototan, Iloilo?");
+    expect(cleanPlan({ template: "showcase" }, house, 6).hooks[2]).toBe("Take a look inside this house and lot in Pototan, Iloilo");
   });
 
   it("reads photo picks counted from 1 and keeps each with its line", () => {
@@ -169,9 +219,9 @@ describe("what the AI proposes", () => {
   it("falls back part by part: unknown template, invented price, empty text", () => {
     const plan = cleanPlan({ template: "fireworks", hook: "Now only ₱1.9M!", lines: ["Was ₱3M", "Covered garage"], cta: "" }, house, 6);
     expect(plan.template).toBe("bold");
-    expect(plan.text.hook).toBe("House and lot for sale in Pototan, Iloilo");
+    expect(plan.text.hook).toBe("₱2.5M house and lot in Pototan, Iloilo");
     expect(plan.text.lines).toEqual(["Covered garage"]);
-    expect(plan.text.cta).toBe("Message us to schedule a viewing");
+    expect(plan.text.cta).toBe("Message us to book a viewing");
     expect(cleanPlan("nonsense", house, 1).template).toBe("facts");
     expect(cleanPlan(null, house, 6).text).toEqual(defaultText(house));
   });

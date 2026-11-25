@@ -20,45 +20,54 @@ export const SHAPES = {
 export type ShapeId = keyof typeof SHAPES;
 export const SHAPE_IDS = Object.keys(SHAPES) as ShapeId[];
 
-/** Seconds for each part of a template, and the overlap between scenes. */
-type Timing = { intro: number; photo: number; outro: number; fade: number };
+/**
+ * A template's tempo and how long its parts last, in beats, so every cut lands
+ * on the beat of the music. `hook` is the opening, `clip` a photo with a
+ * caption, `quick` a photo without one, `close` the closing card. `cut` is the
+ * length of the move between two scenes, in seconds.
+ *
+ * The shape follows what works for listing reels: a hook in the first two or
+ * three seconds, clips of one to three seconds, and the price and call to
+ * action held long enough to read.
+ */
+type Timing = { bpm: number; hook: number; clip: number; quick: number; close: number; cut: number };
 
 export const TEMPLATES = {
   showcase: {
     label: "Showcase",
-    about: "A calm photo tour with one feature per photo, then the price and how to reach you.",
+    about: "A quick tour: one room and one bold caption per cut, then the price and how to reach you.",
     bestFor: "Most houses and condos with several photos",
-    timing: { intro: 2.6, photo: 2.6, outro: 3.6, fade: 0.5 } satisfies Timing,
+    timing: { bpm: 112, hook: 4, clip: 4, quick: 2, close: 8, cut: 0.22 } satisfies Timing,
   },
   bold: {
     label: "Bold Deal",
-    about: "Fast cuts, big type and the price up front. Made to stop the scroll.",
+    about: "Fast cuts, big block type and the price on screen the whole time. Made to stop the scroll.",
     bestFor: "Affordable listings, lots, and anything priced to sell",
-    timing: { intro: 2.0, photo: 1.7, outro: 3.2, fade: 0.3 } satisfies Timing,
+    timing: { bpm: 128, hook: 4, clip: 4, quick: 2, close: 10, cut: 0.18 } satisfies Timing,
   },
   elegant: {
     label: "Elegant",
-    about: "Slow moves, wide margins and quiet serif type.",
+    about: "Slower moves, soft cuts and quiet serif captions.",
     bestFor: "Premium homes",
-    timing: { intro: 3.0, photo: 3.2, outro: 4.0, fade: 0.8 } satisfies Timing,
+    timing: { bpm: 84, hook: 4, clip: 3, quick: 2, close: 6, cut: 0.45 } satisfies Timing,
   },
   facts: {
     label: "Fact Sheet",
     about: "The photo on one side and the key facts ticking in one by one.",
     bestFor: "Listings with few photos, or buyers who compare details",
-    timing: { intro: 2.2, photo: 1.9, outro: 3.4, fade: 0.4 } satisfies Timing,
+    timing: { bpm: 104, hook: 4, clip: 4, quick: 2, close: 8, cut: 0.2 } satisfies Timing,
   },
   reveal: {
     label: "Price Reveal",
     about: "Shows the home first and holds the price back until the last card, so people watch to the end.",
     bestFor: "Listings whose price is a pleasant surprise for what they offer",
-    timing: { intro: 2.4, photo: 2.2, outro: 4.6, fade: 0.4 } satisfies Timing,
+    timing: { bpm: 120, hook: 4, clip: 4, quick: 2, close: 10, cut: 0.2 } satisfies Timing,
   },
   reasons: {
     label: "Top 3 Reasons",
     about: "Counts through the three strongest reasons to see the property, one per photo.",
     bestFor: "Listings with a few clear selling points",
-    timing: { intro: 2.2, photo: 3.0, outro: 3.6, fade: 0.4 } satisfies Timing,
+    timing: { bpm: 96, hook: 4, clip: 4, quick: 4, close: 8, cut: 0.2 } satisfies Timing,
   },
 } as const;
 export type TemplateId = keyof typeof TEMPLATES;
@@ -84,7 +93,7 @@ export type AdListing = {
 
 export type Scene = {
   kind: "intro" | "photo" | "outro";
-  /** Seconds from the start. A scene's last `fade` seconds overlap the next scene's first. */
+  /** Seconds from the start. Scenes follow one another with no gap and no overlap. */
   start: number;
   end: number;
   /** Which photo it shows (an index into the ad's photos). */
@@ -95,7 +104,8 @@ export type Scene = {
   index: number;
 };
 
-export type Timeline = { scenes: Scene[]; duration: number; fade: number; frames: number };
+/** `beat` is the length of one beat in seconds; `cut` how long the move from one scene into the next takes, at the start of each scene. */
+export type Timeline = { scenes: Scene[]; duration: number; bpm: number; beat: number; cut: number; frames: number };
 
 /** Which photo opens the ad, and which photo each feature line is shown over (indexes into the listing's photos). */
 export type PhotoPlan = { opener: number; forLines: number[] };
@@ -122,12 +132,14 @@ export function photoSequence(photoCount: number, sceneCount: number, plan: Phot
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
 /**
- * Lay the ad out in time: an intro on the cover photo, one scene per photo (or
- * per feature line, whichever is more), then the closing card. With one or two
- * photos they repeat, moving differently each time.
+ * Lay the ad out in time, on the beat: the hook on the opening photo, one clip
+ * per photo (or per caption, whichever is more), then the closing card. A clip
+ * with a caption stays long enough to read it; one without is a quick cut.
+ * With one or two photos they repeat, moving differently each time.
  */
 export function buildTimeline(template: TemplateId, photoCount: number, lines: string[], picks: PhotoPlan = NO_PHOTO_PLAN): Timeline {
   const t = TEMPLATES[template].timing;
+  const beat = 60 / t.bpm;
   const photos = clamp(Math.floor(photoCount), 1, MAX_PHOTOS);
   // Top 3 Reasons shows exactly its reasons, three at most.
   const shown = lines.slice(0, template === "reasons" ? 3 : MAX_LINES);
@@ -135,22 +147,28 @@ export function buildTimeline(template: TemplateId, photoCount: number, lines: s
   const order = photoSequence(photos, count, picks);
   const scenes: Scene[] = [];
   let at = 0;
-  const add = (kind: Scene["kind"], length: number, photo: number, line: string | null, index: number) => {
-    scenes.push({ kind, start: at, end: at + length, photo, line, index });
-    at += length - t.fade;
+  const add = (kind: Scene["kind"], beats: number, photo: number, line: string | null, index: number) => {
+    scenes.push({ kind, start: at, end: at + beats * beat, photo, line, index });
+    at += beats * beat;
   };
-  add("intro", t.intro, order.opener, null, 0);
-  for (let i = 0; i < count; i++) add("photo", t.photo, order.scenes[i]!, shown[i] ?? null, i);
-  add("outro", t.outro, order.opener, null, 0);
-  const duration = scenes[scenes.length - 1]!.end;
-  return { scenes, duration, fade: t.fade, frames: Math.round(duration * FPS) };
+  add("intro", t.hook, order.opener, null, 0);
+  for (let i = 0; i < count; i++) add("photo", shown[i] ? t.clip : t.quick, order.scenes[i]!, shown[i] ?? null, i);
+  add("outro", t.close, order.opener, null, 0);
+  return { scenes, duration: at, bpm: t.bpm, beat, cut: t.cut, frames: Math.round(at * FPS) };
 }
 
-/** The scenes on screen at time t: the current one, and the next while they overlap. */
-export function scenesAt(timeline: Timeline, t: number): Array<{ scene: Scene; local: number; progress: number }> {
-  return timeline.scenes
-    .filter((s) => t >= s.start && t < s.end)
-    .map((scene) => ({ scene, local: t - scene.start, progress: (t - scene.start) / (scene.end - scene.start) }));
+/** When the price lands on the closing card, in seconds into it (later in Price Reveal, which holds it back). The drawing and the sound both follow these. */
+export const PRICE_AT = { normal: 0.3, reveal: 1.0 } as const;
+/** When a caption's first word comes in, in seconds into its clip. */
+export const CAPTION_AT = 0.14;
+
+/** The scene on screen at time t, with how far into it we are. */
+export function sceneAt(timeline: Timeline, t: number): { index: number; scene: Scene; local: number } {
+  const last = timeline.scenes.length - 1;
+  let index = timeline.scenes.findIndex((s) => t < s.end);
+  if (index < 0) index = last;
+  const scene = timeline.scenes[index]!;
+  return { index, scene, local: Math.max(0, t - scene.start) };
 }
 
 // ------------------------------------------------------------------ the words
@@ -173,36 +191,50 @@ export function phrasesFrom(description: string, max = LIMITS.line): string[] {
     .filter((p) => (seen.has(p.toLowerCase()) ? false : (seen.add(p.toLowerCase()), true)));
 }
 
-export const DEFAULT_CTA = { english: "Message us to schedule a viewing", taglish: "Message us para mag-schedule ng viewing" } as const;
+export const DEFAULT_CTA = { english: "Message us to book a viewing", taglish: "I-message kami para mag-viewing" } as const;
 export type AdLanguage = keyof typeof DEFAULT_CTA;
 
-/** The ad's words when the AI isn't used: every one of them comes straight from the listing. */
+/**
+ * The price the way people say it, when that is exactly the price: "₱8.5M" for
+ * ₱8,500,000. A price that doesn't come out even is left as the listing has it,
+ * so the ad never rounds a price.
+ */
+export function shortPrice(l: Pick<AdListing, "price" | "priceMinor">): string {
+  const pesos = l.priceMinor / 100;
+  if (!l.price.startsWith("₱") || pesos < 1_000_000 || pesos % 10_000 !== 0) return l.price;
+  return `₱${(pesos / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
+}
+
+/** What it takes to get in, for the closing card: the listing's own financing, reservation fee and downpayment, one short tag each. */
+export function termsOf(l: AdListing): string[] {
+  return [...l.financing, l.reservationFee ? `Reservation ${l.reservationFee}` : "", l.downpaymentPercent !== null ? `${l.downpaymentPercent}% downpayment` : ""].filter(Boolean);
+}
+
+const HOOK_WORDS = {
+  english: { looking: (article: string, type: string, place: string) => `Looking for ${article} ${type} in ${place}?`, inside: (type: string, place: string) => `Take a look inside this ${type} in ${place}` },
+  taglish: { looking: (_article: string, type: string, place: string) => `Naghahanap ng ${type} sa ${place}?`, inside: (type: string, place: string) => `Silipin ang ${type} na ito sa ${place}` },
+} as const;
+
+/**
+ * The ad's words when the AI isn't used: every one of them comes straight from
+ * the listing. Captions are short phrases from the owner's description; the
+ * financing and fees go on the closing card, not over the photos.
+ */
 export function defaultText(l: AdListing, language: AdLanguage = "english"): AdText {
-  const sale = l.status === "reserved" ? "" : " for sale";
-  const hook = tidy(`${l.typeLabel}${sale} in ${shortPlace(l.location)}`, LIMITS.hook);
-  const facts = [
-    l.financing.length ? `${l.financing.join(", ")} accepted` : null,
-    l.reservationFee ? `Reservation fee ${l.reservationFee}` : null,
-    l.downpaymentPercent !== null ? `${l.downpaymentPercent}% downpayment` : null,
-  ].filter((x): x is string => Boolean(x && x.length <= LIMITS.line));
-  const lines = [...phrasesFrom(l.description).slice(0, MAX_LINES - facts.length), ...facts].slice(0, MAX_LINES);
-  return { hook, lines, cta: DEFAULT_CTA[language] };
+  return { hook: defaultHooks(l, language)[0]!, lines: phrasesFrom(l.description).slice(0, MAX_LINES), cta: DEFAULT_CTA[language] };
 }
 
 /**
  * Opening lines to choose from when the AI isn't used, in the shapes that stop
- * a scroll: price and place, a question to the buyer, and the plain statement.
+ * a scroll: the price and place, a question to the buyer, and an invitation in.
  * Each one is only the listing's own facts.
  */
-export function defaultHooks(l: AdListing): string[] {
+export function defaultHooks(l: AdListing, language: AdLanguage = "english"): string[] {
   const place = shortPlace(l.location);
   const type = l.typeLabel.toLowerCase();
   const article = /^[aeiou]/.test(type) ? "an" : "a";
-  const options = [
-    `${l.price} ${type} in ${place}`,
-    `Looking for ${article} ${type} in ${place}?`,
-    `${l.typeLabel}${l.status === "reserved" ? "" : " for sale"} in ${place}`,
-  ];
+  const words = HOOK_WORDS[language];
+  const options = [`${shortPrice(l)} ${type} in ${place}`, words.looking(article, type, place), words.inside(type, place)];
   return options.map((h) => tidy(h, LIMITS.hook)).filter((h, i, all) => h.length >= 3 && all.indexOf(h) === i);
 }
 
@@ -259,7 +291,9 @@ export function cleanPlan(raw: unknown, l: AdListing, photoCount: number, langua
 
   const proposed = [r.hook, ...(Array.isArray(r.hooks) ? r.hooks : [])].map((h) => tidy(h, LIMITS.hook)).filter(ok);
   // Up to three openings to choose from: the AI's first, then ones built from the listing's facts.
-  const hooks = [proposed[0] ?? fallback.hook, ...proposed.slice(1), ...defaultHooks(l)].filter((h, i, all) => all.findIndex((x) => x.toLowerCase() === h.toLowerCase()) === i).slice(0, 3);
+  const all = [proposed[0] ?? fallback.hook, ...proposed.slice(1), ...defaultHooks(l, language)].filter((h, i, list) => list.findIndex((x) => x.toLowerCase() === h.toLowerCase()) === i);
+  // Price Reveal keeps the price for the last card, so it opens with a headline that doesn't state it.
+  const hooks = (template === "reveal" ? [...all.filter((h) => !amountsIn(h).length), ...all.filter((h) => amountsIn(h).length)] : all).slice(0, 3);
   const usePairs = pairs.length > 0;
   return {
     template,

@@ -1,49 +1,91 @@
 import { describe, expect, it } from "vitest";
-import { MUSIC_FOR, MUSIC_IDS, musicNotes, soundCues } from "./sound";
-import { TEMPLATE_IDS, buildTimeline } from "./spec";
+import {
+  MUSIC_FOR,
+  MUSIC_IDS,
+  musicNotes,
+  musicShape,
+  soundCues,
+} from "./sound";
+import { CAPTION_AT, PRICE_AT, TEMPLATE_IDS, buildTimeline } from "./spec";
 
 const lines = ["Corner lot", "Near the school", "Gated village"];
+const DRUMS = ["kick", "snare", "clap", "rim", "hat", "open", "crash"];
 
 describe("musicNotes", () => {
-  it("writes every track within the ad, the same way each time", () => {
-    for (const track of MUSIC_IDS) {
-      const notes = musicNotes(track, 18.4);
-      expect(notes.length).toBeGreaterThan(20);
-      expect(musicNotes(track, 18.4)).toEqual(notes);
-      for (const n of notes) {
-        expect(n.t).toBeGreaterThanOrEqual(0);
-        expect(n.t).toBeLessThan(18.4);
-        expect(n.t + n.dur).toBeLessThanOrEqual(18.4 + 1e-6);
-        expect(n.dur).toBeGreaterThan(0);
-        expect(n.vel).toBeGreaterThan(0);
-        expect(n.vel).toBeLessThanOrEqual(1);
+  it("writes every track within the ad, the same way each time, at any template's tempo", () => {
+    for (const template of TEMPLATE_IDS) {
+      const shape = musicShape(buildTimeline(template, 6, lines));
+      for (const track of MUSIC_IDS) {
+        const notes = musicNotes(track, shape);
+        expect(notes.length).toBeGreaterThan(30);
+        expect(musicNotes(track, shape)).toEqual(notes);
+        for (const n of notes) {
+          expect(n.t).toBeGreaterThanOrEqual(0);
+          expect(n.t).toBeLessThan(shape.duration);
+          expect(n.t + n.dur).toBeLessThanOrEqual(shape.duration + 1e-6);
+          expect(n.dur).toBeGreaterThan(0);
+          expect(n.vel).toBeGreaterThan(0);
+          expect(n.vel).toBeLessThanOrEqual(1);
+        }
+        // In time order, so the instruments can be scheduled straight through.
+        expect(notes.map((n) => n.t)).toEqual(
+          [...notes.map((n) => n.t)].sort((a, b) => a - b),
+        );
       }
-      // In time order, so the instruments can be scheduled straight through.
-      expect(notes.map((n) => n.t)).toEqual(
-        [...notes.map((n) => n.t)].sort((a, b) => a - b),
+    }
+  });
+
+  it("follows the video: a light intro under the headline, the beat from the first cut, a landing on the closing card", () => {
+    const tl = buildTimeline("showcase", 6, lines);
+    const shape = musicShape(tl);
+    expect(shape.bpm).toBe(tl.bpm);
+    expect(shape.drop).toBeCloseTo(tl.scenes[1]!.start, 6);
+    expect(shape.outro).toBeCloseTo(tl.scenes[tl.scenes.length - 1]!.start, 6);
+    for (const track of MUSIC_IDS) {
+      const notes = musicNotes(track, shape);
+      const kicks = notes.filter((n) => n.voice === "kick").map((n) => n.t);
+      expect(kicks.length).toBeGreaterThan(2);
+      expect(kicks.every((t) => t >= shape.drop - 0.01)).toBe(true);
+      // One crash, exactly where the closing card starts.
+      const crashes = notes.filter((n) => n.voice === "crash");
+      expect(crashes).toHaveLength(1);
+      expect(crashes[0]!.t).toBeCloseTo(shape.outro, 2);
+    }
+    // The upbeat tracks put a kick on every beat between the first cut and the closing card.
+    for (const track of ["bright", "pulse"] as const) {
+      const kicks = musicNotes(track, shape).filter(
+        (n) => n.voice === "kick" && n.t < shape.outro - 0.01,
+      );
+      expect(kicks).toHaveLength(
+        Math.round((shape.outro - shape.drop) / tl.beat),
+      );
+      for (const k of kicks)
+        expect(
+          Math.abs(k.t / tl.beat - Math.round(k.t / tl.beat)),
+        ).toBeLessThan(0.01);
+    }
+  });
+
+  it("keeps the calm and luxe tracks light on drums", () => {
+    const shape = musicShape(buildTimeline("elegant", 6, lines));
+    for (const track of ["calm", "luxe"] as const) {
+      const notes = musicNotes(track, shape);
+      expect(
+        notes.some(
+          (n) =>
+            n.voice === "clap" || n.voice === "snare" || n.voice === "open",
+        ),
+      ).toBe(false);
+      expect(notes.filter((n) => DRUMS.includes(n.voice)).length).toBeLessThan(
+        notes.length / 2,
       );
     }
   });
 
-  it("keeps the first bar light so the beat comes in under the headline", () => {
-    const pulse = musicNotes("pulse", 12);
-    const bar = (60 / 100) * 4;
-    expect(pulse.some((n) => n.voice === "kick" && n.t < bar)).toBe(false);
-    expect(pulse.some((n) => n.voice === "kick" && n.t >= bar)).toBe(true);
-  });
-
-  it("has no drums in the calm and luxe tracks", () => {
-    for (const track of ["calm", "luxe"] as const) {
-      expect(
-        musicNotes(track, 20).some((n) =>
-          ["kick", "snare", "hat"].includes(n.voice),
-        ),
-      ).toBe(false);
-    }
-  });
-
   it("returns nothing for an ad with no length", () => {
-    expect(musicNotes("bright", 0)).toEqual([]);
+    expect(
+      musicNotes("bright", { bpm: 112, duration: 0, drop: 0, outro: 0 }),
+    ).toEqual([]);
   });
 });
 
@@ -52,44 +94,63 @@ describe("soundCues", () => {
     for (const t of TEMPLATE_IDS) expect(MUSIC_IDS).toContain(MUSIC_FOR[t]);
   });
 
-  it("puts a whoosh on every cut and a pop on every feature line", () => {
-    const tl = buildTimeline("showcase", 5, lines);
+  it("puts a whoosh on every cut and a pop as every caption comes in", () => {
+    const tl = buildTimeline("showcase", 6, lines);
     const cues = soundCues("showcase", tl);
-    const cuts = tl.scenes.filter((s) => s.kind !== "intro");
+    const at = (x: number) => Math.round(x * 1000) / 1000;
+    const captioned = tl.scenes.filter((s) => s.kind === "photo" && s.line);
+    const quick = tl.scenes.filter((s) => s.kind === "photo" && !s.line);
+    expect(quick.length).toBeGreaterThan(0);
+    const outro = tl.scenes[tl.scenes.length - 1]!;
     expect(cues.filter((c) => c.effect === "whoosh").map((c) => c.t)).toEqual(
-      cuts.map((s) => Math.round((s.start + tl.fade / 2) * 1000) / 1000),
+      [...captioned, outro].map((s) => at(s.start + tl.cut / 2)),
     );
-    // The headline's pop, then one per scene with a line.
-    const withLine = tl.scenes.filter(
-      (s) => s.kind === "photo" && s.line,
-    ).length;
-    expect(cues.filter((c) => c.effect === "pop")).toHaveLength(1 + withLine);
-    expect(cues.filter((c) => c.effect === "chime")).toHaveLength(1);
+    // A quick clip gets the lighter sound.
+    expect(cues.filter((c) => c.effect === "swish").map((c) => c.t)).toEqual(
+      quick.map((s) => at(s.start + tl.cut / 2)),
+    );
+    // The headline's pop, then one per caption, just as its first word lands.
+    const pops = cues.filter((c) => c.effect === "pop");
+    expect(pops).toHaveLength(1 + captioned.length);
+    expect(pops[1]!.t).toBeGreaterThanOrEqual(captioned[0]!.start + CAPTION_AT);
+    // It rises into the closing card and chimes as the price lands.
+    expect(cues.find((c) => c.effect === "riser")?.t).toBeCloseTo(
+      outro.start,
+      3,
+    );
+    expect(cues.find((c) => c.effect === "chime")?.t).toBeCloseTo(
+      outro.start + PRICE_AT.normal,
+      3,
+    );
     for (const c of cues) {
       expect(c.t).toBeGreaterThanOrEqual(0);
       expect(c.t).toBeLessThan(tl.duration);
     }
+    expect(cues.map((c) => c.t)).toEqual(
+      [...cues.map((c) => c.t)].sort((a, b) => a - b),
+    );
   });
 
   it("ticks through the lines in the templates that count or list facts", () => {
     for (const template of ["facts", "reasons"] as const) {
       const cues = soundCues(template, buildTimeline(template, 4, lines));
-      expect(cues.filter((c) => c.effect === "tick").length).toBeGreaterThan(0);
+      expect(cues.filter((c) => c.effect === "tick")).toHaveLength(3);
       expect(cues.filter((c) => c.effect === "pop")).toHaveLength(1);
     }
   });
 
-  it("builds up to the price in Price Reveal and lands as it opens", () => {
+  it("builds up to the price in Price Reveal and hits as it lands", () => {
     const tl = buildTimeline("reveal", 4, lines);
     const cues = soundCues("reveal", tl);
     const outro = tl.scenes[tl.scenes.length - 1]!;
     expect(cues.find((c) => c.effect === "hit")?.t).toBeCloseTo(
-      outro.start + 1.0,
+      outro.start + PRICE_AT.reveal,
       3,
     );
-    expect(cues.find((c) => c.effect === "riser")?.t).toBeCloseTo(
-      outro.start + 1.0,
-      3,
+    expect(cues.filter((c) => c.effect === "riser").map((c) => c.t)).toEqual(
+      [outro.start, outro.start + PRICE_AT.reveal].map(
+        (x) => Math.round(x * 1000) / 1000,
+      ),
     );
     expect(cues.some((c) => c.effect === "chime")).toBe(false);
   });

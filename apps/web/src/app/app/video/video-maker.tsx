@@ -8,7 +8,7 @@ import { Alert, Field, Input, Panel, Select, buttonClass, cx } from "@/component
 import { drawFrame, timelineFor, type Photo, type RenderAd } from "@/lib/video-ad/draw";
 import { PreviewSound, decodeMusic, renderSoundtrack } from "@/lib/video-ad/audio";
 import { ensureFonts, exportVideo, loadPhotos, type VideoFile } from "@/lib/video-ad/export";
-import { MUSIC, MUSIC_FOR, MUSIC_IDS, soundCues, type MusicChoice } from "@/lib/video-ad/sound";
+import { MUSIC, MUSIC_FOR, MUSIC_IDS, musicShape, soundCues, type MusicChoice } from "@/lib/video-ad/sound";
 import {
   LIMITS,
   MAX_LINES,
@@ -227,9 +227,9 @@ export function VideoMaker({
   const cues = useMemo(() => (timeline ? soundCues(template, timeline) : []), [template, timeline]);
   const soundMusic = music === "own" ? (own?.buffer ?? null) : music === "none" ? null : music;
   const wantsSound = soundMusic !== null || effects;
-  const soundKey = timeline ? JSON.stringify([music, music === "own" ? (own?.id ?? 0) : 0, effects, timeline.duration, cues]) : "";
+  const soundKey = timeline ? JSON.stringify([music, music === "own" ? (own?.id ?? 0) : 0, effects, musicShape(timeline), cues]) : "";
   const soundFor = useCallback(
-    () => (timeline && wantsSound ? renderSoundtrack({ duration: timeline.duration, music: soundMusic, cues, effects }) : Promise.resolve(null)),
+    () => (timeline && wantsSound ? renderSoundtrack({ shape: musicShape(timeline), music: soundMusic, cues, effects }) : Promise.resolve(null)),
     [timeline, wantsSound, soundMusic, cues, effects],
   );
   /** A change of sound makes a new video, but it isn't a change to the ad's words, so a late AI answer may still fill them in. */
@@ -358,6 +358,11 @@ export function VideoMaker({
   const pickTemplate = (t: TemplateId) => {
     touched.current = true;
     setTemplate(t);
+    // Price Reveal keeps the price for the last card: if the headline states it, swap in an opening that doesn't.
+    if (t === "reveal" && amountsIn(text.hook).length > 0) {
+      const other = hooks.find((h) => amountsIn(h).length === 0);
+      if (other) setText((now) => ({ ...now, hook: other }));
+    }
     rewind();
     if (making.kind === "done" || making.kind === "error") setMaking({ kind: "idle" });
   };
@@ -599,8 +604,8 @@ export function VideoMaker({
         <Panel title="Sound">
           <p className="mt-1 text-sm text-muted">
             {say(
-              "Music made for MyHomeSeller, so it's free to post anywhere, and sound effects timed to the cuts. Press the speaker under the preview to hear it.",
-              "Music na ginawa para sa MyHomeSeller, kaya libreng i-post kahit saan, at sound effects na sabay sa bawat cut. Pindutin ang speaker sa ilalim ng preview para marinig.",
+              "Music made for MyHomeSeller, so it's free to post anywhere. The video is cut to its beat. Press the speaker under the preview to hear it.",
+              "Music na ginawa para sa MyHomeSeller, kaya libreng i-post kahit saan. Naka-cut ang video sa beat nito. Pindutin ang speaker sa ilalim ng preview para marinig.",
             )}
           </p>
           <div role="radiogroup" aria-label="Music" className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -680,7 +685,7 @@ export function VideoMaker({
             <span>
               <span className="font-medium text-ink">Sound effects</span>
               <span className="block text-xs text-muted">
-                {say("A whoosh on each cut, a pop as each line comes in, and a chime on the price.", "May whoosh sa bawat cut, pop sa bawat line na lalabas, at chime sa presyo.")}
+                {say("A whoosh on each cut, a pop as each caption comes in, and a chime on the price.", "May whoosh sa bawat cut, pop sa bawat caption na lalabas, at chime sa presyo.")}
                 {template === "reveal" ? say(" Price Reveal builds up to the price instead.", " Sa Price Reveal, may build-up papunta sa presyo.") : ""}
               </span>
             </span>
@@ -689,10 +694,10 @@ export function VideoMaker({
 
         <Panel title="Text">
           <p className="mt-1 text-sm text-muted">
-            {say("Every word is yours to change. The price, location, financing and your business name come from the listing and are added for you.", "Pwede mong palitan ang bawat salita. Galing sa listing ang presyo, location, financing at pangalan ng business mo, at kusa nang idinadagdag.")}
+            {say("Every word is yours to change. The closing card adds the price, location, financing, reservation fee, downpayment and your business name from the listing.", "Pwede mong palitan ang bawat salita. Sa closing card, kusang idinadagdag mula sa listing ang presyo, location, financing, reservation fee, downpayment at pangalan ng business mo.")}
           </p>
           <div className="mt-4 space-y-4">
-            <Field label="Headline" htmlFor="video-hook" hint={say("People decide in about three seconds. Lead with what makes this property stand out.", "Mga tatlong segundo lang bago mag-decide ang tao. Unahin kung ano ang nagpapa-stand out sa property na ito.")}>
+            <Field label="Headline" htmlFor="video-hook" hint={say("People decide in about three seconds, so name something specific: the price, the place, who it suits. Shorter shows bigger.", "Mga tatlong segundo lang bago mag-decide ang tao, kaya maging specific: presyo, lugar, o para kanino ito. Mas maikli, mas malaki ang labas.")}>
               <Input id="video-hook" value={text.hook} maxLength={LIMITS.hook} disabled={busy} onChange={(e) => edit((t) => ({ ...t, hook: e.target.value }))} />
             </Field>
             {otherHooks.length ? (
@@ -717,11 +722,11 @@ export function VideoMaker({
               </div>
             ) : null}
             <fieldset>
-              <legend className="text-sm font-medium text-ink">Feature lines</legend>
+              <legend className="text-sm font-medium text-ink">Captions</legend>
               <p className="mt-0.5 text-xs text-muted">
                 {say(
-                  "One short feature each. They appear one at a time over the photos; press a line's photo to change which one it goes over.",
-                  "Isang maikling feature kada line. Isa-isa silang lalabas sa ibabaw ng photos; pindutin ang photo ng line para palitan kung saang photo ito lalabas.",
+                  "2 to 5 words each, one feature per caption: they are shown very large, one per photo, for about two seconds. Press a caption's photo to change which one it goes over.",
+                  "2 hanggang 5 salita bawat isa, isang feature kada caption: malaki ang labas nito, isa kada photo, mga dalawang segundo. Pindutin ang photo ng caption para palitan kung saang photo ito lalabas.",
                 )}
                 {template === "reasons" && text.lines.length > 3 ? say(" Top 3 Reasons shows the first three.", " Ang unang tatlo lang ang ipapakita ng Top 3 Reasons.") : ""}
               </p>
@@ -734,7 +739,7 @@ export function VideoMaker({
                         disabled={busy || item.photos.length < 2}
                         onClick={() => nextPhotoFor(i, linePhotos[i]!)}
                         className="shrink-0 overflow-hidden rounded-lg border border-line hover:border-grape-300"
-                        aria-label={`Feature line ${i + 1} is shown over photo ${linePhotos[i]! + 1}. Press for the next photo.`}
+                        aria-label={`Caption ${i + 1} is shown over photo ${linePhotos[i]! + 1}. Press for the next photo.`}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element -- small thumbnails from storage */}
                         <img src={item.thumbs[linePhotos[i]!]} alt="" className="size-10 object-cover" />
@@ -744,7 +749,7 @@ export function VideoMaker({
                       value={line}
                       maxLength={LIMITS.line}
                       disabled={busy}
-                      aria-label={`Feature line ${i + 1}`}
+                      aria-label={`Caption ${i + 1}`}
                       onChange={(e) => edit((t) => ({ ...t, lines: t.lines.map((l, k) => (k === i ? e.target.value : l)) }))}
                     />
                     <button
@@ -752,7 +757,7 @@ export function VideoMaker({
                       disabled={busy}
                       onClick={() => removeLine(i)}
                       className="grid size-10 shrink-0 place-items-center rounded-full text-muted hover:bg-grape-50 hover:text-ink"
-                      aria-label={`Remove feature line ${i + 1}`}
+                      aria-label={`Remove caption ${i + 1}`}
                     >
                       <X className="size-4" aria-hidden />
                     </button>
@@ -761,7 +766,7 @@ export function VideoMaker({
               </ul>
               {text.lines.length < MAX_LINES ? (
                 <button type="button" disabled={busy} onClick={() => edit((t) => ({ ...t, lines: [...t.lines, ""] }))} className={cx(buttonClass("ghost"), "mt-2")}>
-                  <Plus className="size-4" aria-hidden /> Add a line
+                  <Plus className="size-4" aria-hidden /> Add a caption
                 </button>
               ) : null}
             </fieldset>
