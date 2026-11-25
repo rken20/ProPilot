@@ -1,3 +1,6 @@
+import { LangProvider } from "@/components/lang";
+import { sayIn } from "@/lib/lang";
+import { userLang } from "@/lib/lang-server";
 import { Card, PageHeader, Panel } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPeso } from "@/lib/money";
@@ -30,6 +33,8 @@ type Row = {
 
 /** MyHomeSeller super admins only: check GCash payments and turn plans on. */
 export default async function AdminPaymentsPage() {
+  const lang = await userLang();
+  const say = sayIn(lang);
   const { admin } = await requireSuperAdmin();
   // A tester may have signed up since the plan was given: turn on any that can be now.
   await admin.rpc("claim_plan_grants").then(({ error }) => error && console.error("[billing] claim grants failed:", error.message));
@@ -56,7 +61,7 @@ export default async function AdminPaymentsPage() {
       <AdminTabs current="/admin/payments" />
       <PageHeader
         title="Payments to check"
-        description="Find each payment in your GCash transaction history by its reference number and amount, then confirm it. Confirming turns the plan on right away."
+        description={say("Find each payment in your GCash transaction history by its reference number and amount, then confirm it. Confirming turns the plan on right away.", "Hanapin ang bawat payment sa GCash transaction history mo gamit ang reference number at amount nito, tapos i-confirm. Kapag kinonfirm, agad na mao-on ang plan.")}
       />
 
       {rows.length ? (
@@ -106,23 +111,24 @@ export default async function AdminPaymentsPage() {
       ) : (
         <Card>
           <p className="font-semibold">No payments waiting.</p>
-          <p className="mt-1 text-sm text-muted">You&apos;ll get an email when an owner sends GCash payment details.</p>
+          <p className="mt-1 text-sm text-muted">{say("You'll get an email when an owner sends GCash payment details.", "Makakatanggap ka ng email kapag may owner na nag-send ng GCash payment details.")}</p>
         </Card>
       )}
 
       <Panel title="Give a plan to beta testers" className="mt-8">
         <p className="mt-1 mb-4 text-sm text-muted">
-          Type the email each tester signs in with. If they already have a business here, the plan is on at once. If they haven&apos;t signed up yet, it
-          turns on by itself when they sign up with that email and set up their business. The months start counting when the plan turns on.
+          {say("Type the email each tester signs in with. If they already have a business here, the plan is on at once. If they haven't signed up yet, it turns on by itself when they sign up with that email and set up their business. The months start counting when the plan turns on.", "I-type ang email na gamit ng bawat tester sa pag-sign in. Kung may business na sila rito, agad na mao-on ang plan. Kung hindi pa sila nag-sign up, kusa itong mao-on kapag nag-sign up sila gamit ang email na iyon at nag-set up ng business. Magsisimula ang bilang ng months kapag na-on na ang plan.")}
         </p>
-        <GrantByEmail plans={(plans ?? []).map((p) => ({ code: p.code as string, name: p.name as string }))} give={grantByEmail} />
+        <LangProvider lang={lang}>
+          <GrantByEmail plans={(plans ?? []).map((p) => ({ code: p.code as string, name: p.name as string }))} give={grantByEmail} />
+        </LangProvider>
 
-        <GrantsTable grants={grants} cancel={cancelGrant} />
+        <GrantsTable grants={grants} cancel={cancelGrant} say={say} />
       </Panel>
 
       <Panel title="Give a plan to a business" className="mt-8">
         <p className="mt-1 mb-4 text-sm text-muted">
-          Pick a business that is already here. It works like a confirmed payment of ₱0 and shows in their payment history.
+          {say("Pick a business that is already here. It works like a confirmed payment of ₱0 and shows in their payment history.", "Pumili ng business na nandito na. Para itong confirmed payment na ₱0 at lalabas ito sa payment history nila.")}
         </p>
         <form action={grantPlan} className="flex flex-wrap items-end gap-3">
           <label className="min-w-56 flex-1 text-xs font-medium text-muted">

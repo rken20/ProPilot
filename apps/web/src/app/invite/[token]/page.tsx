@@ -1,3 +1,4 @@
+import { siteSay } from "@/lib/lang-server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Alert, Card } from "@/components/ui";
@@ -5,12 +6,15 @@ import { SubmitButton } from "@/components/submit-button";
 import { BUSINESS_COOKIE, requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
-const ERRORS: Record<string, string> = {
-  "invitation not found": "This invite link isn't valid. Ask for a new one.",
-  "invitation already used": "This invite has already been used.",
-  "invitation expired": "This invite has expired. Ask for a new one.",
+const ERRORS: Record<string, [english: string, taglish: string]> = {
+  "invitation not found": ["This invite link isn't valid. Ask for a new one.", "Hindi valid ang invite link na ito. Humingi ng bago."],
+  "invitation already used": ["This invite has already been used.", "Nagamit na ang invite na ito."],
+  "invitation expired": ["This invite has expired. Ask for a new one.", "Expired na ang invite na ito. Humingi ng bago."],
   "invitation is for a different email address":
-    "This invite was sent to a different email address. Log in with the invited email, or ask for a new invite.",
+    [
+      "This invite was sent to a different email address. Log in with the invited email, or ask for a new invite.",
+      "Sa ibang email address ipinadala ang invite na ito. Mag-log in gamit ang in-invite na email, o humingi ng bagong invite.",
+    ],
 };
 
 async function accept(token: string) {
@@ -29,7 +33,9 @@ async function accept(token: string) {
 export default async function InvitePage({ params, searchParams }: PageProps<"/invite/[token]">) {
   const [{ token }, sp] = await Promise.all([params, searchParams]);
   const user = await requireUser();
-  const error = typeof sp.error === "string" ? ERRORS[sp.error] : undefined;
+  const say = await siteSay();
+  const errorPair = typeof sp.error === "string" ? ERRORS[sp.error] : undefined;
+  const error = errorPair ? say(...errorPair) : undefined;
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-12">

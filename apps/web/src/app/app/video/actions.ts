@@ -1,5 +1,6 @@
 "use server";
 
+import { appSay } from "@/lib/lang-server";
 import Anthropic from "@anthropic-ai/sdk";
 import { revalidatePath } from "next/cache";
 import { can } from "@propilot/shared";
@@ -12,9 +13,11 @@ import { AD_COLUMNS, adListing } from "@/lib/video-ad/listing";
 import { planVideoAd, type AdPlan } from "@/lib/video-ad/plan";
 import { MAX_PHOTOS, SHAPE_IDS, TEMPLATE_IDS, cleanText, type AdLanguage, type AdText, type ShapeId, type TemplateId } from "@/lib/video-ad/spec";
 import { mediaUrl } from "@/lib/media";
+import type { Say } from "@/lib/lang";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const NOT_INCLUDED = "The Video Ad Maker is part of the Pro and Agency plans. An owner can upgrade in Billing.";
+const notIncluded = (say: Say) =>
+  say("The Video Ad Maker is part of the Pro and Agency plans. An owner can upgrade in Billing.", "Kasama ang Video Ad Maker sa Pro at Agency plans. Pwedeng mag-upgrade ang owner sa Billing.");
 const mayMake = (role: Parameters<typeof can>[0]) => can(role, "content.create") || can(role, "property.update");
 
 /** The listing, its photos (small versions, in the ad's order) and the business's ad language, as the signed-in teammate may see them. */
@@ -32,10 +35,11 @@ async function load(propertyId: string, businessId: string, businessName: string
 
 /** The AI's suggestion for a listing's video ad: a template, the words, and which photos go where. Nothing is saved or counted. */
 export async function suggestAd(propertyId: string): Promise<{ plan?: AdPlan; error?: string }> {
+  const say = await appSay();
   const biz = await requireBusiness();
-  if (!mayMake(biz.role) || !UUID.test(propertyId)) return { error: "Your role can't make video ads." };
+  if (!mayMake(biz.role) || !UUID.test(propertyId)) return { error: say("Your role can't make video ads.", "Hindi pwedeng gumawa ng video ads ang role mo.") };
   const plan = await businessPlan(biz.businessId);
-  if (plan.videoAds === 0) return { error: NOT_INCLUDED };
+  if (plan.videoAds === 0) return { error: notIncluded(say) };
   const { supabase, listing, photos, language } = await load(propertyId, biz.businessId, biz.businessName);
   if (!listing) return { error: "Listing not found." };
 
@@ -53,16 +57,17 @@ export async function suggestAd(propertyId: string): Promise<{ plan?: AdPlan; er
  * owner's device.
  */
 export async function startVideoAd(propertyId: string, template: TemplateId, shape: ShapeId, text: AdText): Promise<{ ok?: true; left?: number | null; error?: string }> {
+  const say = await appSay();
   const [biz, user] = await Promise.all([requireBusiness(), requireUser()]);
-  if (!mayMake(biz.role)) return { error: "Your role can't make video ads." };
-  if (!UUID.test(propertyId) || !TEMPLATE_IDS.includes(template) || !SHAPE_IDS.includes(shape)) return { error: "Something in this ad isn't valid. Reload the page and try again." };
+  if (!mayMake(biz.role)) return { error: say("Your role can't make video ads.", "Hindi pwedeng gumawa ng video ads ang role mo.") };
+  if (!UUID.test(propertyId) || !TEMPLATE_IDS.includes(template) || !SHAPE_IDS.includes(shape)) return { error: say("Something in this ad isn't valid. Reload the page and try again.", "May hindi valid sa ad na ito. I-reload ang page at subukan ulit.") };
   const plan = await businessPlan(biz.businessId);
-  if (plan.videoAds === 0) return { error: NOT_INCLUDED };
+  if (plan.videoAds === 0) return { error: notIncluded(say) };
   const clean = cleanText({ hook: String(text?.hook ?? ""), lines: Array.isArray(text?.lines) ? text.lines.map(String) : [], cta: String(text?.cta ?? "") });
-  if (clean.hook.length < 3) return { error: "Write a headline for the ad first." };
+  if (clean.hook.length < 3) return { error: say("Write a headline for the ad first.", "Sumulat muna ng headline para sa ad.") };
 
   const admin = createAdminClient();
-  if (!admin) return { error: "The Video Ad Maker isn't available right now." };
+  if (!admin) return { error: say("The Video Ad Maker isn't available right now.", "Hindi available ang Video Ad Maker ngayon.") };
   const { data: id, error } = await admin.rpc("video_ad_start", {
     p_business: biz.businessId,
     p_user: user.id,
@@ -72,8 +77,8 @@ export async function startVideoAd(propertyId: string, template: TemplateId, sha
     p_shape: shape,
     p_text: clean,
   });
-  if (error) return { error: "Couldn't start the video. Please try again." };
-  if (!id) return { error: `You've made this month's ${plan.videoAds} video ads on ${plan.name}. They renew on the 1st.` };
+  if (error) return { error: say("Couldn't start the video. Please try again.", "Hindi nasimulan ang video. Paki-try ulit.") };
+  if (!id) return { error: say(`You've made this month's ${plan.videoAds} video ads on ${plan.name}. They renew on the 1st.`, `Nagawa mo na ang ${plan.videoAds} video ads ngayong buwan sa ${plan.name}. Magre-renew sa a-uno.`) };
 
   let left: number | null = null;
   if (plan.videoAds !== null) {

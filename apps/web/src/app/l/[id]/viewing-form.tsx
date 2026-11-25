@@ -82,7 +82,7 @@ export function ViewingForm({
           <Field label="Budget, up to (₱)" htmlFor="wantBudget" error={e.wantBudget}>
             <Input id="wantBudget" name="wantBudget" inputMode="decimal" defaultValue={v.wantBudget} placeholder="5000000" />
           </Field>
-          <Field label="Preferred areas" htmlFor="wantAreas" error={e.wantAreas} hint="Up to 5, separated by commas">
+          <Field label="Preferred areas" htmlFor="wantAreas" error={e.wantAreas} hint={say("Up to 5, separated by commas", "Hanggang 5, pinaghihiwalay ng comma")}>
             <Input id="wantAreas" name="wantAreas" defaultValue={v.wantAreas} maxLength={300} placeholder="Pavia, Santa Barbara" />
           </Field>
           <Field label="When do you plan to buy?" htmlFor="wantTimeline">

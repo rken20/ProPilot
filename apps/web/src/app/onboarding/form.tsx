@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useActionState } from "react";
 import { Alert, Field, Input, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -16,10 +17,11 @@ const TYPES = [
 
 export function CreateBusinessForm() {
   const [state, action] = useActionState(createBusiness, initialFormState);
+  const say = useSay();
   return (
     <form action={action} className="space-y-4">
       {state.error ? <Alert>{state.error}</Alert> : null}
-      <Field label="Business name" htmlFor="name" error={state.fieldErrors?.name} hint="Your name, or your agency's, as buyers know it">
+      <Field label="Business name" htmlFor="name" error={state.fieldErrors?.name} hint={say("Your name, or your agency's, as buyers know it", "Pangalan mo, o ng agency mo, na kilala ng buyers")}>
         <Input id="name" name="name" defaultValue={state.data?.name} placeholder="e.g. Cruz Realty Iloilo" required />
       </Field>
       <Field label="Type of business" htmlFor="type" error={state.fieldErrors?.type}>

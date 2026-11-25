@@ -1,5 +1,6 @@
 "use server";
 
+import { appSay } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { can } from "@propilot/shared";
@@ -13,7 +14,7 @@ import { anthropicFromEnv, qualifyProspect } from "@/lib/qualifier-run";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { aiEnabled } from "@/lib/plan";
-import { UPGRADE_MESSAGE } from "@/lib/plan-rules";
+import { upgradeMessage } from "@/lib/plan-rules";
 
 export type ProspectFormState = { error?: string; saved?: number };
 
@@ -34,14 +35,15 @@ function refresh(id?: string) {
 
 /** Add someone the team already knows (a walk-in, a referral, a past client). */
 export async function createProspect(_prev: ProspectFormState, form: FormData): Promise<ProspectFormState> {
+  const say = await appSay();
   const biz = await salesTeam();
-  if (!biz) return { error: "You can't add leads in this business." };
+  if (!biz) return { error: say("You can't add leads in this business.", "Hindi ka pwedeng mag-add ng leads sa business na ito.") };
   const name = clip(str(form, "name"), 120);
   const phone = clip(str(form, "phone"), 40);
   const email = clip(str(form, "email"), 200);
-  if (!name) return { error: "Add their name." };
-  if (!phone && !email) return { error: "Add a phone number or email so the team can reach them." };
-  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "That email doesn't look right." };
+  if (!name) return { error: say("Add their name.", "Ilagay ang pangalan nila.") };
+  if (!phone && !email) return { error: say("Add a phone number or email so the team can reach them.", "Maglagay ng phone number o email para makontak sila ng team.") };
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: say("That email doesn't look right.", "Mukhang mali ang email na iyan.") };
   const kind = str(form, "kind");
   const stage = str(form, "stage") || "inquiry";
   const propertyId = str(form, "propertyId");
@@ -60,7 +62,7 @@ export async function createProspect(_prev: ProspectFormState, form: FormData): 
     })
     .select("id")
     .single();
-  if (error || !data) return { error: "Couldn't add them. Check the details and try again." };
+  if (error || !data) return { error: say("Couldn't add them. Check the details and try again.", "Hindi sila na-add. I-check ang details at subukan ulit.") };
   const user = await requireUser();
   if (note) await supabase.from("prospect_events").insert({ business_id: biz.businessId, prospect_id: data.id, kind: "note", body: note, actor: user.id });
   refresh();
@@ -69,17 +71,18 @@ export async function createProspect(_prev: ProspectFormState, form: FormData): 
 
 /** Stage, deal value, next step and contact details. The database keeps the protected fields. */
 export async function updateProspect(id: string, _prev: ProspectFormState, form: FormData): Promise<ProspectFormState> {
+  const say = await appSay();
   const biz = await salesTeam();
-  if (!biz || !UUID.test(id)) return { error: "You can't change this lead." };
+  if (!biz || !UUID.test(id)) return { error: say("You can't change this lead.", "Hindi mo pwedeng baguhin ang lead na ito.") };
   const stage = str(form, "stage");
   if (!isStage(stage)) return { error: "Pick a stage." };
   const kind = str(form, "kind");
   const value = pesosToCentavos(str(form, "dealValue"));
-  if (Number.isNaN(value)) return { error: "Type the deal value in pesos, e.g. 4500000." };
+  if (Number.isNaN(value)) return { error: say("Type the deal value in pesos, e.g. 4500000.", "I-type ang deal value sa pesos, hal. 4500000.") };
   const name = clip(str(form, "name"), 120);
-  if (!name) return { error: "Add their name." };
+  if (!name) return { error: say("Add their name.", "Ilagay ang pangalan nila.") };
   const email = clip(str(form, "email"), 200);
-  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "That email doesn't look right." };
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: say("That email doesn't look right.", "Mukhang mali ang email na iyan.") };
   const propertyId = str(form, "propertyId");
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -99,7 +102,7 @@ export async function updateProspect(id: string, _prev: ProspectFormState, form:
     .eq("id", id)
     .eq("business_id", biz.businessId)
     .select("id");
-  if (error || !data?.length) return { error: "Couldn't save. Please try again." };
+  if (error || !data?.length) return { error: say("Couldn't save. Please try again.", "Hindi na-save. Paki-try ulit.") };
   refresh(id);
   return { saved: Date.now() };
 }
@@ -142,30 +145,32 @@ export type QualifyState = { error?: string; done?: number };
 
 /** Ask the lead qualifier to read this lead again now. */
 export async function recheckProspect(id: string): Promise<QualifyState> {
+  const say = await appSay();
   const biz = await salesTeam();
-  if (!biz || !UUID.test(id)) return { error: "You can't check this lead." };
+  if (!biz || !UUID.test(id)) return { error: say("You can't check this lead.", "Hindi mo pwedeng i-check ang lead na ito.") };
   const supabase = await createClient();
   const { data: own } = await supabase.from("prospects").select("id").eq("id", id).eq("business_id", biz.businessId).maybeSingle();
-  if (!own) return { error: "You can't check this lead." };
+  if (!own) return { error: say("You can't check this lead.", "Hindi mo pwedeng i-check ang lead na ito.") };
   const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "qualify_one", p_limit: 30, p_window_seconds: 3600 });
-  if (allowed !== true) return { error: "You've re-checked a lot of leads this hour. Try again later." };
+  if (allowed !== true) return { error: say("You've re-checked a lot of leads this hour. Try again later.", "Marami ka nang ni-recheck na lead ngayong oras. Subukan ulit mamaya.") };
   const ai = anthropicFromEnv();
   const admin = createAdminClient();
-  if (!ai || !admin) return { error: "The AI isn't set up yet." };
-  if (!(await aiEnabled(biz.businessId))) return { error: UPGRADE_MESSAGE };
+  if (!ai || !admin) return { error: say("The AI isn't set up yet.", "Hindi pa naka-set up ang AI.") };
+  if (!(await aiEnabled(biz.businessId))) return { error: upgradeMessage(say) };
   const res = await qualifyProspect(admin, ai, biz.businessId, id);
   refresh(id);
-  return res.ok ? { done: Date.now() } : { error: "The AI couldn't read this lead right now. Please try again." };
+  return res.ok ? { done: Date.now() } : { error: say("The AI couldn't read this lead right now. Please try again.", "Hindi nabasa ng AI ang lead na ito ngayon. Paki-try ulit.") };
 }
 
 /** The team's own read of the facts. Once saved, the AI keeps these and only updates the score. */
 export async function saveQualification(id: string, _prev: QualifyState, form: FormData): Promise<QualifyState> {
+  const say = await appSay();
   const biz = await salesTeam();
-  if (!biz || !UUID.test(id)) return { error: "You can't change this lead." };
+  if (!biz || !UUID.test(id)) return { error: say("You can't change this lead.", "Hindi mo pwedeng baguhin ang lead na ito.") };
   const min = pesosToCentavos(str(form, "budgetMin"));
   const max = pesosToCentavos(str(form, "budgetMax"));
-  if (Number.isNaN(min) || Number.isNaN(max)) return { error: "Type budgets in pesos, e.g. 4500000." };
-  if (min !== null && max !== null && min > max) return { error: "The lowest budget is higher than the highest." };
+  if (Number.isNaN(min) || Number.isNaN(max)) return { error: say("Type budgets in pesos, e.g. 4500000.", "I-type ang budgets sa pesos, hal. 4500000.") };
+  if (min !== null && max !== null && min > max) return { error: say("The lowest budget is higher than the highest.", "Mas mataas ang lowest budget kaysa sa highest.") };
   const timeline = str(form, "timeline");
   const financing = str(form, "financing");
   const supabase = await createClient();
@@ -182,7 +187,7 @@ export async function saveQualification(id: string, _prev: QualifyState, form: F
     .eq("id", id)
     .eq("business_id", biz.businessId)
     .select("id");
-  if (error || !data?.length) return { error: "Couldn't save. Please try again." };
+  if (error || !data?.length) return { error: say("Couldn't save. Please try again.", "Hindi na-save. Paki-try ulit.") };
   refresh(id);
   return { done: Date.now() };
 }

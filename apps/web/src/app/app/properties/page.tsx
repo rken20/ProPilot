@@ -71,7 +71,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
       {rows && rows.length === 0 ? (
         <Card className="text-center">
           <p className="font-medium">{showArchived ? "No archived properties" : "No properties yet"}</p>
-          {!showArchived ? <p className="mt-1 text-sm text-zinc-600">Add a listing with its price, location and financing.</p> : null}
+          {!showArchived ? <p className="mt-1 text-sm text-zinc-600">{say("Add a listing with its price, location and financing.", "Mag-add ng listing kasama ang presyo, location at financing nito.")}</p> : null}
         </Card>
       ) : (
         <PropertiesList rows={(rows ?? []).map((r) => ({ ...r, coverUrl: mediaUrl(covers.get(r.id)) ?? null }))} />

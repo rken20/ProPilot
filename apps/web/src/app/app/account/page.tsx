@@ -1,3 +1,4 @@
+import { appSay } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
 import { Card, Field, Input, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -22,25 +23,26 @@ async function saveProfile(form: FormData) {
 }
 
 export default async function AccountPage() {
+  const say = await appSay();
   const user = await requireUser();
   const supabase = await createClient();
   const { data: profile } = await supabase.from("profiles").select("full_name, phone, avatar_path").eq("id", user.id).single();
 
   return (
     <>
-      <PageHeader title="Account" description="Your personal details. Business settings are separate." />
+      <PageHeader title="Account" description={say("Your personal details. Business settings are separate.", "Personal details mo ito. Hiwalay ang business settings.")} />
       <Card className="mb-6 max-w-xl">
         <AvatarEditor userId={user.id} name={profile?.full_name || user.email || ""} url={avatarUrl(profile?.avatar_path)} />
       </Card>
       <Card className="max-w-xl">
         <form action={saveProfile} className="space-y-4">
-          <Field label="Email" htmlFor="email" hint="Used to sign in. Changing it comes later in the beta.">
+          <Field label="Email" htmlFor="email" hint={say("Used to sign in. Changing it comes later in the beta.", "Ito ang gamit sa pag-sign in. Sa susunod pa ito mapapalitan.")}>
             <Input id="email" value={user.email ?? ""} readOnly disabled />
           </Field>
           <Field label="Full name" htmlFor="fullName">
             <Input id="fullName" name="fullName" defaultValue={profile?.full_name ?? ""} />
           </Field>
-          <Field label="Mobile number" htmlFor="phone" hint="For hot-lead alerts later">
+          <Field label="Mobile number" htmlFor="phone" hint={say("For hot-lead alerts later", "Para sa hot-lead alerts sa susunod")}>
             <Input id="phone" name="phone" type="tel" defaultValue={profile?.phone ?? ""} placeholder="09XX XXX XXXX" />
           </Field>
           <SubmitButton pendingText="Saving…">Save</SubmitButton>

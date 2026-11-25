@@ -11,11 +11,24 @@ export type FormState = {
 
 export const initialFormState: FormState = {};
 
-export function fieldErrorsFrom(error: ZodError): Record<string, string> {
+/** The shared form rules write their messages in English; these are the same messages in Taglish. */
+const FIELD_ERRORS_TL: Record<string, string> = {
+  "Enter a mobile number, e.g. 0917 123 4567": "Maglagay ng mobile number, hal. 0917 123 4567",
+  "Enter a valid email address": "Maglagay ng valid na email address",
+  "Enter your full name": "Ilagay ang buong pangalan mo",
+  "Enter your name": "Ilagay ang pangalan mo",
+  "Enter your password": "Ilagay ang password mo",
+  "Pick a date": "Pumili ng date",
+  "Use at least 10 characters": "Gumamit ng hindi bababa sa 10 characters",
+  "Use at most 128 characters": "Gumamit ng hanggang 128 characters lang",
+};
+
+/** One message per field. Pass `say` to get the business's (or the device's) language. */
+export function fieldErrorsFrom(error: ZodError, say?: (english: string, taglish: string) => string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const issue of error.issues) {
     const key = issue.path.join(".");
-    if (!out[key]) out[key] = issue.message;
+    if (!out[key]) out[key] = say ? say(issue.message, FIELD_ERRORS_TL[issue.message] ?? issue.message) : issue.message;
   }
   return out;
 }

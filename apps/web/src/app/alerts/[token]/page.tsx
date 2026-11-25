@@ -1,3 +1,4 @@
+import { siteSay } from "@/lib/lang-server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
@@ -11,6 +12,7 @@ export const metadata: Metadata = { title: "Your property match emails · MyHome
 
 /** Where a buyer confirms, checks or stops their match emails. Opened from a link in an email; no account. */
 export default async function AlertPage({ params, searchParams }: PageProps<"/alerts/[token]">) {
+  const say = await siteSay();
   const [{ token }, sp] = await Promise.all([params, searchParams]);
   const key = decodeURIComponent(token);
   const admin = createAdminClient();
@@ -31,8 +33,11 @@ export default async function AlertPage({ params, searchParams }: PageProps<"/al
             <>
               <p className="font-semibold">
                 {alert.confirmed
-                  ? `Match emails are on for ${alert.email}.`
-                  : `Confirm that you want match emails at ${alert.email}. Nothing is sent until you do.`}
+                  ? say(`Match emails are on for ${alert.email}.`, `Naka-on ang match emails para sa ${alert.email}.`)
+                  : say(
+                      `Confirm that you want match emails at ${alert.email}. Nothing is sent until you do.`,
+                      `I-confirm na gusto mo ng match emails sa ${alert.email}. Walang ise-send hangga't hindi mo kino-confirm.`,
+                    )}
               </p>
               <h2 className="mt-5 text-sm font-bold">What you&apos;re looking for</h2>
               <ul className="mt-1.5 list-disc space-y-1 pl-5 text-ink/85">
@@ -61,9 +66,9 @@ export default async function AlertPage({ params, searchParams }: PageProps<"/al
               </div>
             </>
           ) : deleted ? (
-            <p>Done. Your preferences are deleted and you won&apos;t get match emails. Inquiries you already sent stay with the sellers you sent them to.</p>
+            <p>{say("Done. Your preferences are deleted and you won't get match emails. Inquiries you already sent stay with the sellers you sent them to.", "Tapos na. Na-delete na ang preferences mo at hindi ka na makakatanggap ng match emails. Mananatili sa sellers ang inquiries na na-send mo na sa kanila.")}</p>
           ) : (
-            <p>This link isn&apos;t valid any more. If you stopped your match emails, your preferences are already deleted.</p>
+            <p>{say("This link isn't valid any more. If you stopped your match emails, your preferences are already deleted.", "Hindi na valid ang link na ito. Kung pinahinto mo na ang match emails mo, na-delete na ang preferences mo.")}</p>
           )}
         </div>
       </main>

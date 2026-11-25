@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Camera } from "lucide-react";
@@ -44,6 +45,7 @@ export function AvatarEditor({
   name: string;
   url: string | null;
 }) {
+  const say = useSay();
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -57,9 +59,9 @@ export function AvatarEditor({
     if (!file) return;
     setError(null);
     if (!file.type.startsWith("image/"))
-      return setError("That file isn't a photo. Choose a JPG or PNG.");
+      return setError(say("That file isn't a photo. Choose a JPG or PNG.", "Hindi photo ang file na iyan. Pumili ng JPG o PNG."));
     if (file.size > MAX_INPUT_BYTES)
-      return setError("That photo is over 20 MB. Choose a smaller one.");
+      return setError(say("That photo is over 20 MB. Choose a smaller one.", "Lampas 20 MB ang photo na iyan. Pumili ng mas maliit."));
     setBusy("Uploading…");
     try {
       const blob = await toSquareJpeg(file);
@@ -77,7 +79,7 @@ export function AvatarEditor({
       setPreview(URL.createObjectURL(blob));
       startTransition(() => router.refresh());
     } catch {
-      setError("Couldn't upload the photo. Please try another one.");
+      setError(say("Couldn't upload the photo. Please try another one.", "Hindi na-upload ang photo. Paki-try ang iba."));
     } finally {
       setBusy(null);
     }
@@ -113,8 +115,7 @@ export function AvatarEditor({
       <div className="min-w-0 flex-1 basis-48">
         <p className="font-semibold">Profile photo</p>
         <p className="mt-0.5 text-sm text-muted">
-          Your team sees it beside your name. A clear photo of your face works
-          best.
+          {say("Your team sees it beside your name. A clear photo of your face works best.", "Makikita ito ng team mo sa tabi ng pangalan mo. Mas maganda kung malinaw na photo ng mukha mo.")}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
           <button

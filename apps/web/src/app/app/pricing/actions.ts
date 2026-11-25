@@ -1,5 +1,6 @@
 "use server";
 
+import { appSay } from "@/lib/lang-server";
 import Anthropic from "@anthropic-ai/sdk";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -51,23 +52,24 @@ async function ownListings(admin: NonNullable<ReturnType<typeof createAdminClien
 
 /** One price check: takes one from the month's allowance, researches comparables, and gives the allowance back if nothing came of it. */
 export async function checkPrice(propertyId: string | null, _prev: PriceState, form: FormData): Promise<PriceState> {
+  const say = await appSay();
   const [biz, user] = await Promise.all([requireBusiness(), requireUser()]);
   const values = Object.fromEntries(FIELDS.map((k) => [k, String(form.get(k) ?? "")]));
-  if (!can(biz.role, "property.update")) return { values, error: "Your role can't run price checks." };
+  if (!can(biz.role, "property.update")) return { values, error: say("Your role can't run price checks.", "Hindi pwedeng mag-run ng price checks ang role mo.") };
   const plan = await businessPlan(biz.businessId);
-  if (plan.priceChecks === 0) return { values, error: "The Pricing Advisor is part of the Agency plan. An owner can upgrade in Billing." };
+  if (plan.priceChecks === 0) return { values, error: say("The Pricing Advisor is part of the Agency plan. An owner can upgrade in Billing.", "Kasama ang Pricing Advisor sa Agency plan. Pwedeng mag-upgrade ang owner sa Billing.") };
 
   const parsed = pricingInputSchema.safeParse(values);
-  if (!parsed.success) return { values, fieldErrors: fieldErrorsFrom(parsed.error) };
+  if (!parsed.success) return { values, fieldErrors: fieldErrorsFrom(parsed.error, say) };
   const input = parsed.data;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const admin = createAdminClient();
-  if (!apiKey || !admin) return { values, error: "The Pricing Advisor isn't available right now." };
+  if (!apiKey || !admin) return { values, error: say("The Pricing Advisor isn't available right now.", "Hindi available ang Pricing Advisor ngayon.") };
 
   const supabase = await createClient();
   const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "price_check", p_limit: 6, p_window_seconds: 3600 });
-  if (allowed !== true) return { values, error: "You've run several price checks this hour. Try again later." };
+  if (allowed !== true) return { values, error: say("You've run several price checks this hour. Try again later.", "Ilang beses ka nang nag-price check ngayong oras. Subukan ulit mamaya.") };
 
   const property = propertyId && UUID.test(propertyId) ? propertyId : null;
   const { data: checkId } = await admin.rpc("price_check_start", {
@@ -77,7 +79,7 @@ export async function checkPrice(propertyId: string | null, _prev: PriceState, f
     p_property: property,
     p_input: input,
   });
-  if (!checkId) return { values, error: `You've used this month's ${plan.priceChecks} price checks. They renew on the 1st.` };
+  if (!checkId) return { values, error: say(`You've used this month's ${plan.priceChecks} price checks. They renew on the 1st.`, `Nagamit mo na ang ${plan.priceChecks} price checks ngayong buwan. Magre-renew sa a-uno.`) };
 
   let report: PricingReport | null = null;
   try {
@@ -89,7 +91,7 @@ export async function checkPrice(propertyId: string | null, _prev: PriceState, f
   if (!report) {
     // Nothing useful came back, so it doesn't count against the month.
     await admin.from("price_checks").delete().eq("id", checkId).eq("business_id", biz.businessId);
-    return { values, error: "Couldn't find enough similar listings for that, even in nearby towns. Add the town and province to the address and check the area, then try again. This check wasn't counted." };
+    return { values, error: say("Couldn't find enough similar listings for that, even in nearby towns. Add the town and province to the address and check the area, then try again. This check wasn't counted.", "Kulang ang nahanap na katulad na listing, kahit sa mga kalapit na bayan. Idagdag ang town at province sa address at i-check ang area, tapos subukan ulit. Hindi binilang ang check na ito.") };
   }
   await admin.from("price_checks").update({ result: report }).eq("id", checkId).eq("business_id", biz.businessId);
   revalidatePath("/app/pricing");

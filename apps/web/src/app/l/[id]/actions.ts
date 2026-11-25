@@ -67,7 +67,7 @@ export async function sendInquiry(propertyId: string, _prev: FormState, form: Fo
     email,
   });
   if (!parsed.success || "fieldErrors" in wanted || (email && (!EMAIL.test(email) || email.length > 254))) {
-    const fieldErrors = { ...("fieldErrors" in wanted ? wanted.fieldErrors : {}), ...(parsed.success ? {} : fieldErrorsFrom(parsed.error)) };
+    const fieldErrors = { ...("fieldErrors" in wanted ? wanted.fieldErrors : {}), ...(parsed.success ? {} : fieldErrorsFrom(parsed.error, say)) };
     if (email && (!EMAIL.test(email) || email.length > 254)) fieldErrors.buyerEmail = say("Enter an email like name@example.com, or leave it blank", "Maglagay ng email gaya ng name@example.com, o iwanang blangko");
     return { fieldErrors, data };
   }
@@ -125,7 +125,7 @@ export async function sendInquiry(propertyId: string, _prev: FormState, form: Fo
   });
   // Match emails: saved unconfirmed, and used only after they confirm from the email.
   const confirmSent = wants.consent
-    ? await saveAlert(admin, origin, { email, name: parsed.data.buyerName, wants, businessId: created.business_id as string, propertyId }).catch(() => false)
+    ? await saveAlert(admin, origin, { email, name: parsed.data.buyerName, wants, businessId: created.business_id as string, propertyId }, say).catch(() => false)
     : false;
   return {
     ok: true,

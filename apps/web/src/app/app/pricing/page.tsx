@@ -1,3 +1,4 @@
+import { appSay } from "@/lib/lang-server";
 import Link from "next/link";
 import { can } from "@propilot/shared";
 import { PageHeader, buttonClass } from "@/components/ui";
@@ -15,6 +16,7 @@ import { PricingAdvisor } from "./pricing-view";
 export const maxDuration = 60;
 
 export default async function PricingPage({ searchParams }: PageProps<"/app/pricing">) {
+  const say = await appSay();
   const sp = await searchParams;
   const biz = await requireBusiness();
   const plan = await businessPlan(biz.businessId);
@@ -24,7 +26,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/app/pric
   const header = (
     <PageHeader
       title="Pricing Advisor"
-      description="Tell it about a property and the AI researches similar listings nearby, then suggests a price range and three asking prices. You decide the final price."
+      description={say("Tell it about a property and the AI researches similar listings nearby, then suggests a price range and three asking prices. You decide the final price.", "Ikwento ang property at ire-research ng AI ang mga katulad na listing sa malapit, tapos magsa-suggest ng price range at tatlong asking price. Ikaw pa rin ang magde-decide ng final price.")}
     />
   );
 
@@ -37,8 +39,10 @@ export default async function PricingPage({ searchParams }: PageProps<"/app/pric
           <div className="min-w-0 flex-1 basis-64">
             <h2 className="text-xl font-extrabold tracking-tight">Part of the Agency plan</h2>
             <p className="mt-1 max-w-xl text-sm text-ink/80">
-              Agency includes {20} price checks a month. Each one finds comparable listings in the same area, works out the price per square meter, and
-              gives you a Sell fast, Market and Premium price with a link to every listing it used.
+              {say(
+                "Agency includes 20 price checks a month. Each one finds comparable listings in the same area, works out the price per square meter, and gives you a Sell fast, Market and Premium price with a link to every listing it used.",
+                "May 20 price checks kada buwan ang Agency. Bawat isa, naghahanap ng comparable listings sa parehong area, kino-compute ang presyo per square meter, at nagbibigay ng Sell fast, Market at Premium price na may link sa bawat listing na ginamit.",
+              )}
             </p>
           </div>
           {can(biz.role, "billing.view") ? (

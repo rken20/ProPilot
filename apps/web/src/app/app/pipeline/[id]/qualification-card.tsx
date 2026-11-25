@@ -146,7 +146,7 @@ export function QualificationCard({
             <summary className="cursor-pointer text-sm font-medium">Correct the facts</summary>
             <form action={saveAction} className="mt-3 space-y-3 pb-1">
               {save.error ? <Alert>{save.error}</Alert> : null}
-              {save.done ? <Alert tone="success">Saved. The AI will keep these.</Alert> : null}
+              {save.done ? <Alert tone="success">{say("Saved. The AI will keep these.", "Na-save na. Hindi na ito babaguhin ng AI.")}</Alert> : null}
               <div className="grid grid-cols-2 gap-2">
                 <label className="text-xs font-medium text-muted">
                   Budget from (₱)

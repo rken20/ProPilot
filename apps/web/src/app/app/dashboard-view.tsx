@@ -145,7 +145,7 @@ export function DashboardView({
   return (
     <div className="pp-stagger space-y-5">
       {notice ? <Alert tone="success">{notice}</Alert> : null}
-      <UsageNotice items={usage} planCode={plan.code} canSeeBilling={canSeeBilling} />
+      <UsageNotice items={usage} planCode={plan.code} canSeeBilling={canSeeBilling} say={say} />
       <InstallBanner />
 
       {/* Greeting */}

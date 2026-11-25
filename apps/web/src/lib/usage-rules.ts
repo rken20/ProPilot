@@ -2,6 +2,7 @@
  * The monthly AI allowances a plan includes, and when to tell people they're
  * running low. Pure, so the app, the daily email and the tests share one rule.
  */
+import type { Say } from "./lang";
 
 /** From this share of an allowance on, people are told it's running low. */
 export const LOW_AT = 0.8;
@@ -10,11 +11,11 @@ export type UsageKey = "replies" | "finder" | "priceChecks" | "videoAds";
 export type UsageLevel = "ok" | "low" | "out";
 export type UsageItem = { key: UsageKey; used: number; limit: number; level: UsageLevel };
 
-export const USAGE_LABEL: Record<UsageKey, { name: string; unit: string; whenOut: string }> = {
-  replies: { name: "AI replies", unit: "replies", whenOut: "New buyer messages wait for a person until then." },
-  finder: { name: "Buyer Finder", unit: "AI-found buyers", whenOut: "Buyer Finder adds no more buyers until then." },
-  priceChecks: { name: "Pricing Advisor", unit: "price checks", whenOut: "No more price checks can run until then." },
-  videoAds: { name: "Video Ad Maker", unit: "video ads", whenOut: "No more video ads can be made until then." },
+export const USAGE_LABEL: Record<UsageKey, { name: string; unit: string; whenOut: string; whenOutTl: string }> = {
+  replies: { name: "AI replies", unit: "replies", whenOut: "New buyer messages wait for a person until then.", whenOutTl: "Hanggang doon, tao muna ang sasagot sa mga bagong buyer message." },
+  finder: { name: "Buyer Finder", unit: "AI-found buyers", whenOut: "Buyer Finder adds no more buyers until then.", whenOutTl: "Hanggang doon, wala munang madadagdag na buyer ang Buyer Finder." },
+  priceChecks: { name: "Pricing Advisor", unit: "price checks", whenOut: "No more price checks can run until then.", whenOutTl: "Hanggang doon, wala munang price check na magagawa." },
+  videoAds: { name: "Video Ad Maker", unit: "video ads", whenOut: "No more video ads can be made until then.", whenOutTl: "Hanggang doon, wala munang video ad na magagawa." },
 };
 
 export function usageLevel(used: number, limit: number): UsageLevel {
@@ -53,10 +54,16 @@ export function crossed(before: number, now: number, limit: number): "low" | "ou
 
 const n = (v: number) => v.toLocaleString("en-PH");
 
-/** One sentence for a notice: what is low or used up. */
-export function usageSentence(item: UsageItem): string {
+/** One sentence for a notice: what is low or used up. In English unless given the business's `say`. */
+export function usageSentence(item: UsageItem, say: Say = (english) => english): string {
   const label = USAGE_LABEL[item.key];
   return item.level === "out"
-    ? `${label.name}: all ${n(item.limit)} ${label.unit} for this month are used. ${label.whenOut}`
-    : `${label.name}: ${n(item.used)} of ${n(item.limit)} ${label.unit} used this month, ${n(item.limit - item.used)} left.`;
+    ? say(
+        `${label.name}: all ${n(item.limit)} ${label.unit} for this month are used. ${label.whenOut}`,
+        `${label.name}: nagamit na lahat ng ${n(item.limit)} ${label.unit} ngayong buwan. ${label.whenOutTl}`,
+      )
+    : say(
+        `${label.name}: ${n(item.used)} of ${n(item.limit)} ${label.unit} used this month, ${n(item.limit - item.used)} left.`,
+        `${label.name}: ${n(item.used)} sa ${n(item.limit)} ${label.unit} na ang nagamit ngayong buwan, ${n(item.limit - item.used)} na lang ang natitira.`,
+      );
 }

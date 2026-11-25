@@ -1,3 +1,4 @@
+import { sayIn, toLang } from "./lang";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { esc, sendEmail } from "./email";
@@ -59,10 +60,16 @@ export async function sendUsageEmails(admin: SupabaseClient, appOrigin: string, 
       const to = (profiles ?? []).map((p) => p.email as string | null).filter((e): e is string => Boolean(e));
       const out = news.some((i) => i.level === "out");
       const up = nextPlan(plan.code);
-      const advice = `Allowances renew on the 1st.${up ? ` For more this month, upgrade to ${up.name} in Billing.` : ""}`;
-      const lines = news.map(usageSentence);
+      const { data: settings } = await admin.from("agent_settings").select("chat_language").eq("business_id", businessId).maybeSingle();
+      const say = sayIn(toLang(settings?.chat_language));
+      const advice =
+        say("Allowances renew on the 1st.", "Nagre-renew ang allowances tuwing a-uno.") +
+        (up ? say(` For more this month, upgrade to ${up.name} in Billing.`, ` Kung kailangan mo pa ngayong buwan, mag-upgrade sa ${up.name} sa Billing.`) : "");
+      const lines = news.map((item) => usageSentence(item, say));
       const url = `${appOrigin}/app/billing`;
-      const subject = out ? `Your ${plan.name} plan: an AI allowance is used up` : `Your ${plan.name} plan: an AI allowance is running low`;
+      const subject = out
+        ? say(`Your ${plan.name} plan: an AI allowance is used up`, `${plan.name} plan mo: ubos na ang isang AI allowance`)
+        : say(`Your ${plan.name} plan: an AI allowance is running low`, `${plan.name} plan mo: paubos na ang isang AI allowance`);
       const res = await sendEmail({
         to,
         subject,

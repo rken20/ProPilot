@@ -1,3 +1,4 @@
+import { appSay } from "@/lib/lang-server";
 import { redirect } from "next/navigation";
 import { CircleCheck, CircleDashed, CircleX, Sparkles } from "lucide-react";
 import { can } from "@propilot/shared";
@@ -23,6 +24,7 @@ const DECIDED: Record<string, { label: string; tone: string }> = {
 
 export default async function AgentsPage() {
   const biz = await requireBusiness();
+  const say = await appSay();
   if (!can(biz.role, "lead.viewAll") && !can(biz.role, "lead.viewAssigned")) redirect("/app");
   const supabase = await createClient();
 
@@ -64,7 +66,7 @@ export default async function AgentsPage() {
     <>
       <PageHeader
         title="AI agents"
-        description="Your AI sales team goes through your leads every morning and suggests what to do next. Nothing goes to a buyer until someone on your team approves it."
+        description={say("Your AI sales team goes through your leads every morning and suggests what to do next. Nothing goes to a buyer until someone on your team approves it.", "Tuwing umaga, dinadaanan ng AI sales team mo ang leads mo at nagsa-suggest ng susunod na gagawin. Walang mapupunta sa buyer hangga't walang nag-a-approve sa team mo.")}
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -85,11 +87,11 @@ export default async function AgentsPage() {
             ) : (
               <div className="rounded-2xl border border-dashed border-line bg-white px-6 py-12 text-center">
                 <CircleCheck className="mx-auto size-8 text-good" aria-hidden />
-                <p className="mt-3 font-semibold">You&apos;re all caught up</p>
+                <p className="mt-3 font-semibold">{say("You're all caught up", "Wala ka nang naiwan")}</p>
                 <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
                   {lastRun
-                    ? `Last check ${timeAgo(lastRun.started_at)}: ${lastRun.summary ?? "done"}`
-                    : "The first check runs tomorrow morning. Owners and admins can run it now."}
+                    ? say(`Last check ${timeAgo(lastRun.started_at)}: ${lastRun.summary ?? "done"}`, `Huling check ${timeAgo(lastRun.started_at)}: ${lastRun.summary ?? "done"}`)
+                    : say("The first check runs tomorrow morning. Owners and admins can run it now.", "Bukas ng umaga ang unang check. Pwede itong i-run ngayon ng owners at admins.")}
                 </p>
               </div>
             )}
@@ -127,7 +129,7 @@ export default async function AgentsPage() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-muted">Nothing yet. What the agents find and what your team decides will show up here.</p>
+              <p className="text-sm text-muted">{say("Nothing yet. What the agents find and what your team decides will show up here.", "Wala pa. Dito lalabas ang makikita ng agents at ang mga desisyon ng team mo.")}</p>
             )}
           </section>
         </div>
@@ -152,7 +154,7 @@ export default async function AgentsPage() {
                       {a.name}{" "}
                       <span className="text-xs font-normal text-muted">{!a.live ? "· Coming next" : a.key !== "pipeline" && !aiOn ? "· Basic plan" : cfg.enabled ? "· On" : "· Paused"}</span>
                     </p>
-                    <p className="text-xs text-muted">{a.does}</p>
+                    <p className="text-xs text-muted">{say(a.does, a.doesTl)}</p>
                   </div>
                 </li>
               ))}

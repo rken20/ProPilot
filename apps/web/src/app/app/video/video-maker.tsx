@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Download, Pause, Play, Plus, Share2, Sparkles, X } from "lucide-react";
@@ -64,6 +65,7 @@ export function VideoMaker({
   /** Takes one video from the month's allowance (a server action). */
   begin: typeof startVideoAd;
 }) {
+  const say = useSay();
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const first = byId.get(initialId) ?? items[0]!;
   const start = useMemo(() => cleanPlan(null, first.listing, first.photos.length, language), [first, language]);
@@ -221,11 +223,11 @@ export function VideoMaker({
   async function make() {
     if (!ad || busy) return;
     const clean = cleanText(text);
-    if (clean.hook.length < 3) return setMaking({ kind: "error", message: "Write a headline for the ad first." });
+    if (clean.hook.length < 3) return setMaking({ kind: "error", message: say("Write a headline for the ad first.", "Sumulat muna ng headline para sa ad.") });
     setMaking({ kind: "starting" });
     const key = JSON.stringify([id, template, shape, clean, picks]);
     if (counted.current !== key) {
-      const res = await begin(id, template, shape, clean).catch(() => ({ ok: undefined, left: undefined, error: "Couldn't reach the server. Check your connection and try again." }));
+      const res = await begin(id, template, shape, clean).catch(() => ({ ok: undefined, left: undefined, error: say("Couldn't reach the server. Check your connection and try again.", "Hindi maabot ang server. I-check ang connection mo at subukan ulit.") }));
       if (res.error || !res.ok) return setMaking({ kind: "error", message: res.error ?? "Couldn't start the video. Please try again." });
       counted.current = key;
       if (res.left !== undefined) setLeft(res.left);
@@ -239,7 +241,7 @@ export function VideoMaker({
       if (e instanceof DOMException && e.name === "AbortError") return setMaking({ kind: "idle" });
       setMaking({
         kind: "error",
-        message: "The video couldn't be made on this device. It wasn't counted again, so you can press Make the video once more, or try in Chrome on a computer.",
+        message: say("The video couldn't be made on this device. It wasn't counted again, so you can press Make the video once more, or try in Chrome on a computer.", "Hindi nagawa ang video sa device na ito. Hindi ito binilang ulit, kaya pwede mong pindutin ulit ang Make the video, o subukan sa Chrome sa computer."),
       });
     }
   }
@@ -270,7 +272,7 @@ export function VideoMaker({
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
       <Panel title="Listing" className="lg:col-start-1">
-        <Field label="Which listing is the ad for?" htmlFor="video-listing" hint="Only listings that are available or reserved are shown.">
+        <Field label="Which listing is the ad for?" htmlFor="video-listing" hint={say("Only listings that are available or reserved are shown.", "Available o reserved na listings lang ang ipinapakita.")}>
           <Select id="video-listing" value={id} onChange={(e) => choose(e.target.value)} disabled={busy}>
             {items.map((i) => (
               <option key={i.id} value={i.id}>
@@ -292,8 +294,13 @@ export function VideoMaker({
           <fieldset className="mt-4">
             <legend className="text-sm font-medium text-ink">Opening photo</legend>
             <p className="mt-0.5 text-xs text-muted">
-              The first thing people see, so pick the most striking one.
-              {item.photos.length < 3 ? ` With ${item.photos.length === 1 ? "one photo" : "two photos"} the ad repeats them; three or more make a better video.` : ""}
+              {say("The first thing people see, so pick the most striking one.", "Ito ang unang makikita ng tao, kaya piliin ang pinakamaganda.")}
+              {item.photos.length < 3
+                ? say(
+                    ` With ${item.photos.length === 1 ? "one photo" : "two photos"} the ad repeats them; three or more make a better video.`,
+                    ` Sa ${item.photos.length === 1 ? "isang photo" : "dalawang photo"}, uulit-ulitin lang ito ng ad; mas maganda ang video kung tatlo o higit pa.`,
+                  )
+                : ""}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {item.thumbs.map((src, i) => (
@@ -324,7 +331,7 @@ export function VideoMaker({
           {ad ? (
             <canvas ref={canvas} width={size.width} height={size.height} className="size-full" aria-label={`Preview of the video ad for ${item.listing.name}`} />
           ) : (
-            <p className="p-6 text-center text-sm text-white/80">{photoError ? "The photos couldn't be loaded. Check your connection and reload." : item.photos.length ? "Loading the photos…" : "No photos to show."}</p>
+            <p className="p-6 text-center text-sm text-white/80">{photoError ? say("The photos couldn't be loaded. Check your connection and reload.", "Hindi na-load ang photos. I-check ang connection mo at i-reload.") : item.photos.length ? "Loading the photos…" : "No photos to show."}</p>
           )}
         </div>
         <div className="mt-3 flex items-center gap-3">
@@ -350,7 +357,7 @@ export function VideoMaker({
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-grape-50">
                 <div className="h-full rounded-full bg-grape-600 transition-[width]" style={{ width: `${Math.round(making.progress * 100)}%` }} />
               </div>
-              <p className="mt-2 text-xs text-muted">Keep this page open. It&apos;s made on your device, so nothing is uploaded.</p>
+              <p className="mt-2 text-xs text-muted">{say("Keep this page open. It's made on your device, so nothing is uploaded.", "Huwag isara ang page na ito. Sa device mo ito ginagawa, kaya walang ina-upload.")}</p>
               <button type="button" onClick={() => abort.current?.abort()} className={cx(buttonClass("secondary"), "mt-3")}>
                 Cancel
               </button>
@@ -380,7 +387,11 @@ export function VideoMaker({
                 {making.kind === "starting" ? "Starting…" : "Make the Video"}
               </button>
               <p className="mt-2 text-center text-xs text-muted tabular-nums">
-                {left === null ? "Unlimited video ads on your plan." : left === 0 ? `All ${limit} video ads made this month. They renew on the 1st.` : `${left} of ${limit} video ads left this month.`}
+                {left === null
+                  ? say("Unlimited video ads on your plan.", "Unlimited ang video ads sa plan mo.")
+                  : left === 0
+                    ? say(`All ${limit} video ads made this month. They renew on the 1st.`, `Nagawa na lahat ng ${limit} video ads ngayong buwan. Magre-renew sa a-uno.`)
+                    : say(`${left} of ${limit} video ads left this month.`, `${left} sa ${limit} video ads na lang ngayong buwan.`)}
               </p>
             </>
           )}
@@ -428,10 +439,13 @@ export function VideoMaker({
         <Panel title="Template">
           <p className="mt-1 text-sm text-muted" role="status">
             {planning
-              ? "The AI is looking at the photos, choosing a template and writing the text…"
+              ? say("The AI is looking at the photos, choosing a template and writing the text…", "Tinitingnan ng AI ang photos, pumipili ng template at sinusulat ang text…")
               : suggestion?.byAi
-                ? `The AI ${suggestion.sawPhotos ? "looked at the photos and " : ""}suggests ${TEMPLATES[suggestion.template].label}${suggestion.reason ? `: ${suggestion.reason}` : "."}`
-                : "Pick the look of the ad. You can change it any time before making the video."}
+                ? say(
+                    `The AI ${suggestion.sawPhotos ? "looked at the photos and " : ""}suggests ${TEMPLATES[suggestion.template].label}${suggestion.reason ? `: ${suggestion.reason}` : "."}`,
+                    `${suggestion.sawPhotos ? "Tiningnan ng AI ang photos at ang suggestion nito ay" : "Suggestion ng AI ang"} ${TEMPLATES[suggestion.template].label}${suggestion.reason ? `: ${suggestion.reason}` : "."}`,
+                  )
+                : say("Pick the look of the ad. You can change it any time before making the video.", "Piliin ang itsura ng ad. Pwede mo itong palitan kahit kailan bago gawin ang video.")}
           </p>
           <div role="radiogroup" aria-label="Template" className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {TEMPLATE_IDS.map((t) => (
@@ -461,10 +475,10 @@ export function VideoMaker({
 
         <Panel title="Text">
           <p className="mt-1 text-sm text-muted">
-            Every word is yours to change. The price, location, financing and your business name come from the listing and are added for you.
+            {say("Every word is yours to change. The price, location, financing and your business name come from the listing and are added for you.", "Pwede mong palitan ang bawat salita. Galing sa listing ang presyo, location, financing at pangalan ng business mo, at kusa nang idinadagdag.")}
           </p>
           <div className="mt-4 space-y-4">
-            <Field label="Headline" htmlFor="video-hook" hint="People decide in about three seconds. Lead with what makes this property stand out.">
+            <Field label="Headline" htmlFor="video-hook" hint={say("People decide in about three seconds. Lead with what makes this property stand out.", "Mga tatlong segundo lang bago mag-decide ang tao. Unahin kung ano ang nagpapa-stand out sa property na ito.")}>
               <Input id="video-hook" value={text.hook} maxLength={LIMITS.hook} disabled={busy} onChange={(e) => edit((t) => ({ ...t, hook: e.target.value }))} />
             </Field>
             {otherHooks.length ? (
@@ -534,7 +548,7 @@ export function VideoMaker({
                 </button>
               ) : null}
             </fieldset>
-            <Field label="Call to action" htmlFor="video-cta" hint="What should the viewer do next?">
+            <Field label="Call to action" htmlFor="video-cta" hint={say("What should the viewer do next?", "Ano ang dapat gawin ng manonood pagkatapos?")}>
               <Input id="video-cta" value={text.cta} maxLength={LIMITS.cta} disabled={busy} onChange={(e) => edit((t) => ({ ...t, cta: e.target.value }))} />
             </Field>
             {item.photos.length ? (

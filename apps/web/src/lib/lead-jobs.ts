@@ -1,3 +1,4 @@
+import { sayIn, toLang } from "./lang";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { decryptSecret } from "./crypto";
@@ -64,7 +65,9 @@ export async function notifyNewLead(requestId: string, appOrigin: string) {
       members.map((m) => m.user_id),
     );
     const to = (profiles ?? []).map((p) => p.email as string | null).filter((e): e is string => Boolean(e));
-    const mail = newLeadEmail(l, property, business.name as string, `${appOrigin}/app/leads`);
+    // In the business's language: Taglish unless they chose English.
+    const { data: settings } = await admin.from("agent_settings").select("chat_language").eq("business_id", l.business_id).maybeSingle();
+    const mail = newLeadEmail(l, property, business.name as string, `${appOrigin}/app/leads`, sayIn(toLang(settings?.chat_language)));
     const res = await sendEmail({ to, ...mail });
     if (!res.sent && res.reason !== "email not configured") log("notifyNewLead", res.reason);
   } catch (e) {

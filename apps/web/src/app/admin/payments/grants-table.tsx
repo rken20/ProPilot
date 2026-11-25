@@ -1,3 +1,4 @@
+import type { Say } from "@/lib/lang";
 import { SubmitButton } from "@/components/submit-button";
 
 export type Grant = {
@@ -24,7 +25,9 @@ const day = new Intl.DateTimeFormat("en-PH", {
 export function GrantsTable({
   grants,
   cancel,
+  say,
 }: {
+  say: Say;
   grants: Grant[];
   cancel: (id: string) => Promise<void>;
 }) {
@@ -66,7 +69,10 @@ export function GrantsTable({
                     ? `On for ${g.businesses?.name ?? "a business that was since removed"}${g.payments?.period_end ? `, until ${day.format(new Date(g.payments.period_end))}` : ""}`
                     : g.cancelled_at
                       ? "Cancelled"
-                      : "Waiting for them to sign up and set up a business"}
+                      : say(
+                          "Waiting for them to sign up and set up a business",
+                          "Hinihintay silang mag-sign up at mag-set up ng business",
+                        )}
                 </td>
                 <td className="px-4 py-3 text-right">
                   {!g.claimed_at && !g.cancelled_at ? (

@@ -1,3 +1,4 @@
+import { appSay } from "@/lib/lang-server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { can } from "@propilot/shared";
@@ -17,6 +18,7 @@ import { VideoMaker, type VideoItem } from "./video-maker";
 export const maxDuration = 30;
 
 export default async function VideoAdPage({ searchParams }: PageProps<"/app/video">) {
+  const say = await appSay();
   const sp = await searchParams;
   const biz = await requireBusiness();
   if (!can(biz.role, "content.create") && !can(biz.role, "property.update")) redirect("/app");
@@ -25,7 +27,7 @@ export default async function VideoAdPage({ searchParams }: PageProps<"/app/vide
   const header = (
     <PageHeader
       title="Video Ad Maker"
-      description="Turn a listing's photos into a short video ad for Facebook, TikTok and Reels. The AI looks at the photos, picks a template and writes the text; you can change all of it."
+      description={say("Turn a listing's photos into a short video ad for Facebook, TikTok and Reels. The AI looks at the photos, picks a template and writes the text; you can change all of it.", "Gawing short video ad ang photos ng listing para sa Facebook, TikTok at Reels. Tinitingnan ng AI ang photos, pumipili ng template at sinusulat ang text; pwede mong palitan lahat.")}
     />
   );
 
@@ -38,8 +40,10 @@ export default async function VideoAdPage({ searchParams }: PageProps<"/app/vide
           <div className="min-w-0 flex-1 basis-64">
             <h2 className="text-xl font-extrabold tracking-tight">Part of the Pro and Agency plans</h2>
             <p className="mt-1 max-w-xl text-sm text-ink/80">
-              Pro makes 10 video ads a month and Agency 30. Each one is built from your own photos, in four templates and three shapes (vertical, square and wide),
-              with the price, location and your business name. The property is shown exactly as it is.
+              {say(
+                "Pro makes 10 video ads a month and Agency 30. Each one is built from your own photos, in six templates and three shapes (vertical, square and wide), with the price, location and your business name. The property is shown exactly as it is.",
+                "10 video ads kada buwan sa Pro at 30 sa Agency. Bawat isa, gawa sa sarili mong photos, sa anim na templates at tatlong shapes (vertical, square at wide), kasama ang presyo, location at pangalan ng business mo. Ipinapakita ang property kung ano talaga ito.",
+              )}
             </p>
           </div>
           {can(biz.role, "billing.view") ? (
@@ -87,7 +91,7 @@ export default async function VideoAdPage({ searchParams }: PageProps<"/app/vide
           <div>
             <Icon3d name="houses" size={72} className="mx-auto" />
             <p className="mt-3 text-lg font-bold">Add a property first</p>
-            <p className="mx-auto mt-1 max-w-md text-sm text-muted">A video ad is made from a listing&apos;s photos and details.</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-muted">{say("A video ad is made from a listing's photos and details.", "Gawa ang video ad mula sa photos at details ng listing.")}</p>
             {can(biz.role, "property.create") ? (
               <Link href="/app/properties/new" className={`${buttonClass("primary")} mt-4`}>
                 Add a property

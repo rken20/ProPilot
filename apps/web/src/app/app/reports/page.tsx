@@ -1,3 +1,4 @@
+import { appSay } from "@/lib/lang-server";
 import { redirect } from "next/navigation";
 import { can } from "@propilot/shared";
 import { requireBusiness } from "@/lib/auth";
@@ -18,6 +19,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/app/repo
 
   return (
     <ReportsView
+      say={await appSay()}
       range={range}
       leads={leadsReport(d.vr, convsInRange, range)}
       listings={listingReport(d.props, d.vr, convsInRange, d.saves, d.questions, d.posts)}

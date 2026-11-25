@@ -1,5 +1,6 @@
 "use server";
 
+import { appSay } from "@/lib/lang-server";
 import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
@@ -14,15 +15,16 @@ import { teamSeatsUsed } from "@/lib/plan-limits";
 
 /** Rename the business. Its name shows in the app and as "listed by" on every public listing page. Owners and admins only (the database enforces it too). */
 export async function renameBusiness(_prev: FormState, form: FormData): Promise<FormState> {
+  const say = await appSay();
   const biz = await requireBusiness();
   const name = str(form, "businessName").replace(/\s+/g, " ").trim();
-  if (!can(biz.role, "business.update")) return { error: "Only the owner or an admin can rename the business.", data: { businessName: name } };
-  if (name.length < 2 || name.length > 120) return { fieldErrors: { businessName: "Use 2 to 120 characters." }, data: { businessName: name } };
+  if (!can(biz.role, "business.update")) return { error: say("Only the owner or an admin can rename the business.", "Owner o admin lang ang pwedeng mag-rename ng business."), data: { businessName: name } };
+  if (name.length < 2 || name.length > 120) return { fieldErrors: { businessName: say("Use 2 to 120 characters.", "Gumamit ng 2 hanggang 120 characters.") }, data: { businessName: name } };
   const supabase = await createClient();
   const { data, error } = await supabase.from("businesses").update({ name, updated_at: new Date().toISOString() }).eq("id", biz.businessId).select("id");
-  if (error || !data?.length) return { error: "Couldn't save the name. Please try again.", data: { businessName: name } };
+  if (error || !data?.length) return { error: say("Couldn't save the name. Please try again.", "Hindi na-save ang pangalan. Paki-try ulit."), data: { businessName: name } };
   revalidatePath("/app", "layout");
-  return { ok: true, message: "Saved. Public listing pages show the new name now.", data: { businessName: name } };
+  return { ok: true, message: say("Saved. Public listing pages show the new name now.", "Na-save na. Ang bagong pangalan na ang makikita sa public listing pages."), data: { businessName: name } };
 }
 
 /** One switch for the business: the app's screens for the whole team and the AI's chat replies to buyers. */
@@ -51,15 +53,16 @@ export async function setBusinessLanguage(_prev: FormState, form: FormData): Pro
 }
 
 export async function inviteMember(_prev: FormState, form: FormData): Promise<FormState> {
+  const say = await appSay();
   const user = await requireUser();
   const biz = await requireBusiness();
-  if (!can(biz.role, "team.invite")) return { error: "Your role can't invite people." };
+  if (!can(biz.role, "team.invite")) return { error: say("Your role can't invite people.", "Hindi pwedeng mag-invite ang role mo.") };
 
   const data = { email: str(form, "email"), role: str(form, "role") };
   const parsed = inviteMemberSchema.safeParse(data);
-  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error), data };
+  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error, say), data };
   if (parsed.data.role === "owner" || !canAssignRole(biz.role, parsed.data.role)) {
-    return { fieldErrors: { role: "You can't invite someone with this role." }, data };
+    return { fieldErrors: { role: say("You can't invite someone with this role.", "Hindi ka pwedeng mag-invite ng may ganitong role.") }, data };
   }
 
   // The plan sets how many people a business can have (owner and open invitations included).
@@ -83,12 +86,12 @@ export async function inviteMember(_prev: FormState, form: FormData): Promise<Fo
     token_hash: tokenHash,
     invited_by: user.id,
   });
-  if (error) return { error: "Couldn't create the invitation. Please try again.", data };
+  if (error) return { error: say("Couldn't create the invitation. Please try again.", "Hindi nagawa ang invitation. Paki-try ulit."), data };
 
   revalidatePath("/app/team");
   return {
     ok: true,
-    message: `Invite created for ${parsed.data.email}. Send them this link (valid 7 days):`,
+    message: say(`Invite created for ${parsed.data.email}. Send them this link (valid 7 days):`, `Nagawa na ang invite para kay ${parsed.data.email}. I-send sa kanila ang link na ito (valid nang 7 araw):`),
     data: { link: `${await getOrigin()}/invite/${token}` },
   };
 }

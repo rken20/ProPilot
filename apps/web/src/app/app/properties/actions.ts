@@ -1,5 +1,7 @@
 "use server";
 
+import type { Say } from "@/lib/lang";
+import { appSay } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
@@ -26,7 +28,7 @@ function readForm(form: FormData) {
   return { data, checks };
 }
 
-function validate(form: FormData) {
+function validate(form: FormData, say: Say) {
   const { data, checks } = readForm(form);
   const price = pesosToCentavos(data.price);
   const reservation = pesosToCentavos(data.reservationFee);
@@ -43,11 +45,11 @@ function validate(form: FormData) {
     financing: { ...checks, downpaymentPercent: dp, notes: data.financingNotes || undefined },
   });
   if (!parsed.success) {
-    const fe = fieldErrorsFrom(parsed.error);
+    const fe = fieldErrorsFrom(parsed.error, say);
     // Map nested schema paths to the form's field names.
-    if (fe["price.amountMinor"]) fe.price = "Enter the price in pesos, e.g. 4500000";
-    if (fe["reservationFee.amountMinor"]) fe.reservationFee = "Enter a peso amount, e.g. 25000";
-    if (fe["financing.downpaymentPercent"]) fe.downpaymentPercent = "Enter a percentage from 0 to 100";
+    if (fe["price.amountMinor"]) fe.price = say("Enter the price in pesos, e.g. 4500000", "Ilagay ang presyo sa pesos, hal. 4500000");
+    if (fe["reservationFee.amountMinor"]) fe.reservationFee = say("Enter a peso amount, e.g. 25000", "Maglagay ng amount sa pesos, hal. 25000");
+    if (fe["financing.downpaymentPercent"]) fe.downpaymentPercent = say("Enter a percentage from 0 to 100", "Maglagay ng percentage mula 0 hanggang 100");
     return { ok: false as const, state: { fieldErrors: fe, data: { ...data, ...flagData(checks), isPublic: form.get("isPublic") === "on" ? "on" : "" } } };
   }
   return { ok: true as const, value: parsed.data, isPublic: form.get("isPublic") === "on" };
@@ -72,11 +74,12 @@ function toRow(v: ReturnType<typeof propertySchema.parse>) {
 }
 
 export async function createProperty(_prev: FormState, form: FormData): Promise<FormState> {
+  const say = await appSay();
   const user = await requireUser();
   const biz = await requireBusiness();
-  if (!can(biz.role, "property.create")) return { error: "Your role can't add properties." };
+  if (!can(biz.role, "property.create")) return { error: say("Your role can't add properties.", "Hindi pwedeng mag-add ng properties ang role mo.") };
 
-  const result = validate(form);
+  const result = validate(form, say);
   if (!result.ok) return result.state;
 
   const supabase = await createClient();
@@ -86,7 +89,7 @@ export async function createProperty(_prev: FormState, form: FormData): Promise<
     .insert({ ...toRow(result.value), is_public: result.isPublic, business_id: biz.businessId, created_by: user.id })
     .select("id")
     .single();
-  if (error) return { error: "Couldn't save the property. Please try again.", data: readForm(form).data };
+  if (error) return { error: say("Couldn't save the property. Please try again.", "Hindi na-save ang property. Paki-try ulit."), data: readForm(form).data };
 
   // Started from a connected Page's post: copy its photos once the page has responded.
   const ref = /^([0-9a-f-]{36}):(\d+_\d+)$/i.exec(str(form, "importPost"));
@@ -104,10 +107,11 @@ export async function createProperty(_prev: FormState, form: FormData): Promise<
 }
 
 export async function updateProperty(id: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const say = await appSay();
   const biz = await requireBusiness();
-  if (!can(biz.role, "property.update")) return { error: "Your role can't edit properties." };
+  if (!can(biz.role, "property.update")) return { error: say("Your role can't edit properties.", "Hindi pwedeng mag-edit ng properties ang role mo.") };
 
-  const result = validate(form);
+  const result = validate(form, say);
   if (!result.ok) return result.state;
 
   const supabase = await createClient();
@@ -117,8 +121,8 @@ export async function updateProperty(id: string, _prev: FormState, form: FormDat
     .eq("id", id)
     .eq("business_id", biz.businessId)
     .select("id");
-  if (error) return { error: "Couldn't save changes. Please try again." };
-  if (!data?.length) return { error: "You can't edit this property." };
+  if (error) return { error: say("Couldn't save changes. Please try again.", "Hindi na-save ang changes. Paki-try ulit.") };
+  if (!data?.length) return { error: say("You can't edit this property.", "Hindi mo pwedeng i-edit ang property na ito.") };
 
   revalidatePath("/app/properties");
   return { ok: true, message: "Saved." };

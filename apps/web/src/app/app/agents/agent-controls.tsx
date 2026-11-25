@@ -29,7 +29,7 @@ export function AgentSettingsForm({ enabled, followUpDays, chatLanguage }: { ena
         <input type="checkbox" name="enabled" defaultChecked={enabled} className="mt-0.5 size-4 accent-[var(--color-brand-600)]" />
         <span>
           <span className="font-medium">Run every morning</span>
-          <span className="block text-muted">Around 6 AM Philippine time. Turn off to pause all agents.</span>
+          <span className="block text-muted">{say("Around 6 AM Philippine time. Turn off to pause all agents.", "Mga 6 AM, oras sa Pilipinas. I-off para i-pause ang lahat ng agents.")}</span>
         </span>
       </label>
       <div>

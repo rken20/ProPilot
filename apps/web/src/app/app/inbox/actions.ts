@@ -1,5 +1,6 @@
 "use server";
 
+import { appSay } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
 import { can } from "@propilot/shared";
 import { requireBusiness, requireUser } from "@/lib/auth";
@@ -26,12 +27,13 @@ async function ownConversation(id: string) {
 
 /** Reply as the Page from MyHomeSeller. Replying takes the conversation over from the AI. */
 export async function sendAgentMessage(conversationId: string, _prev: SendState, form: FormData): Promise<SendState> {
+  const say = await appSay();
   const user = await requireUser();
   const found = await ownConversation(conversationId);
-  if (!found) return { error: "You can't reply to this conversation." };
+  if (!found) return { error: say("You can't reply to this conversation.", "Hindi ka pwedeng mag-reply sa conversation na ito.") };
   const { biz, conv } = found;
   const admin = createAdminClient();
-  if (!admin) return { error: "Replying isn't available right now." };
+  if (!admin) return { error: say("Replying isn't available right now.", "Hindi available ang pag-reply ngayon.") };
   const res = await sendAsTeam(admin, biz.businessId, conv as TeamConversation, str(form, "text"), user.id);
   if (res.error) return { error: res.error };
   revalidatePath("/app/inbox");

@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { requireBusiness } from "@/lib/auth";
+import { BUSINESS_COOKIE, getMemberships, requireBusiness } from "@/lib/auth";
 import {
   SITE_LANG_COOKIE,
   sayIn,
@@ -52,4 +52,18 @@ export async function siteLang(): Promise<Lang> {
 
 export async function siteSay(): Promise<Say> {
   return sayIn(await siteLang());
+}
+
+/**
+ * For a signed-in screen outside the app's own pages (the admin screens): the
+ * person's business language, or the device's if they have no business. Never redirects.
+ */
+export async function userLang(): Promise<Lang> {
+  const memberships = await getMemberships();
+  if (!memberships.length) return siteLang();
+  const chosen = (await cookies()).get(BUSINESS_COOKIE)?.value;
+  return businessLang(
+    (memberships.find((m) => m.businessId === chosen) ?? memberships[0]!)
+      .businessId,
+  );
 }

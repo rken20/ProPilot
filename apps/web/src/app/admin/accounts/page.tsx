@@ -1,3 +1,4 @@
+import { userLang } from "@/lib/lang-server";
 import type { Account, AdminCounts } from "@/lib/admin-accounts";
 import { requireSuperAdmin } from "@/lib/superadmin";
 import { AdminTabs } from "../admin-tabs";
@@ -67,6 +68,7 @@ export default async function AdminAccountsPage({
         now={new Date()}
         actions={{ setPlan, setRestricted, deleteAccount }}
         limit={LIMIT}
+        lang={await userLang()}
       />
     </main>
   );

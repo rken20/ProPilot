@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useActionState, useState } from "react";
 import { Alert, Button, Field, Input, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -9,6 +10,7 @@ import { inviteMember } from "./actions";
 export function InviteForm({ roles }: { roles: Array<{ value: string; label: string }> }) {
   const [state, action] = useActionState(inviteMember, initialFormState);
   const [copied, setCopied] = useState(false);
+  const say = useSay();
   const link = state.ok ? state.data?.link : undefined;
 
   return (
@@ -29,7 +31,7 @@ export function InviteForm({ roles }: { roles: Array<{ value: string; label: str
               {copied ? "Copied" : "Copy"}
             </Button>
           </div>
-          <p className="mt-2 text-xs">Email delivery of invites comes later in the beta. For now, send the link yourself.</p>
+          <p className="mt-2 text-xs">{say("Email delivery of invites comes later in the beta. For now, send the link yourself.", "Sa susunod pa ang pag-email ng invites. Sa ngayon, ikaw muna ang mag-send ng link.")}</p>
         </Alert>
       ) : null}
       {state.error ? <Alert>{state.error}</Alert> : null}

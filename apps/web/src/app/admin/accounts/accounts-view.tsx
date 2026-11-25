@@ -1,3 +1,4 @@
+import { sayIn, type Lang, type Say } from "@/lib/lang";
 import {
   Alert,
   Badge,
@@ -70,7 +71,9 @@ function PlanForm({
   now,
   setPlan,
   plans,
+  say,
 }: {
+  say: Say;
   b: AccountBusiness;
   q: string;
   now: Date;
@@ -113,8 +116,10 @@ function PlanForm({
           Save plan
         </SubmitButton>
         <p className="w-full text-xs text-muted">
-          Free ends the paid plan now, and the date is ignored. Nothing is
-          charged either way.
+          {say(
+            "Free ends the paid plan now, and the date is ignored. Nothing is charged either way.",
+            "Kapag Free, matatapos agad ang paid plan at hindi na gagamitin ang date. Walang sisingilin alinman dito.",
+          )}
         </p>
       </form>
     </details>
@@ -128,7 +133,9 @@ function AccountCard({
   now,
   actions,
   plans,
+  say,
 }: {
+  say: Say;
   a: Account;
   meId: string;
   q: string;
@@ -186,6 +193,7 @@ function AccountCard({
               </p>
               {b.role === "owner" ? (
                 <PlanForm
+                  say={say}
                   b={b}
                   q={q}
                   now={now}
@@ -223,23 +231,39 @@ function AccountCard({
               <input type="hidden" name="q" value={q} />
               <div className="text-sm text-ink">
                 <p className="font-semibold">
-                  This can&apos;t be undone. It deletes:
+                  {say(
+                    "This can't be undone. It deletes:",
+                    "Hindi na ito maibabalik. Made-delete ang:",
+                  )}
                 </p>
                 <ul className="mt-1 list-disc space-y-0.5 pl-5">
-                  <li>Their sign-in, profile and photo</li>
+                  <li>
+                    {say(
+                      "Their sign-in, profile and photo",
+                      "Sign-in, profile at photo nila",
+                    )}
+                  </li>
                   {goes.map((b) => (
                     <li key={b.id}>
-                      <span className="font-semibold">{b.name}</span> and
-                      everything in it: {plural(b.listings, "listing")} with
-                      photos, leads, messages and offers
+                      <span className="font-semibold">{b.name}</span>{" "}
+                      {say(
+                        `and everything in it: ${plural(b.listings, "listing")} with photos, leads, messages and offers`,
+                        `at lahat ng laman nito: ${plural(b.listings, "listing")} kasama ang photos, leads, messages at offers`,
+                      )}
                     </li>
                   ))}
                 </ul>
                 {stays.length ? (
                   <p className="mt-2">
-                    Kept, because someone else owns or runs it:{" "}
-                    {stays.map((b) => b.name).join(", ")}. This person is only
-                    removed from it.
+                    {say(
+                      "Kept, because someone else owns or runs it:",
+                      "Mananatili, dahil may iba pang owner o nagpapatakbo nito:",
+                    )}{" "}
+                    {stays.map((b) => b.name).join(", ")}.{" "}
+                    {say(
+                      "This person is only removed from it.",
+                      "Aalisin lang dito ang taong ito.",
+                    )}
                   </p>
                 ) : null}
               </div>
@@ -278,7 +302,10 @@ export function AccountsView({
   now,
   actions,
   limit,
+  lang,
 }: {
+  /** Taglish or English: the admin's own business language. */
+  lang: Lang;
   counts: AdminCounts;
   accounts: Account[];
   plans: Array<{ code: string; name: string }>;
@@ -290,6 +317,7 @@ export function AccountsView({
   limit: number;
 }) {
   const said = notice ? ACCOUNT_NOTICES[notice] : undefined;
+  const say = sayIn(lang);
   const byPlan = plans
     .map((p) => `${p.name} ${counts.plans[p.code] ?? 0}`)
     .join(" · ");
@@ -297,7 +325,10 @@ export function AccountsView({
     <>
       <PageHeader
         title="Accounts"
-        description="Everyone who has signed up, their businesses and plans. Change a plan, restrict an account or delete one."
+        description={say(
+          "Everyone who has signed up, their businesses and plans. Change a plan, restrict an account or delete one.",
+          "Lahat ng nag-sign up, pati ang businesses at plans nila. Magpalit ng plan, mag-restrict ng account o mag-delete.",
+        )}
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -323,7 +354,7 @@ export function AccountsView({
 
       {said ? (
         <div className="mb-4">
-          <Alert tone={said.tone}>{said.text}</Alert>
+          <Alert tone={said.tone}>{say(said.text, said.textTl)}</Alert>
         </div>
       ) : null}
 
@@ -358,16 +389,26 @@ export function AccountsView({
         <>
           <p className="mb-3 text-sm text-muted">
             {q
-              ? `${plural(accounts.length, "account")} found for “${q}”`
-              : `${plural(accounts.length, "account")}, newest first`}
+              ? say(
+                  `${plural(accounts.length, "account")} found for “${q}”`,
+                  `${plural(accounts.length, "account")} ang nahanap para sa “${q}”`,
+                )
+              : say(
+                  `${plural(accounts.length, "account")}, newest first`,
+                  `${plural(accounts.length, "account")}, pinakabago ang una`,
+                )}
             {accounts.length >= limit
-              ? `. Showing the first ${limit}: search to find others.`
+              ? say(
+                  `. Showing the first ${limit}: search to find others.`,
+                  `. Ang unang ${limit} lang ang ipinapakita: mag-search para mahanap ang iba.`,
+                )
               : ""}
           </p>
           <ul className="space-y-4">
             {accounts.map((a) => (
               <li key={a.user_id}>
                 <AccountCard
+                  say={say}
                   a={a}
                   meId={meId}
                   q={q}
@@ -382,7 +423,12 @@ export function AccountsView({
       ) : (
         <Card>
           <p className="font-semibold">
-            {q ? `No account matches “${q}”.` : "Nobody has signed up yet."}
+            {q
+              ? say(
+                  `No account matches “${q}”.`,
+                  `Walang account na tugma sa “${q}”.`,
+                )
+              : say("Nobody has signed up yet.", "Wala pang nag-sign up.")}
           </p>
         </Card>
       )}

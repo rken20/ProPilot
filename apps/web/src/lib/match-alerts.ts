@@ -1,3 +1,4 @@
+import type { Say } from "./lang";
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -49,6 +50,8 @@ export async function saveAlert(
   admin: SupabaseClient,
   origin: string,
   input: { email: string; name: string; wants: Wants; businessId: string; propertyId: string },
+  /** The language of the page the buyer signed up on. */
+  say: Say = (english) => english,
 ): Promise<boolean> {
   if (!matchAlertsOn() || !input.wants.consent) return false;
   // Don't let anyone flood an address with confirmation emails.
@@ -80,9 +83,12 @@ export async function saveAlert(
   const url = `${origin}/alerts/${alertToken(row.id as string)}`;
   const subject = "Confirm your property match emails";
   const lines = [
-    `Hi ${input.name}, you asked MyHomeSeller to email you properties that fit what you're looking for.`,
-    "Please confirm it was you. We won't send anything until you do.",
-    "If this wasn't you, ignore this email and nothing will be saved.",
+    say(
+      `Hi ${input.name}, you asked MyHomeSeller to email you properties that fit what you're looking for.`,
+      `Hi ${input.name}, hiniling mo sa MyHomeSeller na i-email ka ng mga property na bagay sa hanap mo.`,
+    ),
+    say("Please confirm it was you. We won't send anything until you do.", "Paki-confirm na ikaw nga ito. Wala kaming ise-send hangga't hindi mo kino-confirm."),
+    say("If this wasn't you, ignore this email and nothing will be saved.", "Kung hindi ikaw ito, huwag pansinin ang email na ito at walang mase-save."),
   ];
   const res = await sendEmail({
     to: [input.email],
@@ -184,7 +190,9 @@ export async function sendMatchEmails(admin: SupabaseClient, origin: string, now
       const manage = `${origin}/alerts/${alertToken(alert.id)}`;
       const subject = picks.length === 1 ? "A property that fits what you're looking for" : `${picks.length} properties that fit what you're looking for`;
       const rows = picks.map((l) => ({ title: l.name, detail: `${TYPE_LABEL[l.type as keyof typeof TYPE_LABEL] ?? l.type} · ${l.location} · ${formatPeso(l.price_minor)}`, url: `${origin}${publicListingPath(l.id)}` }));
-      const why = "You get this because you asked MyHomeSeller to email you matching properties. The sellers don't have your details unless you send them an inquiry.";
+      // Buyers don't choose a language, so these are in the app's default, Taglish.
+      const why =
+        "Natatanggap mo ito dahil hiniling mo sa MyHomeSeller na i-email ka ng mga property na bagay sa'yo. Walang hawak na details mo ang sellers maliban kung mag-send ka sa kanila ng inquiry.";
       const res = await sendEmail({
         to: [a.email as string],
         subject,

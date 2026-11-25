@@ -1,3 +1,4 @@
+import type { Say } from "@/lib/lang";
 import Link from "next/link";
 import { TriangleAlert } from "lucide-react";
 import { buttonClass, cx } from "@/components/ui";
@@ -10,7 +11,10 @@ export function UsageNotice({
   canSeeBilling,
   onBilling = false,
   className,
+  say,
 }: {
+  /** Taglish or English, the business's choice. */
+  say: Say;
   items: UsageItem[];
   planCode: string;
   canSeeBilling: boolean;
@@ -31,15 +35,21 @@ export function UsageNotice({
     >
       <TriangleAlert className={cx("size-6 shrink-0", out ? "text-hot" : "text-brass-700")} aria-hidden />
       <div className="min-w-0 flex-1 basis-64">
-        <h2 className="text-[15px] font-extrabold tracking-tight">{out ? "An AI allowance is used up" : "An AI allowance is running low"}</h2>
+        <h2 className="text-[15px] font-extrabold tracking-tight">{out ? say("An AI allowance is used up", "Ubos na ang isang AI allowance") : say("An AI allowance is running low", "Paubos na ang isang AI allowance")}</h2>
         <ul className="mt-1 space-y-0.5 text-sm text-ink/85 tabular-nums">
           {flagged.map((i) => (
-            <li key={i.key}>{usageSentence(i)}</li>
+            <li key={i.key}>{usageSentence(i, say)}</li>
           ))}
         </ul>
         <p className="mt-1 text-xs text-ink/70">
-          Allowances renew on the 1st.
-          {up ? (onBilling ? ` ${up.name} includes more: see the plans below.` : canSeeBilling ? ` ${up.name} includes more.` : ` ${up.name} includes more. Ask the owner about upgrading.`) : ""}
+          {say("Allowances renew on the 1st.", "Nagre-renew ang allowances tuwing a-uno.")}
+          {up
+            ? onBilling
+              ? say(` ${up.name} includes more: see the plans below.`, ` Mas marami sa ${up.name}: tingnan ang plans sa baba.`)
+              : canSeeBilling
+                ? say(` ${up.name} includes more.`, ` Mas marami sa ${up.name}.`)
+                : say(` ${up.name} includes more. Ask the owner about upgrading.`, ` Mas marami sa ${up.name}. Itanong sa owner ang pag-upgrade.`)
+            : ""}
         </p>
       </div>
       {up && canSeeBilling && !onBilling ? (

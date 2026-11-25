@@ -1,5 +1,7 @@
 "use server";
 
+import { sayIn } from "@/lib/lang";
+import { userLang } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
 import { getOrigin } from "@/lib/auth";
 import { emailOwners } from "@/lib/billing-email";
@@ -82,14 +84,15 @@ export type GrantByEmailState = { error?: string; plan?: string; results?: Grant
  */
 export async function grantByEmail(_prev: GrantByEmailState, form: FormData): Promise<GrantByEmailState> {
   const { user, admin } = await requireSuperAdmin();
+  const say = sayIn(await userLang());
   const { emails, invalid, tooMany } = parseEmails(str(form, "emails").slice(0, 10_000));
   const months = Number(str(form, "months"));
   const note = str(form, "note").replace(/\s+/g, " ").trim().slice(0, 200);
-  if (!emails.length) return { error: invalid.length ? `Not an email address: ${invalid.join(", ")}` : "Type at least one email address." };
-  if (tooMany) return { error: `Give at most ${MAX_GRANT_EMAILS} emails at a time.` };
-  if (!GRANT_MONTHS.includes(months as (typeof GRANT_MONTHS)[number])) return { error: "Choose how many months." };
+  if (!emails.length) return { error: invalid.length ? say(`Not an email address: ${invalid.join(", ")}`, `Hindi email address: ${invalid.join(", ")}`) : say("Type at least one email address.", "Mag-type ng kahit isang email address.") };
+  if (tooMany) return { error: say(`Give at most ${MAX_GRANT_EMAILS} emails at a time.`, `Hanggang ${MAX_GRANT_EMAILS} emails lang sa isang pagkakataon.`) };
+  if (!GRANT_MONTHS.includes(months as (typeof GRANT_MONTHS)[number])) return { error: say("Choose how many months.", "Piliin kung ilang months.") };
   const { data: plan } = await admin.from("plans").select("code, name").eq("code", str(form, "plan")).eq("is_active", true).neq("price_minor", 0).maybeSingle();
-  if (!plan) return { error: "Choose a plan." };
+  if (!plan) return { error: say("Choose a plan.", "Pumili ng plan.") };
 
   const origin = await getOrigin();
   const results: GrantResult[] = [];

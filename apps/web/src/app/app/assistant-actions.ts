@@ -1,5 +1,6 @@
 "use server";
 
+import { appLang, appSay } from "@/lib/lang-server";
 import Anthropic from "@anthropic-ai/sdk";
 import { can } from "@propilot/shared";
 import { getProfile, requireBusiness } from "@/lib/auth";
@@ -10,22 +11,23 @@ import { loadReportData } from "@/lib/report-data";
 import { fmtDuration, leadsReport, messengerReport, parseRange } from "@/lib/reports";
 import { createClient } from "@/lib/supabase/server";
 import { aiEnabled } from "@/lib/plan";
-import { UPGRADE_MESSAGE } from "@/lib/plan-rules";
+import { upgradeMessage } from "@/lib/plan-rules";
 
 const ROLE = { owner: "owner", admin: "admin", agent: "agent", marketing: "marketing" } as const;
 
 /** One turn of "Ask MyHomeSeller". Reads use the person's own access; nothing is changed. */
 export async function askAgentAssistant(raw: AgentTurn[]): Promise<{ reply?: string; error?: string }> {
+  const say = await appSay();
   const biz = await requireBusiness();
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return { error: "The AI isn't switched on yet." };
-  if (!(await aiEnabled(biz.businessId))) return { error: UPGRADE_MESSAGE };
+  if (!apiKey) return { error: say("The AI isn't switched on yet.", "Hindi pa naka-on ang AI.") };
+  if (!(await aiEnabled(biz.businessId))) return { error: upgradeMessage(say) };
   const history = sanitizeAgentHistory(raw);
-  if (!history.length || history.at(-1)!.role !== "user") return { error: "Ask a question first." };
+  if (!history.length || history.at(-1)!.role !== "user") return { error: say("Ask a question first.", "Magtanong muna.") };
 
   const supabase = await createClient();
   const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "agent_assistant", p_limit: 40, p_window_seconds: 3600 });
-  if (allowed !== true) return { error: "You've asked a lot in the last hour. Please try again later." };
+  if (allowed !== true) return { error: say("You've asked a lot in the last hour. Please try again later.", "Marami ka nang naitanong nitong huling oras. Paki-try ulit mamaya.") };
 
   const since = (days?: number) => new Date(Date.now() - (days ?? 3650) * 86_400_000).toISOString();
   const canSeeLeads = can(biz.role, "lead.viewAll") || can(biz.role, "lead.viewAssigned");
@@ -153,6 +155,7 @@ export async function askAgentAssistant(raw: AgentTurn[]): Promise<{ reply?: str
         role: ROLE[biz.role as keyof typeof ROLE] ?? "member",
         businessName: biz.businessName,
         today: new Date().toLocaleDateString("en-PH", { dateStyle: "full", timeZone: "Asia/Manila" }),
+        language: await appLang(),
       },
       tools,
       history,
@@ -160,6 +163,6 @@ export async function askAgentAssistant(raw: AgentTurn[]): Promise<{ reply?: str
     return { reply };
   } catch (e) {
     console.error("[assistant] failed:", e instanceof Error ? e.message : String(e));
-    return { error: "Couldn't answer just now. Please try again." };
+    return { error: say("Couldn't answer just now. Please try again.", "Hindi makasagot ngayon. Paki-try ulit.") };
   }
 }

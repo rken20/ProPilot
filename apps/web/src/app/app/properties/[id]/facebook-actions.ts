@@ -1,5 +1,6 @@
 "use server";
 
+import { appSay } from "@/lib/lang-server";
 import Anthropic from "@anthropic-ai/sdk";
 import { revalidatePath } from "next/cache";
 import { can } from "@propilot/shared";
@@ -31,26 +32,27 @@ async function loadListing(propertyId: string, businessId: string) {
 
 /** Post a listing to one of the business's connected Pages, with its photos. */
 export async function publishToFacebook(propertyId: string, prev: PublishState, form: FormData): Promise<PublishState> {
+  const say = await appSay();
   const user = await requireUser();
   const biz = await requireBusiness();
   const fail = (error: string): PublishState => ({ ...prev, error, postedTo: undefined });
-  if (!can(biz.role, "content.publish")) return fail("Your role can't post to Facebook.");
+  if (!can(biz.role, "content.publish")) return fail(say("Your role can't post to Facebook.", "Hindi pwedeng mag-post sa Facebook ang role mo."));
 
   const listing = await loadListing(propertyId, biz.businessId);
   const cfg = metaConfig();
   const admin = createAdminClient();
-  if (!listing || !cfg || !admin) return fail("Posting to Facebook isn't available right now.");
+  if (!listing || !cfg || !admin) return fail(say("Posting to Facebook isn't available right now.", "Hindi available ang pag-post sa Facebook ngayon."));
 
   const page = await pageWithToken(biz.businessId, str(form, "page"));
-  if (!page) return fail("Pick a connected Page.");
-  if (!canPublish(page.tasks)) return fail(`You need to be an admin or editor of ${page.name} on Facebook to post there.`);
+  if (!page) return fail(say("Pick a connected Page.", "Pumili ng naka-connect na Page."));
+  if (!canPublish(page.tasks)) return fail(say(`You need to be an admin or editor of ${page.name} on Facebook to post there.`, `Kailangan admin o editor ka ng ${page.name} sa Facebook para makapag-post doon.`));
 
   const caption = str(form, "caption").slice(0, MAX_CAPTION);
-  if (caption.length < 10) return fail("Write a caption first.");
+  if (caption.length < 10) return fail(say("Write a caption first.", "Sumulat muna ng caption."));
 
   const supabase = await createClient();
   const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "fb_publish", p_limit: 10, p_window_seconds: 3600 });
-  if (allowed !== true) return fail("You've posted a lot in the last hour. Please try again later.");
+  if (allowed !== true) return fail(say("You've posted a lot in the last hour. Please try again later.", "Marami ka nang na-post nitong huling oras. Paki-try ulit mamaya."));
 
   let photoPaths: string[] = [];
   if (form.get("photos") === "on") {
@@ -87,22 +89,23 @@ export async function publishToFacebook(propertyId: string, prev: PublishState, 
     revalidatePath(`/app/properties/${listing.id}`);
     if (e instanceof GraphError && e.tokenInvalid) return fail(RECONNECT_MESSAGE);
     console.error("[meta] publish failed:", message);
-    return fail("Facebook didn't accept the post. Please try again, or post fewer photos.");
+    return fail(say("Facebook didn't accept the post. Please try again, or post fewer photos.", "Hindi tinanggap ng Facebook ang post. Paki-try ulit, o bawasan ang photos."));
   }
 }
 
 /** Draft a caption with the AI, from the listing's facts only. Saves and posts nothing. */
 export async function draftCaption(propertyId: string): Promise<{ caption?: string; error?: string }> {
+  const say = await appSay();
   const biz = await requireBusiness();
-  if (!can(biz.role, "content.publish")) return { error: "Your role can't post to Facebook." };
+  if (!can(biz.role, "content.publish")) return { error: say("Your role can't post to Facebook.", "Hindi pwedeng mag-post sa Facebook ang role mo.") };
   const listing = await loadListing(propertyId, biz.businessId);
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!listing) return { error: "Listing not found." };
+  if (!listing) return { error: say("Listing not found.", "Hindi makita ang listing.") };
   if (!apiKey || !(await aiEnabled(biz.businessId))) return { caption: defaultCaption(listing) };
 
   const supabase = await createClient();
   const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "caption_draft", p_limit: 30, p_window_seconds: 3600 });
-  if (allowed !== true) return { error: "You've drafted a lot of captions in the last hour. Please try again later." };
+  if (allowed !== true) return { error: say("You've drafted a lot of captions in the last hour. Please try again later.", "Marami ka nang na-draft na caption nitong huling oras. Paki-try ulit mamaya.") };
 
   try {
     const res = await new Anthropic({ apiKey }).messages.create({
@@ -122,6 +125,6 @@ Reply with the post text only.`,
     return { caption: (text || defaultCaption(listing)).slice(0, MAX_CAPTION) };
   } catch (e) {
     console.error("caption draft failed", e instanceof Error ? e.message : e);
-    return { error: "Couldn't draft a caption just now. You can still edit the one below." };
+    return { error: say("Couldn't draft a caption just now. You can still edit the one below.", "Hindi nakagawa ng caption draft ngayon. Pwede mo pa ring i-edit ang nasa baba.") };
   }
 }

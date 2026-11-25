@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useActionState } from "react";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -14,6 +15,7 @@ export function GrantByEmail({
   plans: Array<{ code: string; name: string }>;
   give: typeof grantByEmail;
 }) {
+  const say = useSay();
   const [state, action] = useActionState<GrantByEmailState, FormData>(give, {});
   return (
     <>
@@ -21,7 +23,10 @@ export function GrantByEmail({
         <Field
           label="Emails"
           htmlFor="grant-emails"
-          hint={`The email each tester signs in with. One per line or separated by commas, up to ${MAX_GRANT_EMAILS} at a time.`}
+          hint={say(
+            `The email each tester signs in with. One per line or separated by commas, up to ${MAX_GRANT_EMAILS} at a time.`,
+            `Ang email na gamit ng bawat tester sa pag-sign in. Isa kada linya o pinaghihiwalay ng comma, hanggang ${MAX_GRANT_EMAILS} sa isang pagkakataon.`,
+          )}
         >
           <Textarea
             id="grant-emails"
@@ -93,7 +98,7 @@ export function GrantByEmail({
                       : "block text-muted"
                   }
                 >
-                  {grantLine(r, state.plan ?? "The plan")}
+                  {grantLine(r, state.plan ?? "The plan", say)}
                 </span>
               </li>
             ))}

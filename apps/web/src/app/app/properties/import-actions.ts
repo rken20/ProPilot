@@ -1,5 +1,6 @@
 "use server";
 
+import { appSay } from "@/lib/lang-server";
 import Anthropic from "@anthropic-ai/sdk";
 import { can } from "@propilot/shared";
 import { requireBusiness } from "@/lib/auth";
@@ -10,7 +11,7 @@ import { GraphError, metaConfig, pagePost, postImageUrls, recentPosts } from "@/
 import { fillFromPost, KEY_FIELDS, MAX_POST_CHARS } from "@/lib/post-import";
 import { createClient } from "@/lib/supabase/server";
 import { aiEnabled } from "@/lib/plan";
-import { UPGRADE_MESSAGE } from "@/lib/plan-rules";
+import { upgradeMessage } from "@/lib/plan-rules";
 
 export type ImportState = {
   values?: Record<string, string>;
@@ -25,18 +26,19 @@ export type ImportState = {
 
 /** Read an agent's own post and return Add property form values. Saves nothing. */
 export async function importFromPost(prev: ImportState, form: FormData): Promise<ImportState> {
+  const say = await appSay();
   // On an error, keep the last fill so the form and the open paste box don't reset.
   const fail = (error: string): ImportState => ({ values: prev.values, missing: prev.missing, nonce: prev.nonce, error });
   const biz = await requireBusiness();
-  if (!can(biz.role, "property.create")) return fail("Your role can't add properties.");
+  if (!can(biz.role, "property.create")) return fail(say("Your role can't add properties.", "Hindi pwedeng mag-add ng properties ang role mo."));
 
   const post = str(form, "post");
-  if (post.length < 20) return fail("Paste the full text of your post first.");
-  if (post.length > MAX_POST_CHARS) return fail(`That's over ${MAX_POST_CHARS.toLocaleString()} characters. Paste one listing at a time.`);
+  if (post.length < 20) return fail(say("Paste the full text of your post first.", "I-paste muna ang buong text ng post mo."));
+  if (post.length > MAX_POST_CHARS) return fail(say(`That's over ${MAX_POST_CHARS.toLocaleString()} characters. Paste one listing at a time.`, `Lampas ${MAX_POST_CHARS.toLocaleString()} characters iyan. Isang listing lang ang i-paste sa bawat pagkakataon.`));
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return fail("Filling from a post isn't switched on yet.");
-  if (!(await aiEnabled(biz.businessId))) return fail(UPGRADE_MESSAGE);
+  if (!apiKey) return fail(say("Filling from a post isn't switched on yet.", "Hindi pa naka-on ang pag-fill mula sa post."));
+  if (!(await aiEnabled(biz.businessId))) return fail(upgradeMessage(say));
 
   const supabase = await createClient();
   const [hour, day] = await Promise.all([
@@ -44,7 +46,7 @@ export async function importFromPost(prev: ImportState, form: FormData): Promise
     supabase.rpc("consume_rate_limit", { p_bucket: "post_import_day", p_limit: 60, p_window_seconds: 86400 }),
   ]);
   if (hour.error || day.error || hour.data !== true || day.data !== true) {
-    return fail("You've filled a lot of listings from posts today. Please try again later.");
+    return fail(say("You've filled a lot of listings from posts today. Please try again later.", "Marami ka nang na-fill na listing mula sa posts ngayong araw. Paki-try ulit mamaya."));
   }
 
   let values: Record<string, string>;
@@ -52,10 +54,10 @@ export async function importFromPost(prev: ImportState, form: FormData): Promise
     values = await fillFromPost(new Anthropic({ apiKey }), process.env.ANTHROPIC_MODEL || DEFAULT_MODEL, post);
   } catch (e) {
     console.error("post import failed", e instanceof Error ? e.message : e);
-    return fail("Couldn't read the post just now. Please try again in a minute.");
+    return fail(say("Couldn't read the post just now. Please try again in a minute.", "Hindi nabasa ang post ngayon. Paki-try ulit pagkalipas ng isang minuto."));
   }
   if (!values.name && !values.price && !values.location) {
-    return fail("Couldn't find listing details in that text. Check you pasted the whole post.");
+    return fail(say("Couldn't find listing details in that text. Check you pasted the whole post.", "Walang nakitang listing details sa text na iyan. I-check kung buong post ang na-paste mo."));
   }
   return {
     values,
@@ -68,11 +70,12 @@ export type PostSummary = { id: string; text: string; createdAt: string; image: 
 
 /** Recent posts on one of the business's connected Pages. */
 export async function listPagePosts(pageRowId: string): Promise<{ posts?: PostSummary[]; error?: string }> {
+  const say = await appSay();
   const biz = await requireBusiness();
-  if (!can(biz.role, "property.create")) return { error: "Your role can't add properties." };
+  if (!can(biz.role, "property.create")) return { error: say("Your role can't add properties.", "Hindi pwedeng mag-add ng properties ang role mo.") };
   const cfg = metaConfig();
   const page = await pageWithToken(biz.businessId, pageRowId);
-  if (!cfg || !page) return { error: "That Page isn't connected." };
+  if (!cfg || !page) return { error: say("That Page isn't connected.", "Hindi naka-connect ang Page na iyan.") };
   try {
     const posts = await recentPosts(fetch, cfg, page.pageId, page.token);
     return {
@@ -93,20 +96,21 @@ export async function listPagePosts(pageRowId: string): Promise<{ posts?: PostSu
   } catch (e) {
     if (e instanceof GraphError && e.tokenInvalid) return { error: RECONNECT_MESSAGE };
     console.error("[meta] list posts failed:", e instanceof Error ? e.message : e);
-    return { error: "Couldn't load posts from Facebook. Please try again." };
+    return { error: say("Couldn't load posts from Facebook. Please try again.", "Hindi na-load ang posts mula sa Facebook. Paki-try ulit.") };
   }
 }
 
 /** Fill the form from one of the business's own Page posts. Its photos are copied when the listing is saved. */
 export async function importPagePost(prev: ImportState, form: FormData): Promise<ImportState> {
+  const say = await appSay();
   const fail = (error: string): ImportState => ({ ...prev, error });
   const biz = await requireBusiness();
-  if (!can(biz.role, "property.create")) return fail("Your role can't add properties.");
+  if (!can(biz.role, "property.create")) return fail(say("Your role can't add properties.", "Hindi pwedeng mag-add ng properties ang role mo."));
   const pageRowId = str(form, "page");
   const postId = str(form, "postId");
   const cfg = metaConfig();
   const page = await pageWithToken(biz.businessId, pageRowId);
-  if (!cfg || !page || !/^\d+_\d+$/.test(postId)) return fail("That post isn't available.");
+  if (!cfg || !page || !/^\d+_\d+$/.test(postId)) return fail(say("That post isn't available.", "Hindi available ang post na iyan."));
 
   let message = "";
   let photoCount = 0;
@@ -116,9 +120,9 @@ export async function importPagePost(prev: ImportState, form: FormData): Promise
     photoCount = postImageUrls(post).length;
   } catch (e) {
     if (e instanceof GraphError && e.tokenInvalid) return fail(RECONNECT_MESSAGE);
-    return fail("Couldn't load that post from Facebook. Please try again.");
+    return fail(say("Couldn't load that post from Facebook. Please try again.", "Hindi na-load ang post na iyan mula sa Facebook. Paki-try ulit."));
   }
-  if (!message) return fail("That post has no text to fill the form from.");
+  if (!message) return fail(say("That post has no text to fill the form from.", "Walang text ang post na iyan na pwedeng pang-fill sa form."));
 
   let values: Record<string, string> = { description: message };
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -126,7 +130,7 @@ export async function importPagePost(prev: ImportState, form: FormData): Promise
   if (apiKey && (await aiEnabled(biz.businessId))) {
     const supabase = await createClient();
     const { data: ok } = await supabase.rpc("consume_rate_limit", { p_bucket: "post_import_hour", p_limit: 20, p_window_seconds: 3600 });
-    if (ok !== true) return fail("You've filled a lot of listings from posts today. Please try again later.");
+    if (ok !== true) return fail(say("You've filled a lot of listings from posts today. Please try again later.", "Marami ka nang na-fill na listing mula sa posts ngayong araw. Paki-try ulit mamaya."));
     try {
       const filled = await fillFromPost(new Anthropic({ apiKey }), process.env.ANTHROPIC_MODEL || DEFAULT_MODEL, message);
       if (Object.keys(filled).length) values = filled;

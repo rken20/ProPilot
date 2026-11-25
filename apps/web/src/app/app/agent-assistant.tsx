@@ -1,20 +1,22 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useEffect, useRef, useState } from "react";
 import { SendHorizontal, Sparkles, X } from "lucide-react";
 import { buttonClass, cx } from "@/components/ui";
 import type { AgentTurn } from "@/lib/agent-assistant";
 import { askAgentAssistant } from "./assistant-actions";
 
-const SUGGESTIONS = [
-  "Which leads haven't been contacted yet?",
-  "How did we do in the last 7 days?",
-  "Which chats are waiting for a reply?",
-  "Draft a Facebook post for my newest listing",
+const SUGGESTIONS: Array<[english: string, taglish: string]> = [
+  ["Which leads haven't been contacted yet?", "Aling leads ang hindi pa nakokontak?"],
+  ["How did we do in the last 7 days?", "Kumusta ang results natin nitong huling 7 araw?"],
+  ["Which chats are waiting for a reply?", "Aling chats ang naghihintay ng reply?"],
+  ["Draft a Facebook post for my newest listing", "Gumawa ng draft na Facebook post para sa pinakabago kong listing"],
 ];
 
 /** "Ask MyHomeSeller": a panel on every app page. It reads the team's data and drafts text; it never sends or changes anything. */
 export function AgentAssistant() {
+  const say = useSay();
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<AgentTurn[]>([]);
   const [text, setText] = useState("");
@@ -83,7 +85,7 @@ export function AgentAssistant() {
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="font-semibold">Ask MyHomeSeller</h2>
-              <p className="text-xs text-muted">Reads your leads, listings and chats. It drafts; you send.</p>
+              <p className="text-xs text-muted">{say("Reads your leads, listings and chats. It drafts; you send.", "Binabasa nito ang leads, listings at chats mo. Ito ang gagawa ng draft; ikaw ang magse-send.")}</p>
             </div>
             <button type="button" onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-muted hover:bg-zinc-100 hover:text-ink" aria-label="Close">
               <X className="size-4" aria-hidden />
@@ -93,7 +95,7 @@ export function AgentAssistant() {
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
             {turns.length === 0 ? (
               <div className="space-y-2">
-                {SUGGESTIONS.map((s) => (
+                {SUGGESTIONS.map((pair) => say(...pair)).map((s) => (
                   <button
                     key={s}
                     type="button"
@@ -153,7 +155,7 @@ export function AgentAssistant() {
                     ask(text);
                   }
                 }}
-                placeholder="Ask about leads, listings or results"
+                placeholder={say("Ask about leads, listings or results", "Magtanong tungkol sa leads, listings o results")}
                 className="min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none"
               />
               <button disabled={busy || !text.trim()} className={buttonClass("primary", "min-h-9 px-2.5")} aria-label="Ask">

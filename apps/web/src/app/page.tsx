@@ -16,11 +16,12 @@ import { HeroChat } from "./_home/hero-chat";
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 /** The plans as the Billing page sells them (prices match the plans table). */
-const PLANS: Array<{ name: string; for: string; price: string; icon: Icon3dName; tile: string; lines: string[] }> = [
-  { name: "Free", for: "To try it out", price: "₱0", icon: "key", tile: "bg-white", lines: ["Listings with public pages", "Inquiries, Leads and inbox", "1 team member, no AI"] },
-  { name: "Basic", for: "Property owners", price: "₱499", icon: "house", tile: "bg-tile-mint", lines: ["AI replies, up to 3,000 a month", "Buyer Finder: 5 buyers a month", "Lead scoring and AI writing", "2 team members"] },
-  { name: "Pro", for: "Agents", price: "₱999", icon: "rocket", tile: "bg-tile-lavender", lines: ["AI replies, up to 10,000 a month", "Buyer Finder: 20 buyers a month", "Video Ad Maker: 10 video ads a month", "5 team members"] },
-  { name: "Agency", for: "Brokerages and teams", price: "₱2,499", icon: "trophy", tile: "bg-tile-peach", lines: ["AI replies, up to 25,000 a month", "Buyer Finder: 60 buyers a month", "Video Ad Maker: 30 video ads a month", "15 team members"] },
+type Pair = [english: string, taglish: string];
+const PLANS: Array<{ name: string; for: Pair; price: string; icon: Icon3dName; tile: string; lines: Pair[] }> = [
+  { name: "Free", for: ["To try it out", "Para masubukan"], price: "₱0", icon: "key", tile: "bg-white", lines: [["Listings with public pages", "Listings na may public pages"], ["Inquiries, Leads and inbox", "Inquiries, Leads at inbox"], ["1 team member, no AI", "1 team member, walang AI"]] },
+  { name: "Basic", for: ["Property owners", "Para sa property owners"], price: "₱499", icon: "house", tile: "bg-tile-mint", lines: [["AI replies, up to 3,000 a month", "AI replies, hanggang 3,000 kada buwan"], ["Buyer Finder: 5 buyers a month", "Buyer Finder: 5 buyers kada buwan"], ["Lead scoring and AI writing", "Lead scoring at AI writing"], ["2 team members", "2 team members"]] },
+  { name: "Pro", for: ["Agents", "Para sa mga agent"], price: "₱999", icon: "rocket", tile: "bg-tile-lavender", lines: [["AI replies, up to 10,000 a month", "AI replies, hanggang 10,000 kada buwan"], ["Buyer Finder: 20 buyers a month", "Buyer Finder: 20 buyers kada buwan"], ["Video Ad Maker: 10 video ads a month", "Video Ad Maker: 10 video ads kada buwan"], ["5 team members", "5 team members"]] },
+  { name: "Agency", for: ["Brokerages and teams", "Para sa brokerages at teams"], price: "₱2,499", icon: "trophy", tile: "bg-tile-peach", lines: [["AI replies, up to 25,000 a month", "AI replies, hanggang 25,000 kada buwan"], ["Buyer Finder: 60 buyers a month", "Buyer Finder: 60 buyers kada buwan"], ["Video Ad Maker: 30 video ads a month", "Video Ad Maker: 30 video ads kada buwan"], ["15 team members", "15 team members"]] },
 ];
 
 const wrap = "mx-auto w-full max-w-6xl px-6 lg:px-8";
@@ -128,7 +129,7 @@ export default async function Home() {
           <div className={`${wrap} ${screen}`}>
             <div className="max-w-2xl">
               <h2 className="font-display text-[2rem] leading-tight font-extrabold sm:text-[2.6rem]">From Listing to Buyer in Three Steps</h2>
-              <p className="mt-3 text-lg text-muted">You do the first step. The AI does the other two while you&apos;re showing another unit.</p>
+              <p className="mt-3 text-lg text-muted">{say("You do the first step. The AI does the other two while you're showing another unit.", "Ikaw sa unang step. Ang AI na ang bahala sa dalawa pa habang nagpapakita ka ng ibang unit.")}</p>
             </div>
             <ol className="mt-10 grid gap-5 lg:grid-cols-3">
               <Step n={1} icon="houses" title="Add the Listing, Share Its Link" text={say("Price, financing, reservation fee and up to 20 photos. Each listing gets a public page to post on Facebook or send by text.", "Presyo, financing, reservation fee at hanggang 20 photos. May sariling public page ang bawat listing na pwedeng i-post sa Facebook o i-send sa text.")}>
@@ -157,7 +158,7 @@ export default async function Home() {
                   <div className="flex items-center justify-between gap-3 bg-frame-1 px-5 py-3 text-white">
                     <div>
                       <h3 className="text-lg font-extrabold tracking-tight">{p.name}</h3>
-                      <p className="text-xs font-semibold text-white/70">{p.for}</p>
+                      <p className="text-xs font-semibold text-white/70">{say(...p.for)}</p>
                     </div>
                     <Icon3d name={p.icon} size={40} />
                   </div>
@@ -168,9 +169,9 @@ export default async function Home() {
                     </p>
                     <ul className="mt-4 space-y-2 text-[15px]">
                       {p.lines.map((l) => (
-                        <li key={l} className="flex gap-2">
+                        <li key={l[0]} className="flex gap-2">
                           <CircleCheck className="mt-0.5 size-4.5 shrink-0 text-brand-600" aria-hidden />
-                          <span>{l}</span>
+                          <span>{say(...l)}</span>
                         </li>
                       ))}
                     </ul>

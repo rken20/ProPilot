@@ -138,7 +138,14 @@ export function toCsv(rows: ReadonlyArray<ReadonlyArray<string>>): string {
 }
 
 /** The email an agent gets when a buyer sends an inquiry or asks for a viewing. */
-export function newLeadEmail(lead: Lead, property: { name: string; location: string }, businessName: string, leadsUrl: string) {
+export function newLeadEmail(
+  lead: Lead,
+  property: { name: string; location: string },
+  businessName: string,
+  leadsUrl: string,
+  say: (english: string, taglish: string) => string = (english) => english,
+) {
+  const headline = say(`${lead.buyer_name} is interested in ${property.name}`, `Interested si ${lead.buyer_name} sa ${property.name}`);
   const lines: Array<[string, string]> = [
     ["Buyer", lead.buyer_name],
     ["Mobile", lead.buyer_phone],
@@ -151,19 +158,19 @@ export function newLeadEmail(lead: Lead, property: { name: string; location: str
   // Line breaks in a subject could add email headers.
   const subject = `New inquiry: ${property.name}`.replace(/[\r\n]+/g, " ").slice(0, 200);
   const text = [
-    `${lead.buyer_name} is interested in ${property.name}.`,
+    `${headline}.`,
     "",
     ...lines.map(([k, v]) => `${k}: ${v}`),
     "",
-    `Call or text them to confirm, then update the lead: ${leadsUrl}`,
+    say(`Call or text them to confirm, then update the lead: ${leadsUrl}`, `Tawagan o i-text sila para mag-confirm, tapos i-update ang lead: ${leadsUrl}`),
     "",
-    `Sent by MyHomeSeller to the team at ${businessName}.`,
+    say(`Sent by MyHomeSeller to the team at ${businessName}.`, `Ipinadala ng MyHomeSeller sa team ng ${businessName}.`),
   ].join("\n");
   const html = `<!doctype html><html><body style="margin:0;background:#f6f4fb;font-family:Arial,Helvetica,sans-serif;color:#0e1726">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e3e8f0;border-radius:12px">
 <tr><td style="padding:24px 24px 8px"><p style="margin:0;font-size:13px;color:#5b6577">MyHomeSeller</p>
-<h1 style="margin:8px 0 0;font-size:20px;line-height:1.3">${esc(lead.buyer_name)} is interested in ${esc(property.name)}</h1></td></tr>
+<h1 style="margin:8px 0 0;font-size:20px;line-height:1.3">${esc(headline)}</h1></td></tr>
 <tr><td style="padding:16px 24px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 ${lines.map(([k, v]) => `<tr><td style="padding:6px 0;width:130px;font-size:13px;color:#5b6577;vertical-align:top">${esc(k)}</td><td style="padding:6px 0;font-size:14px">${esc(v)}</td></tr>`).join("")}
 </table></td></tr>

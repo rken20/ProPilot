@@ -80,45 +80,73 @@ export function paidBusinesses(plans: Record<string, number>): number {
 /** What the screen says after an action, by the notice in the address. */
 export const ACCOUNT_NOTICES: Record<
   string,
-  { tone: "success" | "error"; text: string }
+  { tone: "success" | "error"; text: string; textTl: string }
 > = {
-  "plan-saved": { tone: "success", text: "Plan changed." },
+  "plan-saved": {
+    tone: "success",
+    text: "Plan changed.",
+    textTl: "Napalitan na ang plan.",
+  },
   "plan-failed": {
     tone: "error",
     text: "Couldn't change the plan. Check the plan and the end date, then try again.",
+    textTl:
+      "Hindi napalitan ang plan. I-check ang plan at end date, tapos subukan ulit.",
   },
   "bad-date": {
     tone: "error",
     text: "Choose an end date after today and within five years.",
+    textTl:
+      "Pumili ng end date na pagkatapos ng araw na ito at sa loob ng limang taon.",
   },
   restricted: {
     tone: "success",
     text: "Account restricted. They can't open their business, and a business only they own is off public pages.",
+    textTl:
+      "Na-restrict na ang account. Hindi nila mabubuksan ang business nila, at wala sa public pages ang business na sila lang ang owner.",
   },
-  unrestricted: { tone: "success", text: "Restriction lifted." },
+  unrestricted: {
+    tone: "success",
+    text: "Restriction lifted.",
+    textTl: "Inalis na ang restriction.",
+  },
   "restrict-failed": {
     tone: "error",
     text: "Couldn't change the restriction. Try again.",
+    textTl: "Hindi nabago ang restriction. Subukan ulit.",
   },
-  deleted: { tone: "success", text: "Account deleted." },
+  deleted: {
+    tone: "success",
+    text: "Account deleted.",
+    textTl: "Na-delete na ang account.",
+  },
   "email-mismatch": {
     tone: "error",
     text: "The email you typed doesn't match the account, so nothing was deleted.",
+    textTl:
+      "Hindi tugma sa account ang email na tinype mo, kaya walang na-delete.",
   },
   "delete-failed": {
     tone: "error",
     text: "Couldn't delete the account. Nothing was removed.",
+    textTl: "Hindi na-delete ang account. Walang natanggal.",
   },
   "signin-left": {
     tone: "error",
     text: "Their business data was deleted, but the sign-in itself couldn't be removed. Press Delete on the account again to finish.",
+    textTl:
+      "Na-delete na ang business data nila, pero hindi natanggal ang sign-in mismo. Pindutin ulit ang Delete sa account para matapos.",
   },
   "files-left": {
     tone: "error",
     text: "Account deleted, but some photo files couldn't be removed from storage. They are no longer linked from anywhere.",
+    textTl:
+      "Na-delete na ang account, pero may ilang photo file na hindi natanggal sa storage. Wala na itong link kahit saan.",
   },
   "not-allowed": {
     tone: "error",
     text: "That can't be done to your own account or another app admin's.",
+    textTl:
+      "Hindi iyan pwedeng gawin sa sarili mong account o sa account ng ibang app admin.",
   },
 };

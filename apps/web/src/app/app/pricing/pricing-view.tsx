@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
 import { ExternalLink } from "lucide-react";
@@ -12,10 +13,10 @@ import { checkPrice, setAskingPrice, type PriceState } from "./actions";
 
 type Property = { id: string; name: string; priceMinor: number };
 
-const OPTIONS: Array<{ key: keyof PricingReport["options"]; name: string; note: string; icon: Icon3dName; tile: string }> = [
-  { key: "fast", name: "Sell fast", note: "A competitive price to attract buyers quickly.", icon: "rocket", tile: "bg-tile-mint" },
-  { key: "market", name: "Market price", note: "Balanced, in line with similar listings.", icon: "target", tile: "bg-tile-lavender" },
-  { key: "premium", name: "Premium price", note: "A higher asking price. It may take longer to sell.", icon: "trophy", tile: "bg-tile-peach" },
+const OPTIONS: Array<{ key: keyof PricingReport["options"]; name: string; note: [english: string, taglish: string]; icon: Icon3dName; tile: string }> = [
+  { key: "fast", name: "Sell fast", note: ["A competitive price to attract buyers quickly.", "Competitive na presyo para mabilis makaakit ng buyers."], icon: "rocket", tile: "bg-tile-mint" },
+  { key: "market", name: "Market price", note: ["Balanced, in line with similar listings.", "Balanse, kapantay ng mga katulad na listing."], icon: "target", tile: "bg-tile-lavender" },
+  { key: "premium", name: "Premium price", note: ["A higher asking price. It may take longer to sell.", "Mas mataas na asking price. Baka mas matagal bago mabenta."], icon: "trophy", tile: "bg-tile-peach" },
 ];
 
 const CONFIDENCE = {
@@ -37,6 +38,7 @@ export function PricingAdvisor({
   property: Property | null;
   initial: { location: string; type: string };
 }) {
+  const say = useSay();
   const [state, action] = useActionState<PriceState, FormData>(checkPrice.bind(null, property?.id ?? null), {});
   const v = state.values ?? {};
   const e = state.fieldErrors ?? {};
@@ -55,7 +57,7 @@ export function PricingAdvisor({
             Checking the price of <span className="font-semibold">{property.name}</span>, now listed at <span className="font-semibold">{formatPeso(property.priceMinor)}</span>.
           </p>
         ) : null}
-        <Field label="Address or area" htmlFor="location" error={e.location} hint="The barangay or subdivision, the town or city, and the province.">
+        <Field label="Address or area" htmlFor="location" error={e.location} hint={say("The barangay or subdivision, the town or city, and the province.", "Barangay o subdivision, town o city, at province.")}>
           <Input id="location" name="location" defaultValue={v.location ?? initial.location} placeholder="Greenwoods, Santa Barbara, Iloilo" required />
         </Field>
         <Field label="Property type" htmlFor="type" error={e.type}>
@@ -91,11 +93,15 @@ export function PricingAdvisor({
           </Select>
         </Field>
         {state.error ? <Alert>{state.error}</Alert> : null}
-        <SubmitButton className="w-full" pendingText="Researching prices… up to a minute" disabled={!canRun || left === 0}>
+        <SubmitButton className="w-full" pendingText={say("Researching prices… up to a minute", "Nagre-research ng presyo… hanggang isang minuto")} disabled={!canRun || left === 0}>
           Check the price
         </SubmitButton>
         <p className="text-center text-xs text-muted tabular-nums">
-          {left === null ? "Unlimited price checks on your plan." : left === 0 ? `All ${limit} price checks used this month. They renew on the 1st.` : `${left} of ${limit} price checks left this month.`}
+          {left === null
+            ? say("Unlimited price checks on your plan.", "Unlimited ang price checks sa plan mo.")
+            : left === 0
+              ? say(`All ${limit} price checks used this month. They renew on the 1st.`, `Nagamit na lahat ng ${limit} price checks ngayong buwan. Magre-renew sa a-uno.`)
+              : say(`${left} of ${limit} price checks left this month.`, `${left} sa ${limit} price checks na lang ngayong buwan.`)}
         </p>
       </form>
 
@@ -106,9 +112,9 @@ export function PricingAdvisor({
           <div className="grid h-full min-h-72 place-items-center rounded-[1.5rem] border-2 border-dashed border-grape-100 p-8 text-center">
             <div>
               <Icon3d name="money" size={72} className="mx-auto" />
-              <p className="mt-3 text-lg font-bold">Your price report shows up here</p>
+              <p className="mt-3 text-lg font-bold">{say("Your price report shows up here", "Dito lalabas ang price report mo")}</p>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted">
-                A price range, the price per square meter, three asking prices to choose from, and a link to every comparable listing the AI used.
+                {say("A price range, the price per square meter, three asking prices to choose from, and a link to every comparable listing the AI used.", "Price range, presyo per square meter, tatlong asking price na mapagpipilian, at link sa bawat comparable listing na ginamit ng AI.")}
               </p>
             </div>
           </div>
@@ -120,6 +126,7 @@ export function PricingAdvisor({
 
 /** The report. On a listing each option can be set as its price; on Add a Property, `onPick` puts it in the price field. */
 export function PriceReport({ report, property, onPick }: { report: PricingReport; property: Property | null; onPick?: (priceMinor: number) => void }) {
+  const say = useSay();
   const c = CONFIDENCE[report.confidence];
   const web = report.comparables.filter((x) => x.source === "web").length;
   return (
@@ -137,7 +144,7 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
               <Icon3d name={o.icon} size={40} />
               <p className="mt-3 text-sm font-bold text-ink/80">{o.name}</p>
               <p className="mt-0.5 text-[1.6rem] leading-tight font-extrabold tracking-tight">{formatPeso(report.options[o.key])}</p>
-              <p className="mt-1 flex-1 text-xs text-ink/70">{o.note}</p>
+              <p className="mt-1 flex-1 text-xs text-ink/70">{say(...o.note)}</p>
               {onPick ? (
                 <button type="button" onClick={() => onPick(report.options[o.key])} className={cx(buttonClass("secondary"), "mt-4 w-full")}>
                   Use this price
@@ -172,10 +179,13 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
             </dd>
             <dd className="mt-0.5 text-xs text-muted">
               {report.basis === "comparables"
-                ? `From ${report.pricePerSqm?.count} comparable listings with both a price and ${report.pricePerSqm?.of === "lot" ? "a lot area" : "an area"}.`
+                ? say(
+                    `From ${report.pricePerSqm?.count} comparable listings with both a price and ${report.pricePerSqm?.of === "lot" ? "a lot area" : "an area"}.`,
+                    `Mula sa ${report.pricePerSqm?.count} comparable listings na may presyo at ${report.pricePerSqm?.of === "lot" ? "lot area" : "area"}.`,
+                  )
                 : report.basis === "prices"
-                  ? "Most listings nearby didn't show an area, so this is the typical asking price of similar listings. Treat it as a guide."
-                  : "Too few similar listings are online here, so this is the AI's rough estimate. Treat it with care."}
+                  ? say("Most listings nearby didn't show an area, so this is the typical asking price of similar listings. Treat it as a guide.", "Karamihan ng listing sa malapit ay walang nakalagay na area, kaya ito ang karaniwang asking price ng mga katulad na listing. Gawin lang itong guide.")
+                  : say("Too few similar listings are online here, so this is the AI's rough estimate. Treat it with care.", "Kaunti lang ang katulad na listing online dito, kaya rough estimate lang ito ng AI. Mag-ingat sa paggamit.")}
             </dd>
           </div>
           {report.pricePerSqm ? (

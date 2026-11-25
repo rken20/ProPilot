@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useActionState, useState } from "react";
 import { Alert, Field, Input, Select } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -23,6 +24,7 @@ export function GcashPayForm({
 }) {
   const [state, action] = useActionState<PayState, FormData>(payAction, {});
   const [months, setMonths] = useState(1);
+  const say = useSay();
   const [code, setCode] = useState(defaultCode && plans.some((p) => p.code === defaultCode) ? defaultCode : plans[0]!.code);
   const plan = plans.find((p) => p.code === code) ?? plans[0]!;
   const priceMinor = plan.priceMinor;
@@ -84,12 +86,12 @@ export function GcashPayForm({
             <dt className="text-muted">Amount</dt>
             <dd className="font-semibold tabular-nums">{formatPeso(total)}</dd>
           </dl>
-          <p className="mt-2 text-muted">In GCash, choose Send Money, then Express Send.</p>
+          <p className="mt-2 text-muted">{say("In GCash, choose Send Money, then Express Send.", "Sa GCash, piliin ang Send Money, tapos Express Send.")}</p>
         </li>
         <li className="rounded-xl bg-surface p-4">
           <p className="font-semibold">2. Tell us the payment details</p>
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            <Field label="Reference number" htmlFor="reference" hint="13 digits, on your GCash receipt">
+            <Field label="Reference number" htmlFor="reference" hint={say("13 digits, on your GCash receipt", "13 digits, nasa GCash receipt mo")}>
               <Input id="reference" name="reference" inputMode="numeric" autoComplete="off" required placeholder="1012 345 678901" maxLength={20} />
             </Field>
             <Field label="Name on your GCash account" htmlFor="payerName">
@@ -100,7 +102,7 @@ export function GcashPayForm({
       </ol>
 
       <SubmitButton pendingText="Sending…">I&apos;ve paid, send for checking</SubmitButton>
-      <p className="text-xs text-muted">We check each payment by hand. Your plan starts when we confirm it, not when you send it.</p>
+      <p className="text-xs text-muted">{say("We check each payment by hand. Your plan starts when we confirm it, not when you send it.", "Mano-mano naming chine-check ang bawat payment. Magsisimula ang plan mo kapag na-confirm na namin, hindi pag-send mo.")}</p>
     </form>
   );
 }

@@ -1,3 +1,4 @@
+import type { Say } from "@/lib/lang";
 import Link from "next/link";
 import { Download } from "lucide-react";
 import { buttonClass, cx } from "@/components/ui";
@@ -16,7 +17,10 @@ export function ReportsView({
   messenger,
   team,
   messengerOn,
+  say,
 }: {
+  /** Taglish or English, the business's choice. */
+  say: Say;
   range: Range;
   leads: LeadsReport;
   listings: ListingPerf[];
@@ -92,9 +96,9 @@ export function ReportsView({
             </table>
           </div>
         ) : (
-          <Empty text="Add a listing to see how it performs." />
+          <Empty text={say("Add a listing to see how it performs.", "Mag-add ng listing para makita ang performance nito.")} />
         )}
-        <p className="mt-2 text-xs text-muted">Counts are for the selected period. Days listed runs from when the listing was added to when it sold, or today.</p>
+        <p className="mt-2 text-xs text-muted">{say("Counts are for the selected period. Days listed runs from when the listing was added to when it sold, or today.", "Para sa napiling period ang counts. Ang Days listed ay mula nang ma-add ang listing hanggang ma-sold ito, o hanggang ngayon.")}</p>
       </Section>
 
       <Section i={3} title="AI chat" csv={messengerOn ? csv("messenger") : undefined}>
@@ -114,7 +118,7 @@ export function ReportsView({
             />
           </div>
         ) : (
-          <Empty text="When buyers message you in MyHomeSeller or on Messenger, the AI chat results show here." />
+          <Empty text={say("When buyers message you in MyHomeSeller or on Messenger, the AI chat results show here.", "Kapag may buyer na nag-message sa'yo sa MyHomeSeller o sa Messenger, dito lalabas ang results ng AI chat.")} />
         )}
       </Section>
 
@@ -152,7 +156,7 @@ export function ReportsView({
             </table>
           </div>
           <p className="mt-2 text-xs text-muted">
-            A lead counts for the person who first changed its status. Assign listings to agents on each property to see leads per agent in the CSV.
+            {say("A lead counts for the person who first changed its status. Assign listings to agents on each property to see leads per agent in the CSV.", "Bilang ang lead sa taong unang nagpalit ng status nito. I-assign ang listings sa agents sa bawat property para makita ang leads per agent sa CSV.")}
           </p>
         </Section>
       ) : null}

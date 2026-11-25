@@ -136,9 +136,10 @@ export function InstallBanner() {
 
 /** The install button on the Get the app page (on the grape panel). */
 export function InstallHere() {
+  const say = useSay();
   const { where, canPrompt, install } = useInstall();
   if (where === "installed") {
-    return <p className="rounded-full bg-white/15 px-4 py-2.5 text-sm font-semibold">You&apos;re using the installed app. It updates by itself.</p>;
+    return <p className="rounded-full bg-white/15 px-4 py-2.5 text-sm font-semibold">{say("You're using the installed app. It updates by itself.", "Installed app na ang gamit mo. Kusa itong nag-a-update.")}</p>;
   }
   if (canPrompt) {
     return (
@@ -147,11 +148,12 @@ export function InstallHere() {
       </button>
     );
   }
-  return <p className="text-sm text-white/75">Follow the steps for your device below. It takes about 10 seconds.</p>;
+  return <p className="text-sm text-white/75">{say("Follow the steps for your device below. It takes about 10 seconds.", "Sundan ang steps para sa device mo sa baba. Mga 10 segundo lang ito.")}</p>;
 }
 
 /** The same help, always available on the Account page. */
 export function InstallCard({ className }: { className?: string }) {
+  const say = useSay();
   const { where, canPrompt, install } = useInstall();
   return (
     <div className={cx("rounded-[1.5rem] border border-line bg-white p-6 shadow-[var(--shadow-card)]", className)}>
@@ -160,10 +162,10 @@ export function InstallCard({ className }: { className?: string }) {
         <div className="min-w-0">
           <p className="font-medium">MyHomeSeller on your phone</p>
           {where === "installed" ? (
-            <p className="mt-1 text-sm text-muted">You&apos;re using the installed app. It updates by itself.</p>
+            <p className="mt-1 text-sm text-muted">{say("You're using the installed app. It updates by itself.", "Installed app na ang gamit mo. Kusa itong nag-a-update.")}</p>
           ) : (
             <>
-              <p className="mt-1 text-sm text-muted">Add it to your home screen: its own icon, full screen, no app store needed.</p>
+              <p className="mt-1 text-sm text-muted">{say("Add it to your home screen: its own icon, full screen, no app store needed.", "I-add ito sa home screen mo: may sariling icon, full screen, hindi kailangan ng app store.")}</p>
               {canPrompt ? (
                 <button type="button" onClick={install} className={buttonClass("primary", "mt-3")}>
                   Install app

@@ -54,7 +54,7 @@ export function FacebookPost({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Post to Facebook</h2>
-          <p className="mt-1 text-sm text-muted">Share this listing on your Page. Edit the caption first; nothing is posted until you press Post.</p>
+          <p className="mt-1 text-sm text-muted">{say("Share this listing on your Page. Edit the caption first; nothing is posted until you press Post.", "I-share ang listing na ito sa Page mo. I-edit muna ang caption; walang mapo-post hangga't hindi mo pinipindot ang Post.")}</p>
         </div>
       </div>
 

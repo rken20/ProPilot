@@ -4,6 +4,8 @@
  * `plan_entitlements` tables.
  */
 
+import type { Lang, Say } from "./lang";
+
 export const FREE_PLAN = "free";
 export const PAID_PLANS = ["basic", "pro", "agency"] as const;
 
@@ -25,6 +27,12 @@ export function daysLeft(periodEnd: string | null, now: Date): number | null {
 }
 
 export const UPGRADE_MESSAGE = "AI features are part of the Basic plan. An owner can upgrade in Billing.";
+const UPGRADE_MESSAGE_TL = "Kasama sa Basic plan ang AI features. Pwedeng mag-upgrade ang owner sa Billing.";
+
+/** The "this needs a paid plan" message, in the business's language. */
+export function upgradeMessage(say: Say): string {
+  return say(UPGRADE_MESSAGE, UPGRADE_MESSAGE_TL);
+}
 
 /** What each plan says on the Billing page. */
 export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; excludes?: string }> = {
@@ -39,7 +47,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
     excludes: "No AI: no AI replies, lead scoring, matching, Buyer Finder or AI writing.",
   },
   basic: {
-    tagline: "Para sa individual property owners",
+    tagline: "For individual property owners",
     includes: [
       "Everything in Free, for 2 team members",
       "Buyer Finder: 5 AI-found potential buyers a month",
@@ -51,7 +59,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
     excludes: "No Video Ad Maker. Limited Buyer Finder.",
   },
   pro: {
-    tagline: "Para sa mga agent",
+    tagline: "For agents",
     includes: [
       "Everything in Basic, for 5 team members",
       "Buyer Finder: 20 AI-found potential buyers a month",
@@ -61,7 +69,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
     ],
   },
   agency: {
-    tagline: "Para sa mga brokerage at team",
+    tagline: "For brokerages and teams",
     includes: [
       "Everything in Pro, for 15 team members",
       "Buyer Finder: 60 AI-found potential buyers a month",
@@ -71,3 +79,49 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
     ],
   },
 };
+
+/** The same, in Taglish. Feature names and numbers match PLAN_COPY line for line. */
+const PLAN_COPY_TL: typeof PLAN_COPY = {
+  free: {
+    tagline: "Para masubukan ang MyHomeSeller: ikaw ang maglilista at magfa-follow up.",
+    includes: ["1 team member", "Listings na may public page na pwedeng i-share", "Inquiries, Leads at Messages inbox", "Reports at follow-up reminders"],
+    excludes: "Walang AI: walang AI replies, lead scoring, matching, Buyer Finder o AI writing.",
+  },
+  basic: {
+    tagline: "Para sa individual property owners",
+    includes: [
+      "Lahat ng nasa Free, para sa 2 team members",
+      "Buyer Finder: 5 potential buyers na hanap ng AI kada buwan",
+      "Property matcher at lead scoring",
+      "AI replies sa Messenger at chats, hanggang 3,000 kada buwan",
+      "Listing descriptions at captions na sulat ng AI",
+      "Ask MyHomeSeller at ang reply helper",
+    ],
+    excludes: "Walang Video Ad Maker. Limited ang Buyer Finder.",
+  },
+  pro: {
+    tagline: "Para sa mga agent",
+    includes: [
+      "Lahat ng nasa Basic, para sa 5 team members",
+      "Buyer Finder: 20 potential buyers na hanap ng AI kada buwan",
+      "Hanggang 10,000 AI replies kada buwan",
+      "AI negotiation: nakikipag-negotiate ang chat hanggang sa lowest price na sine-set mo, at nagko-close ng deal sa presyong pre-approved mo",
+      "Video Ad Maker: 10 video ads kada buwan mula sa listing photos mo, na AI ang pumipili ng template at text",
+    ],
+  },
+  agency: {
+    tagline: "Para sa mga brokerage at team",
+    includes: [
+      "Lahat ng nasa Pro, para sa 15 team members",
+      "Buyer Finder: 60 potential buyers na hanap ng AI kada buwan",
+      "Hanggang 25,000 AI replies kada buwan",
+      "Pricing Advisor: 20 AI price checks kada buwan, na may comparable listings",
+      "Video Ad Maker: 30 video ads kada buwan mula sa listing photos mo, na AI ang pumipili ng template at text",
+    ],
+  },
+};
+
+/** What each plan says on the Billing page, in the business's language. */
+export function planCopy(lang: Lang): typeof PLAN_COPY {
+  return lang === "english" ? PLAN_COPY : PLAN_COPY_TL;
+}

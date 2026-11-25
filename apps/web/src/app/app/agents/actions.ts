@@ -1,5 +1,6 @@
 "use server";
 
+import { appSay } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
 import { can } from "@propilot/shared";
 import { runPipelineKeeper } from "@/lib/agent-runs";
@@ -98,6 +99,7 @@ export async function dismissTask(id: string) {
 
 /** Send an approved draft (as edited) in the lead's chat. */
 export async function sendTask(id: string, form: FormData) {
+  const say = await appSay();
   const found = await ownTask(id);
   if (!found || found.task.kind !== "message" || !found.task.conversation_id) return;
   const { biz, user, task, admin } = found;
@@ -118,7 +120,7 @@ export async function sendTask(id: string, form: FormData) {
     .eq("id", task.conversation_id)
     .eq("business_id", biz.businessId)
     .maybeSingle();
-  const res = conv ? await sendAsTeam(admin, biz.businessId, conv as TeamConversation, text, user.id) : { error: "This chat no longer exists." };
+  const res = conv ? await sendAsTeam(admin, biz.businessId, conv as TeamConversation, text, user.id) : { error: say("This chat no longer exists.", "Wala na ang chat na ito.") };
   await admin
     .from("agent_tasks")
     .update(res.error ? { status: "failed", error: res.error.slice(0, 300) } : { status: "done", draft: text.slice(0, 2000) })
@@ -130,11 +132,12 @@ export async function sendTask(id: string, form: FormData) {
 export type SettingsState = { error?: string; saved?: number };
 
 export async function saveAgentSettings(_prev: SettingsState, form: FormData): Promise<SettingsState> {
+  const say = await appSay();
   const biz = await requireBusiness();
   const user = await requireUser();
   if (!can(biz.role, "lead.assign")) return { error: "Only owners and admins can change this." };
   const days = Number(str(form, "followUpDays"));
-  if (!Number.isInteger(days) || days < 1 || days > 30) return { error: "Pick between 1 and 30 days." };
+  if (!Number.isInteger(days) || days < 1 || days > 30) return { error: say("Pick between 1 and 30 days.", "Pumili mula 1 hanggang 30 days.") };
   const chatLanguage = str(form, "chatLanguage") === "english" ? "english" : "taglish";
   const supabase = await createClient();
   const { error } = await supabase.from("agent_settings").upsert({
@@ -145,7 +148,7 @@ export async function saveAgentSettings(_prev: SettingsState, form: FormData): P
     updated_by: user.id,
     updated_at: new Date().toISOString(),
   });
-  if (error) return { error: "Couldn't save. Please try again." };
+  if (error) return { error: say("Couldn't save. Please try again.", "Hindi na-save. Paki-try ulit.") };
   refresh();
   // The language also covers the business's public listing pages.
   revalidatePath("/l/[id]", "page");
@@ -156,13 +159,14 @@ export type RunState = { error?: string; summary?: string };
 
 /** Run the agents now instead of waiting for tomorrow morning. */
 export async function runAgentsNow(): Promise<RunState> {
+  const say = await appSay();
   const biz = await requireBusiness();
   if (!can(biz.role, "lead.assign")) return { error: "Only owners and admins can run the agents." };
   const supabase = await createClient();
   const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "agents_run_now", p_limit: 6, p_window_seconds: 3600 });
-  if (allowed !== true) return { error: "You've run the agents several times this hour. Try again later." };
+  if (allowed !== true) return { error: say("You've run the agents several times this hour. Try again later.", "Ilang beses mo nang ni-run ang agents ngayong oras. Subukan ulit mamaya.") };
   const admin = createAdminClient();
-  if (!admin) return { error: "The agents aren't available right now." };
+  if (!admin) return { error: say("The agents aren't available right now.", "Hindi available ang agents ngayon.") };
   const res = await runPipelineKeeper(admin, biz.businessId, "manual");
   const match = await runMatcher(admin, biz.businessId, "manual");
   const qual = await runQualifier(admin, biz.businessId, "manual", { limit: 10, deadline: Date.now() + 35_000 });

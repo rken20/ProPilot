@@ -1,5 +1,6 @@
 "use server";
 
+import { appSay } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
 import { can } from "@propilot/shared";
 import { requireBusiness } from "@/lib/auth";
@@ -17,8 +18,9 @@ function refresh(propertyId: string) {
 
 /** Record a photo the browser has just uploaded to storage. */
 export async function addPhoto(propertyId: string, input: PhotoInput): Promise<{ error?: string }> {
+  const say = await appSay();
   const biz = await requireBusiness();
-  if (!can(biz.role, "property.create")) return { error: "Your role can't add photos." };
+  if (!can(biz.role, "property.create")) return { error: say("Your role can't add photos.", "Hindi pwedeng mag-add ng photos ang role mo.") };
   if (!/^[0-9a-f-]{36}$/i.test(input.id)) return { error: "Bad photo id." };
 
   const supabase = await createClient();
@@ -27,7 +29,7 @@ export async function addPhoto(propertyId: string, input: PhotoInput): Promise<{
     .select("sort_order")
     .eq("property_id", propertyId)
     .order("sort_order", { ascending: false });
-  if ((existing?.length ?? 0) >= MAX_PHOTOS) return { error: `A property can have at most ${MAX_PHOTOS} photos.` };
+  if ((existing?.length ?? 0) >= MAX_PHOTOS) return { error: say(`A property can have at most ${MAX_PHOTOS} photos.`, `Hanggang ${MAX_PHOTOS} photos lang ang pwede sa isang property.`) };
 
   const paths = photoPaths(biz.businessId, propertyId, input.id);
   const { error } = await supabase.from("property_media").insert({
@@ -42,7 +44,7 @@ export async function addPhoto(propertyId: string, input: PhotoInput): Promise<{
   });
   if (error) {
     await supabase.storage.from(MEDIA_BUCKET).remove([paths.full, paths.thumb]);
-    return { error: /at most/.test(error.message) ? error.message : "Couldn't save the photo. Please try again." };
+    return { error: /at most/.test(error.message) ? error.message : say("Couldn't save the photo. Please try again.", "Hindi na-save ang photo. Paki-try ulit.") };
   }
   refresh(propertyId);
   return {};

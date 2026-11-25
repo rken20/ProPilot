@@ -1,5 +1,6 @@
 "use server";
 
+import { siteSay } from "@/lib/lang-server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createBusinessSchema } from "@propilot/shared";
@@ -9,10 +10,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export async function createBusiness(_prev: FormState, form: FormData): Promise<FormState> {
+  const say = await siteSay();
   const user = await requireUser();
   const data = { name: str(form, "name"), type: str(form, "type") };
   const parsed = createBusinessSchema.safeParse(data);
-  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error), data };
+  if (!parsed.success) return { fieldErrors: fieldErrorsFrom(parsed.error, say), data };
 
   const supabase = await createClient();
   // create_business() creates the business and the owner membership in one transaction.
@@ -20,7 +22,7 @@ export async function createBusiness(_prev: FormState, form: FormData): Promise<
     p_name: parsed.data.name,
     p_type: parsed.data.type,
   });
-  if (error || typeof id !== "string") return { error: "Couldn't create the business. Please try again.", data };
+  if (error || typeof id !== "string") return { error: say("Couldn't create the business. Please try again.", "Hindi nagawa ang business. Paki-try ulit."), data };
 
   // A plan given to this person's email as a beta tester turns on now. Never blocks setting up.
   try {

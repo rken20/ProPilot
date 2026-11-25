@@ -1,3 +1,4 @@
+import { appSay } from "@/lib/lang-server";
 import { CalendarDays, FileSpreadsheet, Mail, type LucideIcon } from "lucide-react";
 import { businessPages } from "@/lib/facebook-pages";
 import { canPublish } from "@/lib/meta";
@@ -13,44 +14,45 @@ import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/time";
 import { createLeadsSheet, disconnectFacebookPage, disconnectGoogle, setMessenger, stopSheetSync, syncSheetNow } from "./actions";
 
-const NOTICES: Record<string, [tone: "success" | "error" | "info", text: string]> = {
-  "google-connected": ["success", "Google is connected."],
-  "google-disconnected": ["success", "Google is disconnected and MyHomeSeller's access was revoked."],
-  "google-cancelled": ["info", "Google connection was cancelled."],
-  "google-failed": ["error", "Couldn't connect Google. Please try again."],
+const NOTICES: Record<string, [tone: "success" | "error" | "info", english: string, taglish: string]> = {
+  "google-connected": ["success", "Google is connected.", "Naka-connect na ang Google."],
+  "google-disconnected": ["success", "Google is disconnected and MyHomeSeller's access was revoked.", "Na-disconnect na ang Google at tinanggal na ang access ng MyHomeSeller."],
+  "google-cancelled": ["info", "Google connection was cancelled.", "Na-cancel ang pag-connect sa Google."],
+  "google-failed": ["error", "Couldn't connect Google. Please try again.", "Hindi na-connect ang Google. Paki-try ulit."],
   "google-no-refresh": [
     "error",
-    "Google didn't grant ongoing access. Remove MyHomeSeller at myaccount.google.com/permissions, then connect again.",
+    "Google didn't grant ongoing access. Remove MyHomeSeller at myaccount.google.com/permissions, then connect again.", "Hindi nagbigay ng tuloy-tuloy na access ang Google. I-remove ang MyHomeSeller sa myaccount.google.com/permissions, tapos mag-connect ulit.",
   ],
-  "google-not-ready": ["error", "Connect Google isn't switched on for MyHomeSeller yet."],
-  "connect-first": ["error", "Connect your Google account first."],
-  "sheet-created": ["success", "Your leads sheet is ready in Google Drive. New leads are added automatically."],
-  "sheet-failed": ["error", "Couldn't create the sheet. Check that the Google Sheets API is enabled, then try again."],
-  "sheet-synced": ["success", "Sheet updated."],
-  "sheet-stopped": ["success", "Sheet sync is off. The sheet stays in Google Drive."],
-  "not-allowed": ["error", "Only the owner or an admin can change this."],
-  "facebook-connected": ["success", "Facebook is connected. Your Pages are listed below."],
-  "facebook-disconnected": ["success", "The Page is disconnected and its access token deleted."],
-  "facebook-cancelled": ["info", "Facebook connection was cancelled."],
-  "facebook-failed": ["error", "Couldn't connect Facebook. Please try again."],
+  "google-not-ready": ["error", "Connect Google isn't switched on for MyHomeSeller yet.", "Hindi pa naka-on ang Connect Google para sa MyHomeSeller."],
+  "connect-first": ["error", "Connect your Google account first.", "I-connect muna ang Google account mo."],
+  "sheet-created": ["success", "Your leads sheet is ready in Google Drive. New leads are added automatically.", "Ready na ang leads sheet mo sa Google Drive. Kusang madadagdag ang mga bagong lead."],
+  "sheet-failed": ["error", "Couldn't create the sheet. Check that the Google Sheets API is enabled, then try again.", "Hindi nagawa ang sheet. I-check kung naka-enable ang Google Sheets API, tapos subukan ulit."],
+  "sheet-synced": ["success", "Sheet updated.", "Na-update na ang sheet."],
+  "sheet-stopped": ["success", "Sheet sync is off. The sheet stays in Google Drive.", "Naka-off na ang sheet sync. Mananatili ang sheet sa Google Drive."],
+  "not-allowed": ["error", "Only the owner or an admin can change this.", "Owner o admin lang ang pwedeng magpalit nito."],
+  "facebook-connected": ["success", "Facebook is connected. Your Pages are listed below.", "Naka-connect na ang Facebook. Nakalista sa baba ang Pages mo."],
+  "facebook-disconnected": ["success", "The Page is disconnected and its access token deleted.", "Na-disconnect na ang Page at na-delete na ang access token nito."],
+  "facebook-cancelled": ["info", "Facebook connection was cancelled.", "Na-cancel ang pag-connect sa Facebook."],
+  "facebook-failed": ["error", "Couldn't connect Facebook. Please try again.", "Hindi na-connect ang Facebook. Paki-try ulit."],
   "facebook-no-pages": [
     "error",
-    "Facebook didn't share any Pages. Connect again and tick the Pages you manage. Pages need you as an admin or editor.",
+    "Facebook didn't share any Pages. Connect again and tick the Pages you manage. Pages need you as an admin or editor.", "Walang Page na shinare ang Facebook. Mag-connect ulit at i-tick ang Pages na mina-manage mo. Kailangan admin o editor ka ng Page.",
   ],
-  "facebook-not-ready": ["error", "Connect Facebook isn't switched on for MyHomeSeller yet."],
-  "messenger-on": ["success", "AI replies are on. New Messenger messages to this Page get an answer, and show up in Messenger."],
-  "messenger-off": ["success", "AI replies are off for this Page. Messages stay in Facebook's own inbox."],
+  "facebook-not-ready": ["error", "Connect Facebook isn't switched on for MyHomeSeller yet.", "Hindi pa naka-on ang Connect Facebook para sa MyHomeSeller."],
+  "messenger-on": ["success", "AI replies are on. New Messenger messages to this Page get an answer, and show up in Messenger.", "Naka-on na ang AI replies. Sasagutin ang mga bagong Messenger message sa Page na ito, at lalabas ang mga ito sa Messages."],
+  "messenger-off": ["success", "AI replies are off for this Page. Messages stay in Facebook's own inbox.", "Naka-off na ang AI replies para sa Page na ito. Mananatili ang messages sa sariling inbox ng Facebook."],
   "messenger-permission": [
     "error",
-    "Facebook didn't allow Messenger for this Page yet. Press Add or change Pages and allow the messaging permissions, then try again.",
+    "Facebook didn't allow Messenger for this Page yet. Press Add or change Pages and allow the messaging permissions, then try again.", "Hindi pa pinapayagan ng Facebook ang Messenger para sa Page na ito. Pindutin ang Add or change Pages at i-allow ang messaging permissions, tapos subukan ulit.",
   ],
-  "messenger-failed": ["error", "Couldn't switch on Messenger for this Page. Please try again."],
+  "messenger-failed": ["error", "Couldn't switch on Messenger for this Page. Please try again.", "Hindi na-on ang Messenger para sa Page na ito. Paki-try ulit."],
 };
 
 export default async function IntegrationsPage({ searchParams }: PageProps<"/app/integrations">) {
   const sp = await searchParams;
   const notice = typeof sp.notice === "string" ? NOTICES[sp.notice] : undefined;
   const biz = await requireBusiness();
+  const say = await appSay();
   const supabase = await createClient();
   const [{ data: connRows }, { data: integ }, pages] = await Promise.all([
     supabase.rpc("my_google_connection"),
@@ -68,10 +70,10 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
 
   return (
     <>
-      <PageHeader title="Integrations" description="Connect the tools your team already uses." />
+      <PageHeader title="Integrations" description={say("Connect the tools your team already uses.", "I-connect ang tools na gamit na ng team mo.")} />
       {notice ? (
         <div className="mb-6">
-          <Alert tone={notice[0]}>{notice[1]}</Alert>
+          <Alert tone={notice[0]}>{say(notice[1], notice[2])}</Alert>
         </div>
       ) : null}
 
@@ -89,8 +91,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
           ) : (
             <div className="space-y-4">
               <p>
-                Turn your Page posts into listings, post listings to your Page, and let the AI answer Messenger inquiries
-                until someone on your team takes over. MyHomeSeller only posts when someone presses Post.
+                {say("Turn your Page posts into listings, post listings to your Page, and let the AI answer Messenger inquiries until someone on your team takes over. MyHomeSeller only posts when someone presses Post.", "Gawing listing ang posts ng Page mo, mag-post ng listings sa Page mo, at hayaan ang AI na sumagot sa Messenger inquiries hangga't walang nagte-take over sa team mo. Magpo-post lang ang MyHomeSeller kapag may pumindot ng Post.")}
               </p>
               {pages.length ? (
                 <ul className="divide-y divide-line rounded-xl border border-line">
@@ -99,7 +100,9 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
                       <div className="min-w-0">
                         <p className="truncate font-medium text-ink">{p.name}</p>
                         <p className="text-xs text-muted">
-                          {canPublish(p.tasks) ? "Can read and post" : "Read only: you need to be an admin or editor of this Page to post"}
+                          {canPublish(p.tasks)
+                            ? "Can read and post"
+                            : say("Read only: you need to be an admin or editor of this Page to post", "Read only: kailangan admin o editor ka ng Page na ito para makapag-post")}
                           {p.messenger_enabled ? ", AI replies on Messenger" : ""}, connected {timeAgo(p.connected_at)}
                         </p>
                       </div>
@@ -131,7 +134,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
                   {pages.length ? "Add or change Pages" : "Connect Facebook Page"}
                 </a>
               ) : (
-                <p className="text-muted">The owner or an admin can connect the business&apos;s Pages.</p>
+                <p className="text-muted">{say("The owner or an admin can connect the business's Pages.", "Owner o admin ang pwedeng mag-connect ng Pages ng business.")}</p>
               )}
             </div>
           )}
@@ -140,8 +143,8 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
         <Panel icon={Mail} title="Email alerts" status={email ? <Badge tone="brand">On</Badge> : <Badge>Not set up</Badge>}>
           <p>
             {email
-              ? "The owner, admins and agents get an email the moment a buyer requests a viewing, with the buyer's mobile number and a link to the lead."
-              : "Lead emails start once an email sender is added to MyHomeSeller's settings. Requests still arrive in Viewing requests."}
+              ? say("The owner, admins and agents get an email the moment a buyer requests a viewing, with the buyer's mobile number and a link to the lead.", "Makakatanggap ng email ang owner, admins at agents sa oras na mag-request ng viewing ang buyer, kasama ang mobile number ng buyer at link sa lead.")
+              : say("Lead emails start once an email sender is added to MyHomeSeller's settings. Requests still arrive in Viewing requests.", "Magsisimula ang lead emails kapag may email sender na sa settings ng MyHomeSeller. Papasok pa rin ang requests sa Viewing requests.")}
           </p>
         </Panel>
 
@@ -169,7 +172,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p>Link your Google account to sync leads to Sheets and viewings to Calendar.</p>
+              <p>{say("Link your Google account to sync leads to Sheets and viewings to Calendar.", "I-link ang Google account mo para ma-sync ang leads sa Sheets at ang viewings sa Calendar.")}</p>
               <a href="/api/google/connect" className={buttonClass()}>
                 Connect Google
               </a>
@@ -185,8 +188,8 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
           {syncing ? (
             <div className="space-y-3">
               <p>
-                Every lead is kept in one sheet for the whole team
-                {integ?.sheets_synced_at ? `, last updated ${timeAgo(integ.sheets_synced_at)}` : ""}.
+                {say("Every lead is kept in one sheet for the whole team", "Nasa iisang sheet ang bawat lead para sa buong team")}
+                {integ?.sheets_synced_at ? say(`, last updated ${timeAgo(integ.sheets_synced_at)}`, `, huling na-update ${timeAgo(integ.sheets_synced_at)}`) : ""}.
               </p>
               <div className="flex flex-wrap gap-2">
                 <a href={integ!.spreadsheet_url!} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary")}>
@@ -210,7 +213,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
             </div>
           ) : manage ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p>Create a sheet in your Google Drive that updates itself with every new lead and status change.</p>
+              <p>{say("Create a sheet in your Google Drive that updates itself with every new lead and status change.", "Gumawa ng sheet sa Google Drive mo na kusang nag-a-update sa bawat bagong lead at pagbabago ng status.")}</p>
               {conn?.scopes.includes(SHEETS_SCOPE) ? (
                 <form action={createLeadsSheet}>
                   <SubmitButton pendingText="Creating…">Create leads sheet</SubmitButton>
@@ -220,7 +223,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
               )}
             </div>
           ) : (
-            <p>The owner or an admin can turn this on. You can still use Export CSV in Viewing requests.</p>
+            <p>{say("The owner or an admin can turn this on. You can still use Export CSV in Viewing requests.", "Owner o admin ang pwedeng mag-on nito. Pwede mo pa ring gamitin ang Export CSV sa Viewing requests.")}</p>
           )}
         </Panel>
 
@@ -231,8 +234,8 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
         >
           <p>
             {conn?.scopes.includes(CALENDAR_SCOPE)
-              ? "When you set a viewing time on a lead, it's added to a “MyHomeSeller viewings” calendar in your Google Calendar, with a reminder an hour before. Changes and cancellations update it too."
-              : "Connect Google to add viewings to your calendar automatically. Until then, use “Add to Google Calendar” on any lead."}
+              ? say("When you set a viewing time on a lead, it's added to a “MyHomeSeller viewings” calendar in your Google Calendar, with a reminder an hour before. Changes and cancellations update it too.", "Kapag nag-set ka ng viewing time sa isang lead, madadagdag ito sa “MyHomeSeller viewings” calendar sa Google Calendar mo, na may reminder isang oras bago. Naa-update din ito kapag may nabago o na-cancel.")
+              : say("Connect Google to add viewings to your calendar automatically. Until then, use “Add to Google Calendar” on any lead.", "I-connect ang Google para kusang madagdag ang viewings sa calendar mo. Habang wala pa, gamitin ang “Add to Google Calendar” sa kahit anong lead.")}
           </p>
         </Panel>
       </div>
