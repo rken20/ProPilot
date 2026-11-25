@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useActionState, type ReactNode } from "react";
 import { PROPERTY_STATUSES, PROPERTY_TYPES } from "@propilot/shared";
 import { Alert, Field, Input, Label, Select, Textarea } from "@/components/ui";
@@ -30,6 +31,7 @@ export function PropertyForm({
   /** Shown under the price fields, e.g. the Pricing Advisor on Add a Property. */
   priceHelp?: ReactNode;
 }) {
+  const say = useSay();
   const [state, formAction] = useActionState(action, { data: initial });
   const v = state.data ?? initial;
   const e = state.fieldErrors ?? {};
@@ -43,7 +45,7 @@ export function PropertyForm({
       <fieldset disabled={readOnly} className="space-y-6">
         <section className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Field label="Property name" htmlFor="name" error={e.name} hint="As buyers will see it, e.g. 2BR Unit 12A, Avida Towers">
+            <Field label="Property name" htmlFor="name" error={e.name} hint={say("As buyers will see it, e.g. 2BR Unit 12A, Avida Towers", "Ito ang makikita ng buyers, hal. 2BR Unit 12A, Avida Towers")}>
               <Input id="name" name="name" defaultValue={v.name} required />
             </Field>
           </div>
@@ -66,7 +68,7 @@ export function PropertyForm({
             </Select>
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Location" htmlFor="location" error={e.location} hint="Barangay, city, landmark">
+            <Field label="Location" htmlFor="location" error={e.location} hint={say("Barangay, city, landmark", "Barangay, city, landmark")}>
               <Input id="location" name="location" defaultValue={v.location} required />
             </Field>
           </div>
@@ -100,7 +102,7 @@ export function PropertyForm({
             <Field label="Downpayment (%)" htmlFor="downpaymentPercent" error={e.downpaymentPercent} hint="Optional">
               <Input id="downpaymentPercent" name="downpaymentPercent" inputMode="decimal" defaultValue={v.downpaymentPercent} placeholder="20" />
             </Field>
-            <Field label="Financing notes" htmlFor="financingNotes" hint="Terms the assistant may quote, e.g. up to 20 years">
+            <Field label="Financing notes" htmlFor="financingNotes" hint={say("Terms the assistant may quote, e.g. up to 20 years", "Terms na pwedeng sabihin ng assistant, hal. up to 20 years")}>
               <Input id="financingNotes" name="financingNotes" defaultValue={v.financingNotes} />
             </Field>
           </div>
@@ -111,14 +113,15 @@ export function PropertyForm({
           <span>
             <span className="block font-semibold text-ink">Give it a public page</span>
             <span className="block text-sm text-muted">
-              Anyone with the link can see the listing and send you an inquiry, no account needed, and search engines like Google can
-              list it. Share the link on Facebook, Messenger or by text. Untick to keep it private. Sold and archived listings are
-              always hidden.
+              {say(
+                "Anyone with the link can see the listing and send you an inquiry, no account needed, and search engines like Google can list it. Share the link on Facebook, Messenger or by text. Untick to keep it private. Sold and archived listings are always hidden.",
+                "Kahit sino na may link, makikita ang listing at makakapag-send ng inquiry sa'yo, hindi kailangan ng account, at pwede rin itong lumabas sa Google. I-share ang link sa Facebook, Messenger o text. I-untick kung gusto mong private lang. Laging naka-hide ang sold at archived listings.",
+              )}
             </span>
           </span>
         </Label>
 
-        <Field label="Description" htmlFor="description" error={e.description} hint="Features, inclusions, nearby places. The assistant uses only what's written here.">
+        <Field label="Description" htmlFor="description" error={e.description} hint={say("Features, inclusions, nearby places. The assistant uses only what's written here.", "Features, inclusions, mga malapit na lugar. Ang nakasulat lang dito ang gagamitin ng assistant.")}>
           <Textarea id="description" name="description" defaultValue={v.description} rows={5} />
         </Field>
         {aiWrite && !readOnly ? <WriteDescriptionButton targetId="description" /> : null}

@@ -1,3 +1,4 @@
+import type { Say } from "@/lib/lang";
 import Link from "next/link";
 import { Bot, MessageCircle, UserRound } from "lucide-react";
 import { Badge, buttonClass, Card, cx, PageHeader, Panel } from "@/components/ui";
@@ -53,7 +54,9 @@ export function InboxView({
   canDecideOffers = false,
   pageNames,
   helperOn = false,
+  say,
 }: {
+  say: Say;
   liveNames: string[];
   canConnect: boolean;
   conversations: Conversation[];
@@ -81,15 +84,18 @@ export function InboxView({
         title="Messages"
         description={
           live.length
-            ? `Chats from ${live.map((p) => p.name).join(" and ")} on Messenger. The AI answers until someone takes over.`
-            : "Chats from your Facebook Page on Messenger show up here. The AI answers until someone takes over."
+            ? say(
+                `Chats from ${live.map((p) => p.name).join(" and ")} on Messenger. The AI answers until someone takes over.`,
+                `Chats mula sa ${live.map((p) => p.name).join(" at ")} sa Messenger. Ang AI ang sumasagot hangga't walang nagte-take over.`,
+              )
+            : say("Chats from your Facebook Page on Messenger show up here. The AI answers until someone takes over.", "Dito lalabas ang chats mula sa Facebook Page mo sa Messenger. Ang AI ang sumasagot hangga't walang nagte-take over.")
         }
       />
       <RefreshSoon every={8000} times={150} />
 
       {!live.length && canConnect ? (
         <Card className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted">Facebook Messenger chats show here too once you turn on AI replies for a Page.</p>
+          <p className="text-sm text-muted">{say("Facebook Messenger chats show here too once you turn on AI replies for a Page.", "Lalabas din dito ang Facebook Messenger chats kapag in-on mo ang AI replies para sa isang Page.")}</p>
           {canConnect ? (
             <Link href="/app/integrations" className={buttonClass("primary")}>
               Open Integrations
@@ -144,9 +150,9 @@ export function InboxView({
           ) : (
             <Card className="text-center">
               <MessageCircle className="mx-auto size-8 text-zinc-500" aria-hidden />
-              <p className="mt-3 font-medium">No messages yet</p>
+              <p className="mt-3 font-medium">{say("No messages yet", "Wala pang messages")}</p>
               <p className="mt-1 text-sm text-muted">
-                When a buyer messages you in MyHomeSeller or on your Facebook Page, the chat shows up here.
+                {say("When a buyer messages you in MyHomeSeller or on your Facebook Page, the chat shows up here.", "Kapag may buyer na nag-message sa'yo sa MyHomeSeller o sa Facebook Page mo, dito lalabas ang chat.")}
               </p>
             </Card>
           )}
@@ -266,7 +272,7 @@ export function InboxView({
           </section>
         ) : (
           <div className="hidden place-items-center rounded-2xl border border-dashed border-line p-10 text-center text-sm text-muted lg:grid">
-            Pick a conversation to read it and reply.
+            {say("Pick a conversation to read it and reply.", "Pumili ng conversation para mabasa at ma-reply-an.")}
           </div>
         )}
       </div>

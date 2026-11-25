@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useActionState } from "react";
 import { Alert, Field, Input, Select, Textarea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -22,6 +23,7 @@ function ListingSelect({ listings, value }: { listings: Listing[]; value?: strin
 }
 
 export function NewProspectForm({ listings }: { listings: Listing[] }) {
+  const say = useSay();
   const [state, action] = useActionState<ProspectFormState, FormData>(createProspect, {});
   return (
     <form action={action} className="space-y-5">
@@ -42,7 +44,7 @@ export function NewProspectForm({ listings }: { listings: Listing[] }) {
         <Field label="Phone" htmlFor="phone">
           <Input id="phone" name="phone" type="tel" maxLength={40} placeholder="0917 123 4567" autoComplete="off" />
         </Field>
-        <Field label="Email" htmlFor="email" hint="A phone number or an email is enough.">
+        <Field label="Email" htmlFor="email" hint={say("A phone number or an email is enough.", "Sapat na ang phone number o email.")}>
           <Input id="email" name="email" type="email" maxLength={200} autoComplete="off" />
         </Field>
         <Field label="Interested in" htmlFor="propertyId">
@@ -58,10 +60,10 @@ export function NewProspectForm({ listings }: { listings: Listing[] }) {
           </Select>
         </Field>
       </div>
-      <Field label="Note (optional)" htmlFor="note" hint="Only your team sees notes.">
+      <Field label="Note (optional)" htmlFor="note" hint={say("Only your team sees notes.", "Team mo lang ang makakakita ng notes.")}>
         <Textarea id="note" name="note" maxLength={1000} placeholder="e.g. Referred by Mrs. Cruz. Looking for a 2BR near Ortigas, moving in March." />
       </Field>
-      <p className="text-xs text-muted">Only add people who gave you their details or asked to be contacted.</p>
+      <p className="text-xs text-muted">{say("Only add people who gave you their details or asked to be contacted.", "Mag-add lang ng mga taong nagbigay ng details nila o humiling na kontakin sila.")}</p>
       <SubmitButton pendingText="Adding…">Add lead</SubmitButton>
     </form>
   );

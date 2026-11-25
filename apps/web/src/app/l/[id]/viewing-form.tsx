@@ -1,5 +1,6 @@
 "use client";
 
+import { useLang, useSay } from "@/components/lang";
 import { useActionState } from "react";
 import { CircleCheck } from "lucide-react";
 import Link from "next/link";
@@ -22,6 +23,8 @@ export function ViewingForm({
   matchEmails?: boolean;
 }) {
   const [state, formAction] = useActionState(action, {});
+  const say = useSay();
+  const lang = useLang();
   if (state.ok) {
     return (
       <div className="rounded-2xl bg-tile-mint p-5 text-sm" role="status">
@@ -42,7 +45,7 @@ export function ViewingForm({
       <Field label="Your name" htmlFor="buyerName" error={e.buyerName}>
         <Input id="buyerName" name="buyerName" autoComplete="name" defaultValue={v.buyerName} required />
       </Field>
-      <Field label="Mobile number" htmlFor="buyerPhone" error={e.buyerPhone} hint="The agent will call or text to confirm">
+      <Field label="Mobile number" htmlFor="buyerPhone" error={e.buyerPhone} hint={say("The agent will call or text to confirm", "Tatawag o magte-text ang agent para mag-confirm")}>
         <Input id="buyerPhone" name="buyerPhone" type="tel" autoComplete="tel" defaultValue={v.buyerPhone} placeholder="0917 123 4567" required />
       </Field>
       <Field label="Email" htmlFor="buyerEmail" error={e.buyerEmail} hint="Optional">
@@ -51,20 +54,20 @@ export function ViewingForm({
       <Field label="Preferred viewing date" htmlFor="preferredDate" error={e.preferredDate} hint="Optional">
         <Input id="preferredDate" name="preferredDate" type="date" min={minDate} defaultValue={v.preferredDate} />
       </Field>
-      <Field label="Budget or financing plan" htmlFor="budgetNote" error={e.budgetNote} hint="Optional, e.g. Pag-IBIG, around ₱5M">
+      <Field label="Budget or financing plan" htmlFor="budgetNote" error={e.budgetNote} hint={say("Optional, e.g. Pag-IBIG, around ₱5M", "Optional, hal. Pag-IBIG, mga ₱5M")}>
         <Input id="budgetNote" name="budgetNote" defaultValue={v.budgetNote} maxLength={200} />
       </Field>
       <Field label="Your question or message" htmlFor="message" error={e.message} hint="Optional">
-        <Textarea id="message" name="message" defaultValue={v.message} rows={3} maxLength={1000} placeholder="Is it still available? Can I see it this weekend?" />
+        <Textarea id="message" name="message" defaultValue={v.message} rows={3} maxLength={1000} placeholder={say("Is it still available? Can I see it this weekend?", "Available pa po ba? Pwede ko bang makita this weekend?")} />
       </Field>
       <details className="group rounded-2xl border border-line bg-surface" open={wantsOpen}>
         <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-grape-700 [&::-webkit-details-marker]:hidden">
           <span className="group-open:hidden">+ </span>
           <span className="hidden group-open:inline">− </span>
-          Tell us what you&apos;re looking for <span className="font-medium text-muted">(optional)</span>
+          {say("Tell us what you're looking for", "Sabihin kung ano ang hanap mo")} <span className="font-medium text-muted">(optional)</span>
         </summary>
         <div className="space-y-3 border-t border-line px-4 py-4">
-          <p className="text-xs text-muted">This helps {agent} suggest the right property.</p>
+          <p className="text-xs text-muted">{say(`This helps ${agent} suggest the right property.`, `Makakatulong ito para ma-suggest ng ${agent} ang tamang property.`)}</p>
           <fieldset>
             <legend className="text-sm font-medium text-ink">Property type</legend>
             <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-2">
@@ -118,6 +121,8 @@ export function ViewingForm({
           ) : null}
         </div>
       </details>
+      {/* So the answer comes back in the page's language. */}
+      <input type="hidden" name="lang" value={lang} />
       {/* Hidden from people; bots fill it in. */}
       <div aria-hidden="true" className="absolute -left-[9999px] size-px overflow-hidden">
         <label htmlFor="website">Website</label>
@@ -127,7 +132,7 @@ export function ViewingForm({
         Send inquiry
       </SubmitButton>
       <p className="text-center text-xs text-muted">
-        Your inquiry goes only to {agent}. No account needed.{" "}
+        {say(`Your inquiry goes only to ${agent}. No account needed.`, `Kay ${agent} lang mapupunta ang inquiry mo. Hindi kailangan ng account.`)}{" "}
         <Link href="/privacy" target="_blank" className="underline">
           Privacy policy
         </Link>

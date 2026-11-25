@@ -1,3 +1,5 @@
+import { sayIn } from "@/lib/lang";
+import { businessLang } from "@/lib/lang-server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { can } from "@propilot/shared";
@@ -40,6 +42,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const [biz, user] = await Promise.all([requireBusiness(), getUser()]);
+  const say = sayIn(await businessLang(biz.businessId));
   const [aiOn, superAdmin] = await Promise.all([aiEnabled(biz.businessId), user ? isSuperAdmin(user.id) : Promise.resolve(false)]);
   const supabase = await createClient();
   const { data: p } = await supabase
@@ -156,27 +159,29 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       />
       {sp.notice === "created" ? (
         <div className="mb-4">
-          <Alert tone="success">Property saved. Add photos so buyers can see it.</Alert>
+          <Alert tone="success">{say("Property saved. Add photos so buyers can see it.", "Na-save na ang property. Mag-add ng photos para makita ito ng mga buyer.")}</Alert>
         </div>
       ) : sp.notice === "created-importing" ? (
         <div className="mb-4">
-          <Alert tone="success">Property saved. The photos from your Facebook post are being added below.</Alert>
+          <Alert tone="success">{say("Property saved. The photos from your Facebook post are being added below.", "Na-save na ang property. Ina-add na sa baba ang photos mula sa Facebook post mo.")}</Alert>
           <RefreshSoon />
         </div>
       ) : sp.notice === "status" ? (
         <div className="mb-4">
           <Alert tone="success">
-            Status changed to {STATUS_LABEL[p.status as keyof typeof STATUS_LABEL] ?? p.status}.
-            {p.status === "sold" || p.status === "archived" ? " Its public page is off and the assistant won't offer it. Nothing was deleted." : ""}
+            {say("Status changed to", "Napalitan na ang status:")} {STATUS_LABEL[p.status as keyof typeof STATUS_LABEL] ?? p.status}.
+            {p.status === "sold" || p.status === "archived"
+              ? say(" Its public page is off and the assistant won't offer it. Nothing was deleted.", " Naka-off na ang public page nito at hindi na ito io-offer ng assistant. Walang na-delete.")
+              : ""}
           </Alert>
         </div>
       ) : sp.notice === "not-deleted" ? (
         <div className="mb-4">
-          <Alert>This listing couldn&apos;t be deleted. Only the app admin can delete listings.</Alert>
+          <Alert>{say("This listing couldn't be deleted. Only the app admin can delete listings.", "Hindi na-delete ang listing na ito. App admin lang ang pwedeng mag-delete ng listings.")}</Alert>
         </div>
       ) : sp.notice === "price-updated" ? (
         <div className="mb-4">
-          <Alert tone="success">Asking price updated. Buyers and the AI chat see the new price now.</Alert>
+          <Alert tone="success">{say("Asking price updated. Buyers and the AI chat see the new price now.", "Na-update na ang asking price. Ang bagong presyo na ang makikita ng buyers at ng AI chat.")}</Alert>
         </div>
       ) : null}
       {shareable ? <ShareListing url={publicUrl} views={views} inquiries={inquiries} /> : null}
@@ -204,7 +209,10 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       ) : manager && aiOn && !plan.negotiation && p.status === "available" ? (
         <Panel title="AI negotiation" className="mt-6">
           <p className="mt-1 max-w-2xl text-sm text-muted">
-            On Pro and Agency, the AI negotiates price offers in the chat down to a lowest price you set privately, and closes deals at a price you pre-approve.{" "}
+            {say(
+              "On Pro and Agency, the AI negotiates price offers in the chat down to a lowest price you set privately, and closes deals at a price you pre-approve.",
+              "Sa Pro at Agency, ang AI ang nakikipag-negotiate ng presyo sa chat hanggang sa lowest price na ikaw lang ang nakakaalam, at nagko-close ng deal sa presyong pre-approved mo.",
+            )}{" "}
             <Link href="/app/billing" className="font-bold text-grape-700 hover:underline">
               See the plans
             </Link>
@@ -227,8 +235,11 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       {canEdit ? (
         <Panel title="Listing status" className="mt-6">
           <p className="mt-1 max-w-2xl text-sm text-muted">
-            Now <span className="font-semibold text-ink">{STATUS_LABEL[p.status as keyof typeof STATUS_LABEL] ?? p.status}</span>. When a property is sold or
-            off the market, change its status. Sold and archived listings leave the public page and the assistant stops offering them, and all their records stay.
+            {say("Now", "Ngayon:")} <span className="font-semibold text-ink">{STATUS_LABEL[p.status as keyof typeof STATUS_LABEL] ?? p.status}</span>.{" "}
+            {say(
+              "When a property is sold or off the market, change its status. Sold and archived listings leave the public page and the assistant stops offering them, and all their records stay.",
+              "Kapag sold na o wala na sa market ang property, palitan ang status nito. Mawawala sa public page ang sold at archived listings at hindi na ito io-offer ng assistant, pero mananatili ang lahat ng records.",
+            )}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {PROPERTY_STATUSES.filter((s) => s !== p.status).map((s) => (

@@ -1,3 +1,4 @@
+import type { Say } from "@/lib/lang";
 import Link from "next/link";
 import { Card } from "@/components/ui";
 import { formatPeso } from "@/lib/money";
@@ -6,14 +7,14 @@ import type { Match } from "@/lib/matching";
 export type FitRow = { id: string; name: string; location: string; price_minor: number; asked: boolean; match: Match };
 
 /** Your listings that fit this lead, from the property matcher. */
-export function ListingsThatFit({ rows, enough }: { rows: FitRow[]; enough: boolean }) {
+export function ListingsThatFit({ rows, enough, say }: { rows: FitRow[]; enough: boolean; say: Say }) {
   return (
     <Card className="p-5">
       <h2 className="text-sm font-semibold">Listings that fit</h2>
       {!enough ? (
-        <p className="mt-1 text-sm text-muted">Add at least two of budget, area and property type above to see matching listings.</p>
+        <p className="mt-1 text-sm text-muted">{say("Add at least two of budget, area and property type above to see matching listings.", "Mag-add ng kahit dalawa sa budget, area at property type sa taas para makita ang mga bagay na listing.")}</p>
       ) : rows.length === 0 ? (
-        <p className="mt-1 text-sm text-muted">None of your available listings fit what they want yet.</p>
+        <p className="mt-1 text-sm text-muted">{say("None of your available listings fit what they want yet.", "Wala pa sa available listings mo ang bagay sa hanap nila.")}</p>
       ) : (
         <ul className="mt-2 divide-y divide-line">
           {rows.map((r) => (
@@ -25,7 +26,7 @@ export function ListingsThatFit({ rows, enough }: { rows: FitRow[]; enough: bool
                 </span>
                 <span className="block text-xs text-muted">
                   {formatPeso(r.price_minor)} · {r.location}
-                  {r.asked ? " · They asked about this one" : ""}
+                  {r.asked ? say(" · They asked about this one", " · Ito ang tinanong nila") : ""}
                 </span>
                 {r.match.gaps.length ? <span className="block text-xs text-hot">{r.match.gaps.join(", ")}</span> : null}
               </Link>

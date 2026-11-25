@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import Link from "next/link";
 import { useId, useRef, useState, useTransition } from "react";
 import { ChevronDown } from "lucide-react";
@@ -30,6 +31,7 @@ export type PriceHelperPlan =
  */
 export function PriceHelper({ plan }: { plan: PriceHelperPlan }) {
   const [open, setOpen] = useState(false);
+  const say = useSay();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -59,11 +61,11 @@ export function PriceHelper({ plan }: { plan: PriceHelperPlan }) {
     const type = outer("type");
     if (!location)
       return setError(
-        "Type the property's location in the form first: the barangay, town or city, and province.",
+        say("Type the property's location in the form first: the barangay, town or city, and province.", "I-type muna ang location ng property sa form: barangay, town o city, at province."),
       );
     if (!(PRICING_TYPES as readonly string[]).includes(type))
       return setError(
-        "The Pricing Advisor covers condos, houses, townhouses and lots.",
+        say("The Pricing Advisor covers condos, houses, townhouses and lots.", "Para sa condo, house, townhouse at lot ang Pricing Advisor."),
       );
     const form = new FormData();
     form.set("location", location);
@@ -83,7 +85,7 @@ export function PriceHelper({ plan }: { plan: PriceHelperPlan }) {
         res = await checkPrice(null, {}, form);
       } catch {
         setError(
-          "The price check didn't finish. Your form is safe. Try again in a moment.",
+          say("The price check didn't finish. Your form is safe. Try again in a moment.", "Hindi natapos ang price check. Safe ang form mo. Subukan ulit maya-maya."),
         );
         return;
       }
@@ -122,12 +124,12 @@ export function PriceHelper({ plan }: { plan: PriceHelperPlan }) {
         <Icon3d name="money" size={40} />
         <span className="min-w-0 flex-1">
           <span className="block font-semibold text-ink">
-            Not sure what price to ask?
+            {say("Not sure what price to ask?", "Hindi sure kung magkano ang presyo?")}
           </span>
           <span className="block text-sm text-muted">
             {plan.kind === "upgrade"
-              ? "The Pricing Advisor compares similar listings nearby and suggests three prices. Part of the Agency plan."
-              : "The Pricing Advisor compares similar listings nearby and suggests three prices. You choose whether to use one."}
+              ? say("The Pricing Advisor compares similar listings nearby and suggests three prices. Part of the Agency plan.", "Kino-compare ng Pricing Advisor ang mga katulad na listing sa malapit at nagsa-suggest ng tatlong presyo. Kasama ito sa Agency plan.")
+              : say("The Pricing Advisor compares similar listings nearby and suggests three prices. You choose whether to use one.", "Kino-compare ng Pricing Advisor ang mga katulad na listing sa malapit at nagsa-suggest ng tatlong presyo. Ikaw ang bahala kung gagamitin mo.")}
           </span>
         </span>
         <ChevronDown
@@ -142,10 +144,10 @@ export function PriceHelper({ plan }: { plan: PriceHelperPlan }) {
       {open && plan.kind === "upgrade" ? (
         <div className="pp-fade border-t border-grape-100 p-4 text-sm">
           <p className="text-ink/85">
-            Agency includes 20 price checks a month. Each one finds similar
-            listings in the same area, or in nearby towns when there are few,
-            and gives you a Sell fast, Market and Premium price with a link to
-            every listing it used.
+            {say(
+              "Agency includes 20 price checks a month. Each one finds similar listings in the same area, or in nearby towns when there are few, and gives you a Sell fast, Market and Premium price with a link to every listing it used.",
+              "May 20 price checks kada buwan ang Agency. Bawat isa, naghahanap ng mga katulad na listing sa parehong area, o sa mga kalapit na bayan kapag kaunti lang, at nagbibigay ng Sell fast, Market at Premium price na may link sa bawat listing na ginamit.",
+            )}
           </p>
           {plan.canSeeBilling ? (
             <Link
@@ -161,7 +163,7 @@ export function PriceHelper({ plan }: { plan: PriceHelperPlan }) {
       {open && plan.kind === "ready" ? (
         <div className="pp-fade space-y-4 border-t border-grape-100 p-4">
           <p className="text-sm text-muted">
-            It uses the location and type you entered above, plus these details.
+            {say("It uses the location and type you entered above, plus these details.", "Gagamitin nito ang location at type na nilagay mo sa taas, pati ang details na ito.")}
           </p>
           <div
             className="grid grid-cols-2 gap-3 sm:grid-cols-5"
@@ -249,23 +251,25 @@ export function PriceHelper({ plan }: { plan: PriceHelperPlan }) {
               className={buttonClass("primary")}
             >
               {pending
-                ? "Researching prices… up to a minute"
+                ? say("Researching prices… up to a minute", "Nagre-research ng presyo… hanggang isang minuto")
                 : report
                   ? "Check again"
                   : "Check the price"}
             </button>
             <span className="text-xs text-muted tabular-nums">
               {left === null
-                ? "Unlimited price checks on your plan."
+                ? say("Unlimited price checks on your plan.", "Unlimited ang price checks sa plan mo.")
                 : left === 0
-                  ? "All price checks used this month. They renew on the 1st."
-                  : `${left} of ${plan.limit} price checks left this month.`}
+                  ? say("All price checks used this month. They renew on the 1st.", "Nagamit na lahat ng price checks ngayong buwan. Magre-renew sa a-uno.")
+                  : say(`${left} of ${plan.limit} price checks left this month.`, `${left} sa ${plan.limit} price checks na lang ngayong buwan.`)}
             </span>
           </div>
           {picked !== null ? (
             <Alert tone="success">
-              Put in the price field. You can still change it to any price you
-              like before saving.
+              {say(
+                "Put in the price field. You can still change it to any price you like before saving.",
+                "Nailagay na sa price field. Pwede mo pa itong palitan ng kahit anong presyo bago mag-save.",
+              )}
             </Alert>
           ) : null}
           {report ? (

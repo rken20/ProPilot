@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useState, useTransition } from "react";
 import { Sparkles } from "lucide-react";
 import { draftDescription } from "./describe-actions";
@@ -10,6 +11,7 @@ import { draftDescription } from "./describe-actions";
  * a draft the agent can edit. Nothing is saved until the form is saved.
  */
 export function WriteDescriptionButton({ targetId }: { targetId: string }) {
+  const say = useSay();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +58,7 @@ export function WriteDescriptionButton({ targetId }: { targetId: string }) {
         <Sparkles className="size-4" aria-hidden /> {pending ? "Writing…" : "Write with AI"}
       </button>
       <span className="text-xs text-muted" role="status">
-        {error ?? "Uses only the details above and your notes in the box. Check it before saving."}
+        {error ?? say("Uses only the details above and your notes in the box. Check it before saving.", "Ang details sa taas at notes mo sa box lang ang gagamitin. I-check muna bago i-save.")}
       </span>
     </div>
   );

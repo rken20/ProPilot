@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Star, Trash2 } from "lucide-react";
@@ -42,24 +43,25 @@ export function PhotoManager({
   const [progress, setProgress] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
+  const say = useSay();
   const room = MAX_PHOTOS - photos.length;
 
   async function upload(files: FileList | null) {
     if (!files?.length) return;
     const list = Array.from(files);
     const problems: string[] = [];
-    if (list.length > room) problems.push(`Only ${room} more photo${room === 1 ? "" : "s"} fit. Extra files were skipped.`);
+    if (list.length > room) problems.push(say(`Only ${room} more photo${room === 1 ? "" : "s"} fit. Extra files were skipped.`, `${room} photo${room === 1 ? "" : "s"} na lang ang kasya. Hindi na isinama ang sobra.`));
     const supabase = createClient();
 
     let done = 0;
     for (const file of list.slice(0, Math.max(0, room))) {
       setProgress(`Uploading ${done + 1} of ${Math.min(list.length, room)}…`);
       if (!file.type.startsWith("image/")) {
-        problems.push(`${file.name} isn't a photo.`);
+        problems.push(say(`${file.name} isn't a photo.`, `Hindi photo ang ${file.name}.`));
         continue;
       }
       if (file.size > MAX_INPUT_BYTES) {
-        problems.push(`${file.name} is over 20 MB.`);
+        problems.push(say(`${file.name} is over 20 MB.`, `Lampas 20 MB ang ${file.name}.`));
         continue;
       }
       try {
@@ -73,14 +75,14 @@ export function PhotoManager({
         ]);
         if (a.error || b.error) {
           await supabase.storage.from(MEDIA_BUCKET).remove([paths.full, paths.thumb]);
-          problems.push(`${file.name} couldn't be uploaded. Check your connection and try again.`);
+          problems.push(say(`${file.name} couldn't be uploaded. Check your connection and try again.`, `Hindi na-upload ang ${file.name}. I-check ang connection mo at subukan ulit.`));
           continue;
         }
         const res = await addPhoto(propertyId, { id, width: full.width, height: full.height });
         if (res.error) problems.push(`${file.name}: ${res.error}`);
         else done++;
       } catch {
-        problems.push(`${file.name} couldn't be read. Try a JPEG or PNG.`);
+        problems.push(say(`${file.name} couldn't be read. Try a JPEG or PNG.`, `Hindi mabasa ang ${file.name}. Subukan ang JPEG o PNG.`));
       }
     }
     setProgress(null);
@@ -95,7 +97,7 @@ export function PhotoManager({
         <div>
           <h2 className="text-lg font-semibold">Photos</h2>
           <p className="text-sm text-muted">
-            {photos.length} of {MAX_PHOTOS}. The first photo is the cover buyers see in search.
+            {photos.length} / {MAX_PHOTOS}. {say("The first photo is the cover buyers see in search.", "Ang unang photo ang cover na makikita ng buyers.")}
           </p>
         </div>
         {canEdit && room > 0 ? (
@@ -133,7 +135,9 @@ export function PhotoManager({
           <ImagePlus className="mx-auto size-8 text-muted" aria-hidden />
           <p className="mt-3 font-medium">No photos yet</p>
           <p className="mt-1 text-sm text-muted">
-            {canEdit ? "Add photos so buyers can see the property. Large photos are resized automatically." : "The owner or an admin can add photos."}
+            {canEdit
+            ? say("Add photos so buyers can see the property. Large photos are resized automatically.", "Mag-add ng photos para makita ng buyers ang property. Kusang nire-resize ang malalaking photo.")
+            : say("The owner or an admin can add photos.", "Owner o admin ang pwedeng mag-add ng photos.")}
           </p>
         </div>
       ) : (
@@ -162,7 +166,7 @@ export function PhotoManager({
                     disabled={pending}
                     aria-label={`Delete photo ${i + 1}`}
                     onClick={() => {
-                      if (confirm("Delete this photo? This can't be undone.")) startTransition(() => deletePhoto(propertyId, p.id));
+                      if (confirm(say("Delete this photo? This can't be undone.", "I-delete ang photo na ito? Hindi na ito maibabalik."))) startTransition(() => deletePhoto(propertyId, p.id));
                     }}
                     className="grid size-7 place-items-center rounded-md bg-white/95 text-red-700 shadow-sm ring-1 ring-black/5 hover:bg-white"
                   >

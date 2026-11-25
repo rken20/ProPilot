@@ -1,3 +1,4 @@
+import { appSay } from "@/lib/lang-server";
 import Link from "next/link";
 import { can } from "@propilot/shared";
 import { Alert, Card, PageHeader, buttonClass } from "@/components/ui";
@@ -9,6 +10,7 @@ import { PropertiesList } from "./properties-list";
 
 export default async function PropertiesPage({ searchParams }: PageProps<"/app/properties">) {
   const sp = await searchParams;
+  const say = await appSay();
   const showArchived = sp.show === "archived";
   const biz = await requireBusiness();
   const supabase = await createClient();
@@ -26,7 +28,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
     <>
       <PageHeader
         title="Properties"
-        description="The assistant answers buyers only from what's listed here."
+        description={say("The assistant answers buyers only from what's listed here.", "Ang nakalista lang dito ang ginagamit ng assistant sa pagsagot sa mga buyer.")}
         action={
           <div className="flex flex-wrap gap-2">
             {can(biz.role, "property.update") ? (
@@ -44,14 +46,18 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
       />
       {sp.notice === "archived" ? (
         <div className="mb-4">
-          <Alert tone="success">Property archived. Its public page is off and the assistant won&apos;t mention it.</Alert>
+          <Alert tone="success">
+            {say("Property archived. Its public page is off and the assistant won't mention it.", "Na-archive na ang property. Naka-off na ang public page nito at hindi na ito babanggitin ng assistant.")}
+          </Alert>
         </div>
       ) : sp.notice === "deleted" ? (
         <div className="mb-4">
-          <Alert tone="success">Listing deleted for good, with its photos and public page.</Alert>
+          <Alert tone="success">
+            {say("Listing deleted for good, with its photos and public page.", "Na-delete na nang tuluyan ang listing, kasama ang photos at public page nito.")}
+          </Alert>
         </div>
       ) : null}
-      {error ? <Alert>Couldn&apos;t load properties. Refresh to try again.</Alert> : null}
+      {error ? <Alert>{say("Couldn't load properties. Refresh to try again.", "Hindi na-load ang properties. I-refresh para subukan ulit.")}</Alert> : null}
 
       <div className="mb-3 flex gap-4 text-sm">
         <Link href="/app/properties" className={showArchived ? "text-zinc-500" : "font-medium text-brand-700"}>

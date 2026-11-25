@@ -1,3 +1,5 @@
+import { sayIn } from "@/lib/lang";
+import { businessLang } from "@/lib/lang-server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, CalendarDays, Mail, MessageCircle, MessageSquareText, Phone, Smartphone } from "lucide-react";
@@ -35,6 +37,7 @@ const STAGE_TONE: Record<Stage, string> = {
 export default async function ProspectPage({ params }: PageProps<"/app/pipeline/[id]">) {
   const { id } = await params;
   const [biz, me] = await Promise.all([requireBusiness(), getUser()]);
+  const say = sayIn(await businessLang(biz.businessId));
   if (!can(biz.role, "lead.viewAll") && !can(biz.role, "lead.viewAssigned")) redirect("/app");
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const supabase = await createClient();
@@ -217,7 +220,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
                   name="note"
                   maxLength={1000}
                   required
-                  placeholder="Add a note for the team, e.g. Wants a unit facing east"
+                  placeholder={say("Add a note for the team, e.g. Wants a unit facing east", "Mag-add ng note para sa team, hal. Gusto ng unit na nakaharap sa east")}
                   className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100"
                 />
                 <SubmitButton variant="secondary" pendingText="Adding…">
@@ -267,7 +270,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
             canEdit={canEdit}
             aiOn={aiOn}
           />
-          {fits ? <ListingsThatFit rows={fits.rows} enough={fits.enough} /> : null}
+          {fits ? <ListingsThatFit say={say} rows={fits.rows} enough={fits.enough} /> : null}
           {canEdit ? (
             <Card className="p-5">
               <ProspectDetailsForm
@@ -292,7 +295,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
 
           <Card className="p-5">
             <h2 className="text-sm font-semibold">Handled by</h2>
-            <p className="mt-1 text-sm text-muted">{p.assigned_to ? (nameOf.get(p.assigned_to) ?? "A teammate") : "No one yet"}</p>
+            <p className="mt-1 text-sm text-muted">{p.assigned_to ? (nameOf.get(p.assigned_to) ?? "A teammate") : say("No one yet", "Wala pa")}</p>
             {canAssign ? (
               <form action={assignProspect.bind(null, p.id)} className="mt-3 flex gap-2">
                 <label htmlFor="assignee" className="sr-only">

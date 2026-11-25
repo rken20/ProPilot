@@ -1,3 +1,5 @@
+import { sayIn } from "@/lib/lang";
+import { businessLang } from "@/lib/lang-server";
 import { redirect } from "next/navigation";
 import { can } from "@propilot/shared";
 import { requireBusiness } from "@/lib/auth";
@@ -71,6 +73,7 @@ export default async function InboxPage({ searchParams }: PageProps<"/app/inbox"
 
   return (
     <InboxView
+      say={sayIn(await businessLang(biz.businessId))}
       liveNames={live.map((p) => p.name)}
       canConnect={can(biz.role, "facebook.connect")}
       conversations={conversations}

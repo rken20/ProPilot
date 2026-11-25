@@ -1,16 +1,26 @@
 "use client";
 
+import type { Lang } from "@/lib/lang";
 import { useEffect, useState } from "react";
 
-const QUESTION = "How much is the reservation fee, and can I pay through Pag-IBIG?";
-const ANSWER =
-  "The reservation fee is ₱20,000. The agent lists Pag-IBIG financing as accepted. With 20% down, a 25-year loan at 6.25% comes to about ₱25,331 a month.";
+// In Taglish the buyer and the assistant write the way the AI chat does by default.
+const CHAT: Record<Lang, { question: string; answer: string }> = {
+  english: {
+    question: "How much is the reservation fee, and can I pay through Pag-IBIG?",
+    answer: "The reservation fee is ₱20,000. The agent lists Pag-IBIG financing as accepted. With 20% down, a 25-year loan at 6.25% comes to about ₱25,331 a month.",
+  },
+  taglish: {
+    question: "Magkano po ang reservation fee, at pwede po ba through Pag-IBIG?",
+    answer: "₱20,000 po ang reservation fee. Tumatanggap po ang agent ng Pag-IBIG financing. Sa 20% down, mga ₱25,331 a month po ang 25-year loan sa 6.25%.",
+  },
+};
 
 /**
  * The home page's one moment: a buyer's question and the assistant's answer
  * play once when the page opens. Under reduced motion both show at once.
  */
-export function HeroChat() {
+export function HeroChat({ lang }: { lang: Lang }) {
+  const { question: QUESTION, answer: ANSWER } = CHAT[lang];
   // 0 nothing yet, 1 question, 2 typing, 3 answer
   const [step, setStep] = useState(0);
 

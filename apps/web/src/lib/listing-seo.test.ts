@@ -16,6 +16,7 @@ const house: PublicListing = {
   description: "Three bedrooms, two bathrooms, a covered garage and a fenced garden. Ten minutes from the town plaza.\nClean title.",
   financing: { bankFinancing: true, pagIbig: true },
   business_name: "Santos Realty",
+  business_id: "00000000-0000-0000-0000-000000000001",
   photos: [{ id: "p1", path: "b/l/one.jpg", thumb: "b/l/one-t.jpg" }],
   created_at: "2026-11-20T02:00:00Z",
   updated_at: "2026-11-23T05:00:00Z",

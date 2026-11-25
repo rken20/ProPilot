@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useState } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import { Card, buttonClass } from "@/components/ui";
@@ -8,6 +9,7 @@ import { Icon3d } from "@/components/icon-3d";
 /** The listing's public link, ready to copy or post. */
 export function ShareListing({ url, views, inquiries }: { url: string; views: number; inquiries: number }) {
   const [copied, setCopied] = useState(false);
+  const say = useSay();
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);
@@ -24,8 +26,10 @@ export function ShareListing({ url, views, inquiries }: { url: string; views: nu
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-bold tracking-tight">Share this listing</h2>
           <p className="mt-0.5 text-sm text-muted">
-            Its public page: {views.toLocaleString()} view{views === 1 ? "" : "s"} and {inquiries} inquir{inquiries === 1 ? "y" : "ies"} in the last 30 days. Inquiries land on your
-            Leads page.
+            {say(
+              `Its public page: ${views.toLocaleString()} view${views === 1 ? "" : "s"} and ${inquiries} inquir${inquiries === 1 ? "y" : "ies"} in the last 30 days. Inquiries land on your Leads page.`,
+              `Public page nito: ${views.toLocaleString()} view${views === 1 ? "" : "s"} at ${inquiries} inquir${inquiries === 1 ? "y" : "ies"} nitong huling 30 araw. Sa Leads page mo pumapasok ang inquiries.`,
+            )}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <input

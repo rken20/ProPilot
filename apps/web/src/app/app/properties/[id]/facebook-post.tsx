@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useActionState, useState, useTransition } from "react";
 import { ExternalLink, Sparkles } from "lucide-react";
 import { Alert, Badge, Card, Select, Textarea, buttonClass, cx } from "@/components/ui";
@@ -36,6 +37,7 @@ export function FacebookPost({
   const [state, action, pending] = useActionState<PublishState, FormData>(publishToFacebook.bind(null, propertyId), {});
   const postable = pages.filter((p) => p.canPost);
   const [caption, setCaption] = useState(initialCaption);
+  const say = useSay();
   const [draftError, setDraftError] = useState<string | null>(null);
   const [drafting, startDraft] = useTransition();
 
@@ -58,8 +60,10 @@ export function FacebookPost({
 
       {postable.length === 0 ? (
         <p className="mt-4 text-sm text-muted">
-          You need to be an admin or editor of a connected Page to post. Check your role on the Page in Facebook, then reconnect it in
-          Integrations.
+          {say(
+            "You need to be an admin or editor of a connected Page to post. Check your role on the Page in Facebook, then reconnect it in Integrations.",
+            "Kailangan admin o editor ka ng naka-connect na Page para makapag-post. I-check ang role mo sa Page sa Facebook, tapos i-reconnect ito sa Integrations.",
+          )}
         </p>
       ) : (
         <form action={action} className="mt-5 space-y-4">
@@ -128,7 +132,7 @@ export function FacebookPost({
               {photoCount > 10 ? ` of ${photoCount}, the first 10` : ""})
             </label>
           ) : (
-            <p className="text-sm text-muted">This listing has no photos yet, so the post will be text only.</p>
+            <p className="text-sm text-muted">{say("This listing has no photos yet, so the post will be text only.", "Wala pang photos ang listing na ito, kaya text lang ang post.")}</p>
           )}
 
           <button disabled={pending || drafting} className={buttonClass("primary")}>

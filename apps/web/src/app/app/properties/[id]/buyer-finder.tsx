@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import Link from "next/link";
 import { useActionState } from "react";
 import { Check } from "lucide-react";
@@ -25,6 +26,7 @@ const SOURCE_LABEL: Record<string, string> = {
 
 /** Buyer Finder on a listing: leads that fit, and the ones already added as potential buyers. */
 export function BuyerFinder({ propertyId, data }: { propertyId: string; data: BuyerFinderResult }) {
+  const say = useSay();
   const left = data.limit === null ? null : Math.max(0, data.limit - data.usedThisMonth);
   return (
     <Card className="mt-6">
@@ -33,7 +35,7 @@ export function BuyerFinder({ propertyId, data }: { propertyId: string; data: Bu
           <Icon3d name="target" size={44} />
           <div>
             <h2 className="text-lg font-bold tracking-tight">Buyer Finder</h2>
-            <p className="mt-0.5 text-sm text-muted">Leads whose budget, area and type fit this listing. The AI reads each chat for these details.</p>
+            <p className="mt-0.5 text-sm text-muted">{say("Leads whose budget, area and type fit this listing. The AI reads each chat for these details.", "Mga lead na bagay ang budget, area at type sa listing na ito. Binabasa ng AI ang bawat chat para sa details na ito.")}</p>
           </div>
         </div>
         {data.limit !== null ? (
@@ -67,8 +69,10 @@ export function BuyerFinder({ propertyId, data }: { propertyId: string; data: Bu
         </ul>
       ) : (
         <p className="mt-2 text-sm text-muted">
-          No leads fit yet. Share this listing&apos;s public page and connect your Facebook Page: every inquiry becomes a lead, and leads need at least two of budget, area and
-          property type to be matched.
+          {say(
+            "No leads fit yet. Share this listing's public page and connect your Facebook Page: every inquiry becomes a lead, and leads need at least two of budget, area and property type to be matched.",
+            "Wala pang lead na bagay. I-share ang public page ng listing na ito at i-connect ang Facebook Page mo: bawat inquiry, nagiging lead, at kailangan ng lead ng kahit dalawa sa budget, area at property type para ma-match.",
+          )}
         </p>
       )}
     </Card>
@@ -124,18 +128,19 @@ function AddButton({ propertyId, prospectId, disabled }: { propertyId: string; p
 
 /** In place of Buyer Finder on Free. */
 export function BuyerFinderUpgrade({ canUpgrade }: { canUpgrade: boolean }) {
+  const say = useSay();
   return (
     <Card className="mt-6 flex items-start gap-3">
       <Icon3d name="target" size={44} />
       <div className="text-sm">
-        <p className="font-semibold">Buyer Finder is part of the paid plans</p>
-        <p className="mt-0.5 text-muted">The AI reads your chats and inquiries for budget and area, then shows which leads fit this listing: 5 a month on Basic, 20 on Pro.</p>
+        <p className="font-semibold">{say("Buyer Finder is part of the paid plans", "Kasama ang Buyer Finder sa paid plans")}</p>
+        <p className="mt-0.5 text-muted">{say("The AI reads your chats and inquiries for budget and area, then shows which leads fit this listing: 5 a month on Basic, 20 on Pro.", "Binabasa ng AI ang chats at inquiries mo para sa budget at area, tapos ipinapakita kung aling leads ang bagay sa listing na ito: 5 kada buwan sa Basic, 20 sa Pro.")}</p>
         {canUpgrade ? (
           <Link href="/app/billing" className="mt-2 inline-block font-semibold text-brand-700 hover:underline">
             See plans, from ₱499 a month
           </Link>
         ) : (
-          <p className="mt-2 text-muted">An owner can upgrade in Billing.</p>
+          <p className="mt-2 text-muted">{say("An owner can upgrade in Billing.", "Pwedeng mag-upgrade ang owner sa Billing.")}</p>
         )}
       </div>
     </Card>

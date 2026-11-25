@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useActionState, useState, useTransition } from "react";
 import { ChevronDown, ClipboardPaste, Images } from "lucide-react";
 import { Alert, Card, Select, Textarea, buttonClass, cx } from "@/components/ui";
@@ -16,6 +17,7 @@ export function NewProperty({ canPaste, pages, pricing }: { canPaste: boolean; p
   // Writing a description and filling from a post both need AI on the plan.
   const aiWrite = canPaste;
   const [state, action, pending] = useActionState<ImportState, FormData>(importListing, {});
+  const say = useSay();
   const filled = Boolean(state.nonce);
   // The panel starts open and folds away after each fill; the header reopens it.
   const key = state.nonce ?? 0;
@@ -44,8 +46,8 @@ export function NewProperty({ canPaste, pages, pricing }: { canPaste: boolean; p
               <span className="block font-semibold text-ink">Start from a Facebook post</span>
               <span className="block text-sm text-muted">
                 {pages.length
-                  ? "Pick a post from your Page, photos included, or paste one. You check the form before saving."
-                  : "Paste a listing you've already posted and the form fills itself in. You check it before saving."}
+                  ? say("Pick a post from your Page, photos included, or paste one. You check the form before saving.", "Pumili ng post mula sa Page mo, kasama ang photos, o mag-paste ng isa. Ikaw ang magche-check ng form bago i-save.")
+                  : say("Paste a listing you've already posted and the form fills itself in. You check it before saving.", "I-paste ang listing na na-post mo na at kusa nang mapupunan ang form. Ikaw ang magche-check bago i-save.")}
               </span>
             </span>
             <ChevronDown className={cx("size-5 shrink-0 text-muted transition-transform duration-200", expanded && "rotate-180")} aria-hidden />
@@ -100,7 +102,7 @@ export function NewProperty({ canPaste, pages, pricing }: { canPaste: boolean; p
                     <button disabled={pending} className={buttonClass("primary")}>
                       {pending ? "Reading your post…" : "Fill in the form"}
                     </button>
-                    <span className="text-xs text-muted">Only the text. You&apos;ll add the post&apos;s photos after saving.</span>
+                    <span className="text-xs text-muted">{say("Only the text. You'll add the post's photos after saving.", "Text lang ito. Ia-add mo ang photos ng post pagkatapos i-save.")}</span>
                   </div>
                 </form>
               )}
@@ -117,9 +119,17 @@ export function NewProperty({ canPaste, pages, pricing }: { canPaste: boolean; p
       {filled && !pending && !state.error ? (
         <div className="mb-6">
           <Alert tone="success">
-            Filled in from your post. Check every field below before you save: nothing is saved yet.
-            {state.missing?.length ? ` Not in the post: ${state.missing.join(", ")}.` : ""}
-            {state.photoCount ? ` Its ${state.photoCount === 1 ? "photo" : `${state.photoCount} photos`} will be added when you save.` : ""}
+            {say(
+              "Filled in from your post. Check every field below before you save: nothing is saved yet.",
+              "Napunan na mula sa post mo. I-check ang bawat field sa baba bago mag-save: wala pang nase-save.",
+            )}
+            {state.missing?.length ? say(` Not in the post: ${state.missing.join(", ")}.`, ` Wala sa post: ${state.missing.join(", ")}.`) : ""}
+            {state.photoCount
+              ? say(
+                  ` Its ${state.photoCount === 1 ? "photo" : `${state.photoCount} photos`} will be added when you save.`,
+                  ` Maa-add ang ${state.photoCount === 1 ? "photo" : `${state.photoCount} photos`} nito pag nag-save ka.`,
+                )
+              : ""}
           </Alert>
         </div>
       ) : null}
@@ -140,6 +150,7 @@ export function NewProperty({ canPaste, pages, pricing }: { canPaste: boolean; p
 }
 
 function PagePicker({ pages, action, pending }: { pages: Page[]; action: (form: FormData) => void; pending: boolean }) {
+  const say = useSay();
   const [pageId, setPageId] = useState(pages[0]!.id);
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -238,7 +249,7 @@ function PagePicker({ pages, action, pending }: { pages: Page[]; action: (form: 
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted">No posts with text on this Page yet.</p>
+          <p className="text-sm text-muted">{say("No posts with text on this Page yet.", "Wala pang post na may text sa Page na ito.")}</p>
         )
       ) : null}
     </div>

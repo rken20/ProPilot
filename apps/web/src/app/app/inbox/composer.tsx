@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useActionState, useState, useTransition } from "react";
 import { Languages, SendHorizontal, Sparkles } from "lucide-react";
 import { Alert, buttonClass, cx } from "@/components/ui";
@@ -22,6 +23,7 @@ export function Composer({
 }) {
   const [state, action, pending] = useActionState<SendState, FormData>(sendAgentMessage.bind(null, conversationId), {});
   const [text, setText] = useState("");
+  const say = useSay();
   // Clear the box once per successful send (adjusting state during render, not in an effect).
   const [clearedFor, setClearedFor] = useState<number | undefined>();
   if (state.sent && state.sent !== clearedFor) {
@@ -44,8 +46,10 @@ export function Composer({
   if (!open) {
     return (
       <p className="rounded-xl bg-zinc-100 px-4 py-3 text-sm text-muted">
-        It&apos;s been more than 24 hours since their last message, so Messenger won&apos;t accept a reply from the Page. Call or text them
-        instead, or wait for them to message again.
+        {say(
+          "It's been more than 24 hours since their last message, so Messenger won't accept a reply from the Page. Call or text them instead, or wait for them to message again.",
+          "Lampas 24 oras na mula sa huling message nila, kaya hindi na tatanggapin ng Messenger ang reply mula sa Page. Tawagan o i-text na lang sila, o hintayin silang mag-message ulit.",
+        )}
       </p>
     );
   }
@@ -99,7 +103,7 @@ export function Composer({
               if (text.trim()) e.currentTarget.form?.requestSubmit();
             }
           }}
-          placeholder={aiOn ? "Write a reply. Sending it takes over from the AI." : "Write a reply"}
+          placeholder={aiOn ? say("Write a reply. Sending it takes over from the AI.", "Mag-type ng reply. Kapag sinend mo, ikaw na ang papalit sa AI.") : say("Write a reply", "Mag-type ng reply")}
           className={cx(
             "min-h-11 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none transition-opacity",
             helping && "opacity-50",
@@ -110,8 +114,10 @@ export function Composer({
         </button>
       </div>
       <p className="px-1 text-xs text-muted">
-        Enter to send, Shift+Enter for a new line.{" "}
-        {channel === "app" ? "Sent to the buyer in MyHomeSeller." : "Sent from your Page on Messenger."}
+        {say("Enter to send, Shift+Enter for a new line.", "Enter para i-send, Shift+Enter para sa bagong linya.")}{" "}
+        {channel === "app"
+          ? say("Sent to the buyer in MyHomeSeller.", "Ise-send sa buyer sa MyHomeSeller.")
+          : say("Sent from your Page on Messenger.", "Ise-send mula sa Page mo sa Messenger.")}
       </p>
     </form>
   );

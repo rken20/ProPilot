@@ -1,3 +1,6 @@
+import { siteLang } from "@/lib/lang-server";
+import { sayIn, type Lang, type Say } from "@/lib/lang";
+import { SiteLangToggle } from "@/components/site-lang-toggle";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CircleCheck, Home as HomeIcon, Images, MessageCircle, Zap, type LucideIcon } from "lucide-react";
@@ -24,16 +27,18 @@ const wrap = "mx-auto w-full max-w-6xl px-6 lg:px-8";
 const screen = "flex flex-col justify-center py-16 lg:py-20";
 
 /** Four facts in the dashboard's key-number tiles. Each one is true of the product as sold. */
-const FACTS: Array<{ icon: LucideIcon; circle: string; tile: string; label: string; value: string; note: string }> = [
-  { icon: MessageCircle, circle: "from-[#22b866] to-[#0b8a47]", tile: "bg-tile-mint", label: "AI Replies", value: "24/7", note: "on Messenger and listing pages" },
-  { icon: HomeIcon, circle: "from-[#3b82f6] to-[#1d4ed8]", tile: "bg-tile-sky", label: "To Start", value: "₱0", note: "Free plan, no card needed" },
-  { icon: Zap, circle: "from-[#e8780c] to-[#c2540a]", tile: "bg-tile-peach", label: "AI From", value: "₱499", note: "a month, paid by GCash" },
-  { icon: Images, circle: "from-[#8b5cf6] to-[#5b34c9]", tile: "bg-tile-lavender", label: "Photos per Listing", value: "20", note: "on its own public page" },
+const FACTS: Array<{ icon: LucideIcon; circle: string; tile: string; label: string; value: string; note: [english: string, taglish: string] }> = [
+  { icon: MessageCircle, circle: "from-[#22b866] to-[#0b8a47]", tile: "bg-tile-mint", label: "AI Replies", value: "24/7", note: ["on Messenger and listing pages", "sa Messenger at listing pages"] },
+  { icon: HomeIcon, circle: "from-[#3b82f6] to-[#1d4ed8]", tile: "bg-tile-sky", label: "To Start", value: "₱0", note: ["Free plan, no card needed", "Free plan, hindi kailangan ng card"] },
+  { icon: Zap, circle: "from-[#e8780c] to-[#c2540a]", tile: "bg-tile-peach", label: "AI From", value: "₱499", note: ["a month, paid by GCash", "kada buwan, bayad via GCash"] },
+  { icon: Images, circle: "from-[#8b5cf6] to-[#5b34c9]", tile: "bg-tile-lavender", label: "Photos per Listing", value: "20", note: ["on its own public page", "sa sarili nitong public page"] },
 ];
 
 export default async function Home() {
   const configured = env.isConfigured();
   if (configured && (await getUser())) redirect(await homePathFor());
+  const lang = await siteLang();
+  const say = sayIn(lang);
 
   return (
     <div className="bg-[var(--pp-ground)]">
@@ -75,8 +80,10 @@ export default async function Home() {
                 The AI Sales Assistant for Property Owners and Agents
               </h1>
               <p style={{ "--i": 2 } as React.CSSProperties} className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-                It answers buyers on Messenger and on your listing&apos;s page day and night, using only the details you entered. Then
-                it sizes up each buyer and shows you who fits each property.
+                {say(
+                  "It answers buyers on Messenger and on your listing's page day and night, using only the details you entered. Then it sizes up each buyer and shows you who fits each property.",
+                  "Sumasagot ito sa buyers sa Messenger at sa page ng listing mo, araw at gabi, gamit lang ang details na nilagay mo. Tapos sinusuri nito ang bawat buyer at ipinapakita kung sino ang bagay sa bawat property.",
+                )}
               </p>
               {configured ? (
                 <div style={{ "--i": 3 } as React.CSSProperties}>
@@ -88,7 +95,7 @@ export default async function Home() {
                       See the Plans
                     </Link>
                   </div>
-                  <p className="mt-5 text-sm text-muted">Made in the Philippines, for Pag-IBIG, bank and in-house financing.</p>
+                  <p className="mt-5 text-sm text-muted">{say("Made in the Philippines, for Pag-IBIG, bank and in-house financing.", "Gawang Pinoy, para sa Pag-IBIG, bank at in-house financing.")}</p>
                 </div>
               ) : (
                 <p className="mt-9 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
@@ -97,7 +104,7 @@ export default async function Home() {
               )}
             </div>
 
-            <AgentScene />
+            <AgentScene lang={lang} />
           </div>
 
           <ul className={`${wrap} grid grid-cols-2 gap-3 pb-10 lg:grid-cols-4`}>
@@ -109,7 +116,7 @@ export default async function Home() {
                 <span className="min-w-0">
                   <span className="block text-[13px] font-semibold text-ink/80">{f.label}</span>
                   <span className="mt-0.5 block text-[1.75rem] leading-none font-extrabold tracking-tight tabular-nums sm:text-[2rem]">{f.value}</span>
-                  <span className="mt-1 block text-xs text-muted">{f.note}</span>
+                  <span className="mt-1 block text-xs text-muted">{say(...f.note)}</span>
                 </span>
               </li>
             ))}
@@ -124,13 +131,13 @@ export default async function Home() {
               <p className="mt-3 text-lg text-muted">You do the first step. The AI does the other two while you&apos;re showing another unit.</p>
             </div>
             <ol className="mt-10 grid gap-5 lg:grid-cols-3">
-              <Step n={1} icon="houses" title="Add the Listing, Share Its Link" text="Price, financing, reservation fee and up to 20 photos. Each listing gets a public page to post on Facebook or send by text.">
+              <Step n={1} icon="houses" title="Add the Listing, Share Its Link" text={say("Price, financing, reservation fee and up to 20 photos. Each listing gets a public page to post on Facebook or send by text.", "Presyo, financing, reservation fee at hanggang 20 photos. May sariling public page ang bawat listing na pwedeng i-post sa Facebook o i-send sa text.")}>
                 <FormFragment />
               </Step>
-              <Step n={2} icon="robot" title="The AI Answers Every Inquiry" text="On Messenger and on the listing page, from your details only. It notes each buyer's budget, area and timing.">
-                <ChatFragment />
+              <Step n={2} icon="robot" title="The AI Answers Every Inquiry" text={say("On Messenger and on the listing page, from your details only. It notes each buyer's budget, area and timing.", "Sa Messenger at sa listing page, gamit lang ang details na nilagay mo. Tinatandaan nito ang budget, area at timing ng bawat buyer.")}>
+                <ChatFragment say={say} />
               </Step>
-              <Step n={3} icon="target" title="Buyer Finder Shows Who Fits" text="Every lead is scored and matched to your listings, so you call the right buyer first.">
+              <Step n={3} icon="target" title="Buyer Finder Shows Who Fits" text={say("Every lead is scored and matched to your listings, so you call the right buyer first.", "May score at naka-match sa listings mo ang bawat lead, kaya ang tamang buyer ang una mong tatawagan.")}>
                 <LeadFragment />
               </Step>
             </ol>
@@ -142,7 +149,7 @@ export default async function Home() {
           <div className={`${wrap} ${screen}`}>
             <div className="max-w-2xl">
               <h2 className="font-display text-[2rem] leading-tight font-extrabold sm:text-[2.6rem]">Plans for Owners, Agents and Teams</h2>
-              <p className="mt-3 text-lg text-muted">Start free with no card. Pay by GCash when you want the AI.</p>
+              <p className="mt-3 text-lg text-muted">{say("Start free with no card. Pay by GCash when you want the AI.", "Libre magsimula, walang card. Magbayad via GCash kapag gusto mo na ng AI.")}</p>
             </div>
             <ul className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {PLANS.map((p) => (
@@ -186,7 +193,7 @@ export default async function Home() {
               />
               <div className="min-w-0 max-w-2xl">
                 <h2 className="font-display text-[1.9rem] leading-tight font-extrabold italic sm:text-[2.4rem]">Turn Your Property into Profit!</h2>
-                <p className="mt-2 text-lg text-ink/80">Put your first listing up today. The AI starts answering tonight.</p>
+                <p className="mt-2 text-lg text-ink/80">{say("Put your first listing up today. The AI starts answering tonight.", "I-post ang una mong listing ngayon. Mamayang gabi, sasagot na ang AI.")}</p>
               </div>
               {configured ? (
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -208,6 +215,7 @@ export default async function Home() {
             <Link href="/get-app" className="font-semibold text-white/85 hover:text-white">
               Get the App
             </Link>
+            <SiteLangToggle lang={lang} tone="dark" />
             <p>Philippines · 3D icons by Microsoft Fluent Emoji (MIT)</p>
           </div>
         </footer>
@@ -217,7 +225,7 @@ export default async function Home() {
 }
 
 /** The dashboard's AI agent card: the mascot in front of the house scene, with a buyer's question being answered underneath. */
-function AgentScene() {
+function AgentScene({ lang }: { lang: Lang }) {
   return (
     <div className="pp-enter mx-auto w-full max-w-[540px] overflow-hidden rounded-[2rem] border border-[var(--hero-line)] bg-white shadow-[var(--shadow-lift)] [animation-delay:160ms] lg:mx-0 lg:justify-self-end">
       <div className="relative isolate aspect-[3/2] overflow-hidden bg-[var(--hero-wash)]">
@@ -236,7 +244,7 @@ function AgentScene() {
         />
       </div>
       <div className="border-t border-line p-4 sm:p-5">
-        <HeroChat />
+        <HeroChat lang={lang} />
       </div>
     </div>
   );
@@ -275,11 +283,11 @@ function FormFragment() {
   );
 }
 
-function ChatFragment() {
+function ChatFragment({ say }: { say: Say }) {
   return (
     <div className="space-y-2 rounded-2xl border border-line bg-white p-4 text-sm" aria-hidden="true">
-      <p className="ml-auto w-fit max-w-[90%] rounded-2xl rounded-br-md bg-[#1565e6] px-3.5 py-2 text-white">Is there a parking slot?</p>
-      <p className="w-fit max-w-[90%] rounded-2xl rounded-bl-md bg-zinc-100 px-3.5 py-2 text-ink">Yes, one slot is included in the price.</p>
+      <p className="ml-auto w-fit max-w-[90%] rounded-2xl rounded-br-md bg-[#1565e6] px-3.5 py-2 text-white">{say("Is there a parking slot?", "May parking slot po ba?")}</p>
+      <p className="w-fit max-w-[90%] rounded-2xl rounded-bl-md bg-zinc-100 px-3.5 py-2 text-ink">{say("Yes, one slot is included in the price.", "Yes po, kasama na sa presyo ang isang slot.")}</p>
     </div>
   );
 }

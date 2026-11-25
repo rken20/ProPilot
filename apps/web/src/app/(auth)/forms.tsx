@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import Link from "next/link";
 import { useActionState } from "react";
 import { Alert, Field, Input } from "@/components/ui";
@@ -9,6 +10,7 @@ import { requestPasswordReset, signIn, signUp, updatePassword } from "./actions"
 
 export function SignUpForm({ next }: { next?: string }) {
   const [state, action] = useActionState(signUp, initialFormState);
+  const say = useSay();
   if (state.ok) return <Alert tone="success">{state.message}</Alert>;
   return (
     <form action={action} className="space-y-4">
@@ -27,7 +29,7 @@ export function SignUpForm({ next }: { next?: string }) {
         Create account
       </SubmitButton>
       <p className="text-center text-sm text-zinc-600">
-        Already have an account?{" "}
+        {say("Already have an account?", "May account ka na?")}{" "}
         <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-bold text-grape-700 hover:underline">
           Log in
         </Link>
@@ -38,6 +40,7 @@ export function SignUpForm({ next }: { next?: string }) {
 
 export function SignInForm({ next, notice }: { next?: string; notice?: string }) {
   const [state, action] = useActionState(signIn, initialFormState);
+  const say = useSay();
   return (
     <form action={action} className="space-y-4">
       {next ? <input type="hidden" name="next" value={next} /> : null}
@@ -58,7 +61,7 @@ export function SignInForm({ next, notice }: { next?: string; notice?: string })
         Log in
       </SubmitButton>
       <p className="text-center text-sm text-zinc-600">
-        New to MyHomeSeller?{" "}
+        {say("New to MyHomeSeller?", "Bago ka sa MyHomeSeller?")}{" "}
         <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-bold text-grape-700 hover:underline">
           Create an account
         </Link>

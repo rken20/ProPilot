@@ -1,3 +1,5 @@
+import { sayIn } from "@/lib/lang";
+import { businessLang } from "@/lib/lang-server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarCheck, CalendarDays, CalendarPlus, Download, Phone } from "lucide-react";
@@ -28,6 +30,7 @@ const FILTERS: Array<[string, string]> = [
 
 export default async function LeadsPage({ searchParams }: PageProps<"/app/leads">) {
   const biz = await requireBusiness();
+  const say = sayIn(await businessLang(biz.businessId));
   if (!can(biz.role, "lead.viewAll") && !can(biz.role, "lead.viewAssigned")) redirect("/app");
   const sp = await searchParams;
   const filter = typeof sp.show === "string" && FILTERS.some(([k]) => k === sp.show) ? sp.show : "open";
@@ -60,7 +63,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
     <>
       <PageHeader
         title="Inquiries"
-        description="People who asked about a listing from its public page. Call or text them to confirm a viewing. Each one is also on your Leads page."
+        description={say("People who asked about a listing from its public page. Call or text them to confirm a viewing. Each one is also on your Leads page.", "Mga taong nagtanong tungkol sa listing mula sa public page nito. Tawagan o i-text sila para i-confirm ang viewing. Nasa Leads page mo rin ang bawat isa.")}
         action={
           <div className="flex flex-wrap gap-2">
             {integ?.spreadsheet_url ? (
@@ -94,10 +97,13 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
       {!leads?.length ? (
         <div className="rounded-2xl border border-dashed border-line bg-white px-6 py-14 text-center">
           <CalendarDays className="mx-auto size-8 text-muted" aria-hidden />
-          <p className="mt-3 font-semibold">{filter === "open" ? "No open leads" : "Nothing here"}</p>
+          <p className="mt-3 font-semibold">{filter === "open" ? say("No open leads", "Walang open lead") : say("Nothing here", "Wala rito")}</p>
           <p className="mt-1 text-sm text-muted">
-            Turn on <span className="font-medium text-ink">Give it a public page</span> on a property, then share its link on
-            Facebook or Messenger. Inquiries sent from it show up here.
+            {say("Turn on", "I-on ang")} <span className="font-medium text-ink">Give it a public page</span>{" "}
+            {say(
+              "on a property, then share its link on Facebook or Messenger. Inquiries sent from it show up here.",
+              "sa isang property, tapos i-share ang link nito sa Facebook o Messenger. Dito lalabas ang inquiries na galing doon.",
+            )}
           </p>
         </div>
       ) : (
@@ -133,7 +139,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
                   ) : null}
                   <span className="flex items-center gap-1.5 text-muted">
                     <CalendarDays className="size-4" aria-hidden />
-                    {l.preferred_date ? `Prefers ${prettyDate(l.preferred_date)}` : "No preferred date"}
+                    {l.preferred_date ? `Prefers ${prettyDate(l.preferred_date)}` : say("No preferred date", "Walang preferred date")}
                   </span>
                   {l.scheduled_at ? (
                     <span className="flex items-center gap-1.5 font-medium text-good">

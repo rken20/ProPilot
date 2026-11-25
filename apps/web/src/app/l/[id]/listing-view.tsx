@@ -1,3 +1,5 @@
+import { LangProvider } from "@/components/lang";
+import { sayIn, type Lang, type Say } from "@/lib/lang";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { Icon3d, type Icon3dName } from "@/components/icon-3d";
@@ -13,12 +15,12 @@ import { LoanEstimator } from "./loan-estimator";
 import { ViewingForm } from "./viewing-form";
 
 /** A tinted panel when a listing has no photos yet. */
-function NoPhotos({ name }: { name: string }) {
+function NoPhotos({ name, say }: { name: string; say: Say }) {
   return (
     <div className="grid aspect-[16/9] place-items-center rounded-[1.5rem] bg-gradient-to-br from-tile-lavender via-tile-sky to-tile-mint">
       <div className="text-center">
         <Icon3d name="houses" size={96} className="mx-auto" />
-        <p className="mt-2 text-sm font-medium text-muted">Photos of {name} are coming soon</p>
+        <p className="mt-2 text-sm font-medium text-muted">{say(`Photos of ${name} are coming soon`, `Paparating na ang photos ng ${name}`)}</p>
       </div>
     </div>
   );
@@ -29,11 +31,15 @@ export function PublicListingView({
   listing,
   inquiry,
   matchEmails = false,
+  lang = "taglish",
 }: {
+  /** The seller's language: Taglish unless they chose English. */
+  lang?: Lang;
   listing: PublicListing;
   inquiry: (prev: FormState, form: FormData) => Promise<FormState>;
   matchEmails?: boolean;
 }) {
+  const say = sayIn(lang);
   const photos = listing.photos.map((p) => ({ id: p.id, full: mediaUrl(p.path) ?? "", thumb: mediaUrl(p.thumb) ?? "" }));
   const fin = financingLabels(listing.financing);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
@@ -43,15 +49,15 @@ export function PublicListingView({
       icon: "key",
       tile: "bg-tile-lemon",
       label: "Reservation fee",
-      value: listing.reservation_fee_minor === null ? "Ask the agent" : formatPeso(listing.reservation_fee_minor, listing.currency),
+      value: listing.reservation_fee_minor === null ? say("Ask the agent", "Itanong sa agent") : formatPeso(listing.reservation_fee_minor, listing.currency),
     },
     {
       icon: "money",
       tile: "bg-tile-mint",
       label: "Downpayment",
-      value: listing.financing?.downpaymentPercent === undefined ? "Ask the agent" : `${listing.financing.downpaymentPercent}%`,
+      value: listing.financing?.downpaymentPercent === undefined ? say("Ask the agent", "Itanong sa agent") : `${listing.financing.downpaymentPercent}%`,
     },
-    { icon: "card", tile: "bg-tile-sky", label: "Financing", value: fin.length ? fin.join(", ") : "Ask the agent" },
+    { icon: "card", tile: "bg-tile-sky", label: "Financing", value: fin.length ? fin.join(", ") : say("Ask the agent", "Itanong sa agent") },
   ];
 
   return (
@@ -71,7 +77,7 @@ export function PublicListingView({
         <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
           <div className="min-w-0 space-y-7">
             <div className="relative">
-              {photos.length ? <Gallery photos={photos} title={listing.name} /> : <NoPhotos name={listing.name} />}
+              {photos.length ? <Gallery photos={photos} title={listing.name} /> : <NoPhotos say={say} name={listing.name} />}
               {listing.status === "reserved" ? (
                 <span className="absolute left-4 top-4 rounded-full bg-tile-lemon px-3 py-1 text-xs font-bold text-brass-700">Reserved</span>
               ) : (
@@ -119,20 +125,25 @@ export function PublicListingView({
                 <Icon3d name="wave" size={44} />
                 <div>
                   <h2 id="ask-title" className="text-lg font-bold leading-tight">
-                    Interested? Ask {listing.business_name}
+                    {say(`Interested? Ask ${listing.business_name}`, `Interested ka? Magtanong sa ${listing.business_name}`)}
                   </h2>
-                  <p className="mt-0.5 text-sm text-muted">Ask a question or pick a day to see it.</p>
+                  <p className="mt-0.5 text-sm text-muted">{say("Ask a question or pick a day to see it.", "Magtanong o pumili ng araw para makita ito.")}</p>
                 </div>
               </div>
-              <ViewingForm action={inquiry} minDate={today} agent={listing.business_name} matchEmails={matchEmails} />
+              <LangProvider lang={lang}>
+                <ViewingForm action={inquiry} minDate={today} agent={listing.business_name} matchEmails={matchEmails} />
+              </LangProvider>
             </section>
-            <LoanEstimator priceMinor={listing.price_minor} defaultDownpayment={listing.financing?.downpaymentPercent} />
+            <LangProvider lang={lang}>
+              <LoanEstimator priceMinor={listing.price_minor} defaultDownpayment={listing.financing?.downpaymentPercent} />
+            </LangProvider>
           </aside>
         </div>
       </main>
 
       <footer className="border-t border-line py-6 text-center text-xs text-muted">
-        Shared with <Link href="/" className="font-semibold text-grape-700">MyHomeSeller</Link>, the AI sales assistant for property owners and agents.
+        {say("Shared with", "Shinare gamit ang")} <Link href="/" className="font-semibold text-grape-700">MyHomeSeller</Link>
+        {say(", the AI sales assistant for property owners and agents.", ", ang AI sales assistant ng mga property owner at agent.")}
       </footer>
     </div>
   );

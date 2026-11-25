@@ -2,9 +2,12 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { BUSINESS_ROLES, can, canAssignRole, inviteMemberSchema, type BusinessRole } from "@propilot/shared";
 import { getOrigin, requireBusiness, requireUser } from "@/lib/auth";
 import { fieldErrorsFrom, str, type FormState } from "@/lib/form";
+import { SITE_LANG_COOKIE, sayIn, toLang } from "@/lib/lang";
+import { businessLang } from "@/lib/lang-server";
 import { createClient } from "@/lib/supabase/server";
 import { businessPlan } from "@/lib/plan";
 import { teamSeatsUsed } from "@/lib/plan-limits";
@@ -20,6 +23,31 @@ export async function renameBusiness(_prev: FormState, form: FormData): Promise<
   if (error || !data?.length) return { error: "Couldn't save the name. Please try again.", data: { businessName: name } };
   revalidatePath("/app", "layout");
   return { ok: true, message: "Saved. Public listing pages show the new name now.", data: { businessName: name } };
+}
+
+/** One switch for the business: the app's screens for the whole team and the AI's chat replies to buyers. */
+export async function setBusinessLanguage(_prev: FormState, form: FormData): Promise<FormState> {
+  const biz = await requireBusiness();
+  const user = await requireUser();
+  const lang = toLang(str(form, "language"));
+  const say = sayIn(lang);
+  if (!can(biz.role, "business.update")) return { error: sayIn(await businessLang(biz.businessId))("Only the owner or an admin can change the language.", "Owner o admin lang ang pwedeng magpalit ng language.") };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("agent_settings")
+    .upsert({ business_id: biz.businessId, chat_language: lang, updated_by: user.id, updated_at: new Date().toISOString() });
+  if (error) return { error: say("Couldn't save the language. Please try again.", "Hindi na-save ang language. Paki-try ulit.") };
+  // The sign-in and home pages on this device follow too.
+  (await cookies()).set(SITE_LANG_COOKIE, lang, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax", secure: true, httpOnly: true });
+  revalidatePath("/app", "layout");
+  revalidatePath("/l/[id]", "page");
+  return {
+    ok: true,
+    message: say(
+      "Saved. The app, your public listing pages and the AI chat are in English now.",
+      "Na-save na. Taglish na ang app, ang public listing pages mo at ang AI chat.",
+    ),
+  };
 }
 
 export async function inviteMember(_prev: FormState, form: FormData): Promise<FormState> {

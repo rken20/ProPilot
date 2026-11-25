@@ -1,3 +1,5 @@
+import { sayIn } from "@/lib/lang";
+import { businessLang } from "@/lib/lang-server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Clock, MessageCircle, Plus, Smartphone, UserRound, CalendarDays, Hand } from "lucide-react";
@@ -58,6 +60,7 @@ function initials(name: string | undefined) {
 
 export default async function PipelinePage({ searchParams }: PageProps<"/app/pipeline">) {
   const [biz, me] = await Promise.all([requireBusiness(), getUser()]);
+  const say = sayIn(await businessLang(biz.businessId));
   if (!can(biz.role, "lead.viewAll") && !can(biz.role, "lead.viewAssigned")) redirect("/app");
   const sp = await searchParams;
   const view = VIEWS.some(([k]) => k === sp.view) ? (sp.view as "open" | "won" | "lost") : "open";
@@ -111,7 +114,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
     <>
       <PageHeader
         title="Leads"
-        description="Everyone you're selling to, from first inquiry to closing. New leads from viewing requests and chats appear here on their own."
+        description={say("Everyone you're selling to, from first inquiry to closing. New leads from viewing requests and chats appear here on their own.", "Lahat ng binebentahan mo, mula first inquiry hanggang closing. Kusang lumalabas dito ang bagong leads mula sa viewing requests at chats.")}
         action={
           <div className="flex flex-wrap items-center gap-2">
             {actionCount ? (
@@ -241,7 +244,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
                         </li>
                       );
                     })}
-                    {!col.length ? <li className="px-2 py-6 text-center text-xs text-muted">No one here yet</li> : null}
+                    {!col.length ? <li className="px-2 py-6 text-center text-xs text-muted">{say("No one here yet", "Wala pa rito")}</li> : null}
                   </ul>
                 </section>
               );
@@ -271,9 +274,9 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
       ) : (
         <div className="rounded-2xl border border-dashed border-line bg-white px-6 py-14 text-center">
           <UserRound className="mx-auto size-8 text-muted" aria-hidden />
-          <p className="mt-3 font-semibold">{view === "won" ? "No closed deals yet" : "No lost leads"}</p>
+          <p className="mt-3 font-semibold">{view === "won" ? say("No closed deals yet", "Wala pang closed deal") : say("No lost leads", "Walang lost lead")}</p>
           <p className="mt-1 text-sm text-muted">
-            {view === "won" ? "Move a lead to Won when the sale or lease closes." : "Leads you mark as Lost show up here with the reason."}
+            {view === "won" ? say("Move a lead to Won when the sale or lease closes.", "Ilipat ang lead sa Won kapag na-close na ang sale o lease.") : say("Leads you mark as Lost show up here with the reason.", "Dito lalabas ang leads na minarkahan mong Lost, kasama ang dahilan.")}
           </p>
         </div>
       )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useState } from "react";
 import { amortize } from "@propilot/shared";
 import { formatPeso } from "@/lib/money";
@@ -8,6 +9,7 @@ export function LoanEstimator({ priceMinor, defaultDownpayment }: { priceMinor: 
   const [down, setDown] = useState(String(defaultDownpayment ?? 20));
   const [rate, setRate] = useState("6.5");
   const [years, setYears] = useState("20");
+const say = useSay();
 
   let result: ReturnType<typeof amortize> | null = null;
   try {
@@ -40,14 +42,17 @@ export function LoanEstimator({ priceMinor, defaultDownpayment }: { priceMinor: 
           <p className="text-sm text-muted">Estimated monthly payment</p>
           <p className="font-display text-3xl font-medium tabular-nums">{formatPeso(Math.round(result.monthlyMinor / 100) * 100)}</p>
           <p className="mt-1 text-xs text-muted">
-            Downpayment {formatPeso(result.downpaymentMinor)}, loan {formatPeso(result.loanMinor)} over {result.months} months.
+            {say(
+              `Downpayment ${formatPeso(result.downpaymentMinor)}, loan ${formatPeso(result.loanMinor)} over ${result.months} months.`,
+              `Downpayment ${formatPeso(result.downpaymentMinor)}, loan ${formatPeso(result.loanMinor)} sa loob ng ${result.months} months.`,
+            )}
           </p>
         </div>
       ) : (
-        <p className="mt-4 text-sm text-red-700">Enter a downpayment from 0 to 100%, a rate from 0 to 50%, and a term from 1 to 40 years.</p>
+        <p className="mt-4 text-sm text-red-700">{say("Enter a downpayment from 0 to 100%, a rate from 0 to 50%, and a term from 1 to 40 years.", "Maglagay ng downpayment na 0 hanggang 100%, rate na 0 hanggang 50%, at term na 1 hanggang 40 years.")}</p>
       )}
       <p className="mt-3 text-xs text-muted">
-        This is an estimate. Your bank or Pag-IBIG sets the actual rate and terms.
+        {say("This is an estimate. Your bank or Pag-IBIG sets the actual rate and terms.", "Estimate lang ito. Ang bank mo o Pag-IBIG ang magse-set ng totoong rate at terms.")}
       </p>
     </section>
   );

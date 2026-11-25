@@ -1,3 +1,5 @@
+import { sayIn } from "@/lib/lang";
+import { businessLang } from "@/lib/lang-server";
 import { businessPages } from "@/lib/facebook-pages";
 import { metaConfig } from "@/lib/meta";
 import { Building2, CalendarDays, CircleCheck, UserPlus } from "lucide-react";
@@ -16,15 +18,21 @@ import { performanceSeries, viewingsByMonth } from "@/lib/dashboard-stats";
 import { loadReportData } from "@/lib/report-data";
 import { inRange, leadsReport, manilaDayStart, parseRange } from "@/lib/reports";
 
-const NOTICES: Record<string, string> = {
-  welcome: "Your business is set up. Add your first property so the assistant has something to talk about.",
-  "password-updated": "Your password has been updated.",
+const NOTICES: Record<string, [english: string, taglish: string]> = {
+  welcome: [
+    "Your business is set up. Add your first property so the assistant has something to talk about.",
+    "Naka-set up na ang business mo. Mag-add ng una mong property para may maikwento ang assistant sa mga buyer.",
+  ],
+  "password-updated": ["Your password has been updated.", "Na-update na ang password mo."],
 };
 
 export default async function DashboardPage({ searchParams }: PageProps<"/app">) {
   const sp = await searchParams;
-  const notice = typeof sp.notice === "string" ? NOTICES[sp.notice] : undefined;
   const [biz, user] = await Promise.all([requireBusiness(), getUser()]);
+  const lang = await businessLang(biz.businessId);
+  const say = sayIn(lang);
+  const noticePair = typeof sp.notice === "string" ? NOTICES[sp.notice] : undefined;
+  const notice = noticePair ? say(...noticePair) : undefined;
   const supabase = await createClient();
   const canManageTeam = can(biz.role, "team.invite");
 
@@ -141,13 +149,13 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
   const aiActivity: AiItem[] = [];
   const plural = (n: number, word: string, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
   if (waiting.count) {
-    aiActivity.push({ kind: "tasks", title: `${plural(waiting.count, "suggestion")} waiting for you`, detail: "Approve or dismiss what the AI drafted", href: "/app/agents" });
+    aiActivity.push({ kind: "tasks", title: say(`${plural(waiting.count, "suggestion")} waiting for you`, `${plural(waiting.count, "suggestion")} ang naghihintay sa'yo`), detail: say("Approve or dismiss what the AI drafted", "I-approve o i-dismiss ang ginawa ng AI"), href: "/app/agents" });
   }
   if (aiReplies.count) {
-    aiActivity.push({ kind: "chat", title: `Answered ${plural(aiReplies.count, "buyer message")} today`, detail: "On Messenger", at: aiReplies.data?.[0]?.created_at, href: "/app/inbox" });
+    aiActivity.push({ kind: "chat", title: say(`Answered ${plural(aiReplies.count, "buyer message")} today`, `Sumagot sa ${plural(aiReplies.count, "buyer message")} ngayong araw`), detail: say("On Messenger", "Sa Messenger"), at: aiReplies.data?.[0]?.created_at, href: "/app/inbox" });
   }
   if (finderUsed && lastMatch.data?.[0]) {
-    aiActivity.push({ kind: "buyers", title: `Found ${plural(finderUsed, "potential buyer")}`, detail: "Buyer Finder, this month", at: lastMatch.data[0].created_at, href: "/app/pipeline" });
+    aiActivity.push({ kind: "buyers", title: say(`Found ${plural(finderUsed, "potential buyer")}`, `Nakahanap ng ${plural(finderUsed, "potential buyer")}`), detail: say("Buyer Finder, this month", "Buyer Finder, ngayong buwan"), at: lastMatch.data[0].created_at, href: "/app/pipeline" });
   }
   const seenAgents = new Set<string>();
   for (const r of runs.data ?? []) {
@@ -206,7 +214,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       at: m.created_at,
       icon: m.role === "owner" ? CircleCheck : UserPlus,
       tone: "bg-brand-50 text-good",
-      title: m.role === "owner" ? "Business created" : `${who} joined the team`,
+      title: m.role === "owner" ? "Business created" : say(`${who} joined the team`, `Sumali sa team si ${who}`),
       detail: m.role === "owner" ? biz.businessName : `as ${m.role}`,
     });
   }
@@ -215,7 +223,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
   }
   const nameOfProp = (id: string) => properties.find((p) => p.id === id)?.name ?? "a listing";
   for (const l of leads.slice(0, 10)) {
-    activity.push({ at: l.created_at, icon: CalendarDays, tone: "bg-orange-50 text-hot", title: `${l.buyer_name} sent an inquiry`, detail: nameOfProp(l.property_id), href: "/app/leads" });
+    activity.push({ at: l.created_at, icon: CalendarDays, tone: "bg-orange-50 text-hot", title: say(`${l.buyer_name} sent an inquiry`, `Nag-send ng inquiry si ${l.buyer_name}`), detail: nameOfProp(l.property_id), href: "/app/leads" });
   }
   activity.sort((a, b) => b.at.localeCompare(a.at));
   const recent = activity.slice(0, 5);
@@ -227,6 +235,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
 
   return (
     <DashboardView
+      lang={lang}
       greetingText={greeting()}
       dateText={longDate()}
       firstName={firstName ?? ""}

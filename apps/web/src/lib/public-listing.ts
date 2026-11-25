@@ -20,6 +20,8 @@ export type PublicListing = {
   description: string | null;
   financing: Listing["financing"];
   business_name: string;
+  /** The seller, for the page's language. */
+  business_id: string;
   photos: Array<{ id: string; path: string; thumb: string }>;
   created_at: string | null;
   updated_at: string | null;
@@ -31,7 +33,7 @@ export const getPublicListing = cache(async (id: string): Promise<PublicListing 
   if (!admin) return null;
   const { data: p } = await admin
     .from("properties")
-    .select("id, name, type, location, price_minor, reservation_fee_minor, currency, status, description, financing, created_at, updated_at, businesses!inner(name, restricted_at)")
+    .select("id, business_id, name, type, location, price_minor, reservation_fee_minor, currency, status, description, financing, created_at, updated_at, businesses!inner(name, restricted_at)")
     .eq("id", id)
     .eq("is_public", true)
     // A business the app admin has restricted has no public pages until it is lifted.
@@ -59,6 +61,7 @@ export const getPublicListing = cache(async (id: string): Promise<PublicListing 
     description: (p.description as string | null) ?? null,
     financing: (p.financing as Listing["financing"]) ?? null,
     business_name: (p.businesses as unknown as { name: string } | null)?.name ?? "the agent",
+    business_id: p.business_id as string,
     created_at: (p.created_at as string | null) ?? null,
     updated_at: (p.updated_at as string | null) ?? null,
     photos: (media ?? []).map((m) => ({ id: m.id as string, path: m.storage_path as string, thumb: (m.thumb_path ?? m.storage_path) as string })),

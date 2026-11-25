@@ -1,3 +1,4 @@
+import { sellerLang } from "@/lib/lang-server";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -44,7 +45,7 @@ export default async function PublicListingPage({ params }: PageProps<"/l/[id]">
         // Structured data for search engines. The text is the owner's own, with "<" escaped.
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdText(listingJsonLd(listing, `${origin}${publicListingPath(listing.id)}`, images)) }} />
       ) : null}
-      <PublicListingView listing={listing} inquiry={sendInquiry.bind(null, listing.id)} matchEmails={matchAlertsOn()} />
+      <PublicListingView listing={listing} inquiry={sendInquiry.bind(null, listing.id)} matchEmails={matchAlertsOn()} lang={await sellerLang(listing.business_id)} />
     </>
   );
 }

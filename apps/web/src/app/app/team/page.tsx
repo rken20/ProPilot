@@ -8,6 +8,7 @@ import { getUser, requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { changeMemberRole, revokeInvitation, setMemberActive } from "./actions";
 import { InviteForm } from "./invite-form";
+import { BusinessLanguage } from "./business-language";
 import { BusinessName } from "./business-name";
 
 const ROLE_LABEL: Record<BusinessRole, string> = { owner: "Owner", admin: "Admin", agent: "Agent", marketing: "Marketing" };
@@ -50,6 +51,7 @@ export default async function TeamPage() {
       <PageHeader title="Team" description="Who can work in this business, and what they can do." />
 
       {can(biz.role, "business.update") ? <BusinessName name={biz.businessName} /> : null}
+      {can(biz.role, "business.update") ? <BusinessLanguage /> : null}
 
       {can(biz.role, "team.invite") ? (
         <Card className="mb-6">

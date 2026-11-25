@@ -1,5 +1,6 @@
 "use server";
 
+import { sayIn, toLang } from "@/lib/lang";
 import { createHash } from "node:crypto";
 import { after } from "next/server";
 import { headers } from "next/headers";
@@ -41,8 +42,10 @@ export async function sendInquiry(propertyId: string, _prev: FormState, form: Fo
     wantFinancing: str(form, "wantFinancing"),
     alertConsent: str(form, "alertConsent") ? "on" : "",
   };
+  // The page says which language it is in; it only chooses the wording of the answer.
+  const say = sayIn(toLang(str(form, "lang")));
   // A field people can't see: only bots fill it in. Pretend it worked.
-  if (str(form, "website")) return { ok: true, message: "Sent. The agent will contact you soon." };
+  if (str(form, "website")) return { ok: true, message: say("Sent. The agent will contact you soon.", "Na-send na. Kokontakin ka ng agent soon.") };
 
   const parsed = viewingRequestSchema.safeParse({
     propertyId,
@@ -65,23 +68,23 @@ export async function sendInquiry(propertyId: string, _prev: FormState, form: Fo
   });
   if (!parsed.success || "fieldErrors" in wanted || (email && (!EMAIL.test(email) || email.length > 254))) {
     const fieldErrors = { ...("fieldErrors" in wanted ? wanted.fieldErrors : {}), ...(parsed.success ? {} : fieldErrorsFrom(parsed.error)) };
-    if (email && (!EMAIL.test(email) || email.length > 254)) fieldErrors.buyerEmail = "Enter an email like name@example.com, or leave it blank";
+    if (email && (!EMAIL.test(email) || email.length > 254)) fieldErrors.buyerEmail = say("Enter an email like name@example.com, or leave it blank", "Maglagay ng email gaya ng name@example.com, o iwanang blangko");
     return { fieldErrors, data };
   }
   const wants = wanted.wants;
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
   if (parsed.data.preferredDate && parsed.data.preferredDate < today) {
-    return { fieldErrors: { preferredDate: "Pick today or a later date" }, data };
+    return { fieldErrors: { preferredDate: say("Pick today or a later date", "Pumili ng araw ngayon o mas huli pa") }, data };
   }
 
   const admin = createAdminClient();
-  if (!admin) return { error: "Inquiries aren't available right now. Please try again later.", data };
+  if (!admin) return { error: say("Inquiries aren't available right now. Please try again later.", "Hindi available ang inquiries ngayon. Paki-try ulit mamaya."), data };
   const [hour, day] = await Promise.all([
     admin.rpc("consume_anon_rate_limit", { p_key: await visitorKey("inquiry-hour"), p_limit: 5, p_window_seconds: 3600 }),
     admin.rpc("consume_anon_rate_limit", { p_key: await visitorKey("inquiry-day"), p_limit: 20, p_window_seconds: 86400 }),
   ]);
   if (hour.data !== true || day.data !== true) {
-    return { error: "You've sent several inquiries already. Please try again later.", data };
+    return { error: say("You've sent several inquiries already. Please try again later.", "Ilang beses ka nang nag-send ng inquiry. Paki-try ulit mamaya."), data };
   }
 
   // business_id is filled in by the database from the listing itself.
@@ -105,12 +108,12 @@ export async function sendInquiry(propertyId: string, _prev: FormState, form: Fo
     return {
       error:
         error && /not available/.test(error.message)
-          ? "This listing isn't taking inquiries anymore."
+          ? say("This listing isn't taking inquiries anymore.", "Hindi na tumatanggap ng inquiry ang listing na ito.")
           : error && /already have an open request/.test(error.message)
-            ? "You've already sent an inquiry for this listing. The agent will contact you."
+            ? say("You've already sent an inquiry for this listing. The agent will contact you.", "Nakapag-send ka na ng inquiry para sa listing na ito. Kokontakin ka ng agent.")
             : error && /too many viewing requests/.test(error.message)
-              ? "This listing has had many inquiries today. Please try again tomorrow."
-              : "Couldn't send your inquiry. Please try again.",
+              ? say("This listing has had many inquiries today. Please try again tomorrow.", "Maraming inquiry ang listing na ito ngayong araw. Paki-try ulit bukas.")
+              : say("Couldn't send your inquiry. Please try again.", "Hindi na-send ang inquiry mo. Paki-try ulit."),
       data,
     };
   }
@@ -127,7 +130,10 @@ export async function sendInquiry(propertyId: string, _prev: FormState, form: Fo
   return {
     ok: true,
     message: confirmSent
-      ? `Sent. The agent will call or text you to confirm. For the match emails, open the email we just sent to ${email} and confirm.`
-      : "Sent. The agent will call or text you to confirm.",
+      ? say(
+          `Sent. The agent will call or text you to confirm. For the match emails, open the email we just sent to ${email} and confirm.`,
+          `Na-send na. Tatawagan o ite-text ka ng agent para mag-confirm. Para sa match emails, buksan ang email na kaka-send lang namin sa ${email} at i-confirm.`,
+        )
+      : say("Sent. The agent will call or text you to confirm.", "Na-send na. Tatawagan o ite-text ka ng agent para mag-confirm."),
   };
 }

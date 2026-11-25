@@ -1,3 +1,5 @@
+import { LangProvider } from "@/components/lang";
+import { businessLang } from "@/lib/lang-server";
 import { can } from "@propilot/shared";
 import { createClient } from "@/lib/supabase/server";
 import { getMemberships, getUser, requireBusiness } from "@/lib/auth";
@@ -16,7 +18,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const [memberships, user] = await Promise.all([getMemberships(), getUser()]);
   const sales = can(current.role, "lead.viewAll") || can(current.role, "lead.viewAssigned");
   // Independent lookups run side by side: each is a round trip to the database.
-  const [waiting, superAdmin, aiOn, profile] = await Promise.all([
+  const [waiting, superAdmin, aiOn, profile, lang] = await Promise.all([
     // AI suggestions waiting for a decision, shown as a badge on Leads and its "AI agents" tab.
     sales
       ? createClient().then(async (supabase) =>
@@ -35,6 +37,8 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
     user
       ? createClient().then(async (supabase) => (await supabase.from("profiles").select("full_name, avatar_path").eq("id", user.id).maybeSingle()).data)
       : Promise.resolve(null),
+    // Taglish or English, the same for the whole business.
+    businessLang(current.businessId),
   ]);
   const fullName = profile?.full_name || String(user?.user_metadata?.full_name ?? "") || (user?.email ?? "");
   const paymentsWaiting = superAdmin ? await pendingPayments() : 0;
@@ -77,11 +81,13 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   ];
 
   return (
+    <LangProvider lang={lang}>
     <AppShell current={current} memberships={memberships} fullName={fullName} avatarUrl={avatarUrl(profile?.avatar_path)} items={items} switchBusiness={switchBusiness}>
       <SectionTabs groups={[homeTabs, salesTabs, settingsTabs]} />
       {children}
       {aiOn ? <AgentAssistant /> : null}
     </AppShell>
+    </LangProvider>
   );
 }
 

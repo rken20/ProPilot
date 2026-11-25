@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Play } from "lucide-react";
 import { Alert } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
+import { useSay } from "@/components/lang";
 import { runAgentsNow, saveAgentSettings, type RunState, type SettingsState } from "./actions";
 
 export function RunNow() {
@@ -21,6 +22,7 @@ export function RunNow() {
 
 export function AgentSettingsForm({ enabled, followUpDays, chatLanguage }: { enabled: boolean; followUpDays: number; chatLanguage: "taglish" | "english" }) {
   const [state, action] = useActionState<SettingsState, FormData>(saveAgentSettings, {});
+  const say = useSay();
   return (
     <form action={action} className="space-y-4">
       <label className="flex items-start gap-3 text-sm">
@@ -49,7 +51,7 @@ export function AgentSettingsForm({ enabled, followUpDays, chatLanguage }: { ena
       </div>
       <div>
         <label htmlFor="chatLanguage" className="text-sm font-medium">
-          AI chat language
+          Language
         </label>
         <select
           id="chatLanguage"
@@ -57,10 +59,15 @@ export function AgentSettingsForm({ enabled, followUpDays, chatLanguage }: { ena
           defaultValue={chatLanguage}
           className="mt-1.5 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100"
         >
-          <option value="taglish">Taglish (Tagalog and English)</option>
+          <option value="taglish">Taglish (English at Tagalog)</option>
           <option value="english">English only</option>
         </select>
-        <p className="mt-1 text-sm text-muted">How the AI writes to buyers on Messenger.</p>
+        <p className="mt-1 text-sm text-muted">
+          {say(
+            "How the AI writes to buyers, and the language of the app and your public listing pages. The same setting as Settings, Team.",
+            "Ito ang gamit ng AI sa pag-chat sa buyers, pati ng app at ng public listing pages mo. Pareho ito ng nasa Settings, Team.",
+          )}
+        </p>
       </div>
       {state.error ? <Alert>{state.error}</Alert> : null}
       {state.saved ? <Alert tone="success">Saved.</Alert> : null}

@@ -1,3 +1,4 @@
+import { sayIn, type Lang, type Say } from "@/lib/lang";
 import Link from "next/link";
 import {
   ArrowDown,
@@ -44,6 +45,8 @@ export type SetupStep = { label: string; done: boolean; href?: string; soon?: bo
 export type AiItem = { kind: "chat" | "buyers" | "tasks" | "run"; title: string; detail: string; at?: string; href?: string };
 
 export type DashboardData = {
+  /** Taglish or English, the business's choice. */
+  lang: Lang;
   greetingText: string;
   dateText: string;
   firstName: string;
@@ -124,7 +127,9 @@ export function DashboardView({
   usage,
   canSeeBilling,
   now,
+  lang,
 }: DashboardData) {
+  const say = sayIn(lang);
   const doneCount = steps.filter((s) => s.done).length;
   const setupDone = doneCount === steps.length;
   const paid = plan.code !== "free";
@@ -159,7 +164,9 @@ export function DashboardView({
             {titleCase(greetingText)}
             {fullName || firstName ? `, ${fullName || firstName}` : ""}!
           </h1>
-          <p className="mt-1 text-sm text-muted">Here&apos;s what&apos;s happening with your properties. {dateText}.</p>
+          <p className="mt-1 text-sm text-muted">
+            {say("Here's what's happening with your properties.", "Ito ang lagay ng mga property mo ngayon.")} {dateText}.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {paid ? null : (
@@ -200,7 +207,7 @@ export function DashboardView({
           value={<CountUp value={properties.length} />}
           note={
             properties.length === 0 ? (
-              "Add your first one"
+              say("Add your first one", "Mag-add ng una mo")
             ) : active === properties.length ? (
               <span className="inline-flex items-center gap-1 font-semibold text-good">
                 <CircleCheck className="size-3.5" aria-hidden /> All Active
@@ -278,12 +285,24 @@ export function DashboardView({
             </p>
             <p className="mt-2.5 max-w-md text-sm opacity-85">
               {assistant === "always"
-                ? `Finding buyers, answering inquiries and sizing up every lead for ${businessName}.`
+                ? say(
+                      `Finding buyers, answering inquiries and sizing up every lead for ${businessName}.`,
+                      `Naghahanap ng buyers, sumasagot sa inquiries at sinusuri ang bawat lead para sa ${businessName}.`,
+                    )
                 : assistant === "on"
-                  ? "Sizing up each lead and finding potential buyers. Connect your Facebook Page and it answers buyers on Messenger too."
+                  ? say(
+                        "Sizing up each lead and finding potential buyers. Connect your Facebook Page and it answers buyers on Messenger too.",
+                        "Sinusuri ang bawat lead at naghahanap ng potential buyers. I-connect ang Facebook Page mo para sumagot din ito sa buyers sa Messenger.",
+                      )
                   : assistant === "almost"
-                    ? "Give a listing a public page or connect your Facebook Page, and it starts answering buyers and sizing up leads."
-                    : "On Basic it answers buyers on Messenger, sizes up each lead and finds potential buyers for you."}
+                    ? say(
+                          "Give a listing a public page or connect your Facebook Page, and it starts answering buyers and sizing up leads.",
+                          "Bigyan ng public page ang isang listing o i-connect ang Facebook Page mo, at magsisimula na itong sumagot sa buyers at magsuri ng leads.",
+                        )
+                    : say(
+                          "On Basic it answers buyers on Messenger, sizes up each lead and finds potential buyers for you.",
+                          "Sa Basic, sumasagot ito sa buyers sa Messenger, sinusuri ang bawat lead at naghahanap ng potential buyers para sa'yo.",
+                        )}
             </p>
             <Link
               href={live ? "/app/agents" : assistant === "almost" ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/billing"}
@@ -323,7 +342,7 @@ export function DashboardView({
               })}
             </ul>
           ) : (
-            <ActivityList recent={recent} now={now} />
+            <ActivityList recent={recent} now={now} say={say} />
           )}
         </Panel>
       </div>
@@ -370,14 +389,14 @@ export function DashboardView({
                     <span className="mt-1.5 block text-xs text-muted tabular-nums">
                       {top && performance.top
                         ? `Most interest: ${plural(performance.top.views, "view")}, ${plural(performance.top.inquiries, "inquiry", "inquiries")}`
-                        : "No views yet"}
+                        : say("No views yet", "Wala pang views")}
                     </span>
                   </span>
                 </Link>
               ) : (
                 <div className="rounded-2xl border-2 border-dashed border-grape-100 p-4 text-center">
                   <Icon3d name="houses" size={48} className="mx-auto" />
-                  <p className="mt-2 text-sm font-bold">No listings yet</p>
+                  <p className="mt-2 text-sm font-bold">{say("No listings yet", "Wala pang listing")}</p>
                   {canCreateProperty ? (
                     <Link href="/app/properties/new" className="mt-1 inline-block text-sm font-bold text-grape-700 hover:underline">
                       Add a property
@@ -389,11 +408,19 @@ export function DashboardView({
                 {hasActivity ? (
                   <>
                     <PerformanceChart points={performance.points} />
-                    <p className="mt-3 text-xs text-muted">Running totals across all your listings. Views are of public listing pages.</p>
+                    <p className="mt-3 text-xs text-muted">
+                    {say(
+                      "Running totals across all your listings. Views are of public listing pages.",
+                      "Running total ito ng lahat ng listing mo. Ang views ay galing sa public listing pages.",
+                    )}
+                  </p>
                   </>
                 ) : (
                   <p className="grid h-full min-h-40 place-items-center rounded-2xl border-2 border-dashed border-grape-100 px-4 py-8 text-center text-sm text-muted">
-                    No views, inquiries or viewings in the last 30 days. Share a listing&apos;s public page to start.
+                    {say(
+                      "No views, inquiries or viewings in the last 30 days. Share a listing's public page to start.",
+                      "Wala pang views, inquiries o viewings nitong huling 30 araw. I-share ang public page ng isang listing para makapagsimula.",
+                    )}
                   </p>
                 )}
               </div>
@@ -444,8 +471,14 @@ export function DashboardView({
           <h2 className="text-xl font-extrabold tracking-tight italic sm:text-[1.5rem]">Turn Your Property into Profit!</h2>
           <p className="mt-1 max-w-xl text-sm text-ink/80">
             {paid
-              ? "Share a listing's public page on Facebook and Messenger. Every inquiry becomes a lead, ready to follow up."
-              : "With MyHomeSeller on Basic, every buyer gets an answer and you see which leads fit each listing."}
+              ? say(
+                    "Share a listing's public page on Facebook and Messenger. Every inquiry becomes a lead, ready to follow up.",
+                    "I-share ang public page ng listing mo sa Facebook at Messenger. Bawat inquiry, nagiging lead na ready nang i-follow up.",
+                  )
+              : say(
+                    "With MyHomeSeller on Basic, every buyer gets an answer and you see which leads fit each listing.",
+                    "Sa MyHomeSeller Basic, may sagot ang bawat buyer at makikita mo kung aling leads ang bagay sa bawat listing.",
+                  )}
           </p>
         </div>
         <Link
@@ -467,7 +500,7 @@ export function DashboardView({
                 <div className="flex-1">
                   <h2 className="text-xl font-extrabold tracking-tight">Get Set Up</h2>
                   <p className="text-sm text-muted tabular-nums">
-                    {doneCount} of {steps.length} done
+                    {say(`${doneCount} of ${steps.length} done`, `${doneCount} sa ${steps.length} ang tapos na`)}
                   </p>
                 </div>
               </div>
@@ -514,7 +547,7 @@ export function DashboardView({
                 <Icon3d name="bell" size={44} />
                 <h2 className="text-xl font-extrabold tracking-tight">Recent Activity</h2>
               </div>
-              <ActivityList recent={recent} now={now} />
+              <ActivityList recent={recent} now={now} say={say} />
             </section>
           ) : null}
         </div>
@@ -632,8 +665,13 @@ function Row({ href, icon, title, detail, when }: { href?: string; icon: ReactNo
   );
 }
 
-function ActivityList({ recent, now }: { recent: Activity[]; now?: Date }) {
-  if (recent.length === 0) return <p className="px-5 py-6 text-sm text-muted">Nothing yet. Activity from your team and listings shows up here.</p>;
+function ActivityList({ recent, now, say }: { recent: Activity[]; now?: Date; say: Say }) {
+  if (recent.length === 0)
+    return (
+      <p className="px-5 py-6 text-sm text-muted">
+        {say("Nothing yet. Activity from your team and listings shows up here.", "Wala pa. Dito lalabas ang activity ng team at mga listing mo.")}
+      </p>
+    );
   return (
     <ul className="divide-y divide-line px-5">
       {recent.map((a, i) => {

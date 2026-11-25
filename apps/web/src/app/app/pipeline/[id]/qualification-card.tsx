@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import { useActionState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Alert, Card, cx } from "@/components/ui";
@@ -76,6 +77,7 @@ export function QualificationCard({
   aiOn: boolean;
 }) {
   const [check, recheck] = useActionState<QualifyState, FormData>(() => recheckProspect(q.id), {});
+  const say = useSay();
   const [save, saveAction] = useActionState<QualifyState, FormData>(saveQualification.bind(null, q.id), {});
   const field =
     "mt-1 block w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100";
@@ -86,7 +88,7 @@ export function QualificationCard({
         <div>
           <h2 className="text-sm font-semibold">Qualification</h2>
           <p className="mt-0.5 text-xs text-muted">
-            {q.qualified_at ? `Checked by the lead qualifier ${timeAgo(q.qualified_at)}` : "Not checked yet"}
+            {q.qualified_at ? say(`Checked by the lead qualifier ${timeAgo(q.qualified_at)}`, `Na-check ng lead qualifier ${timeAgo(q.qualified_at)}`) : say("Not checked yet", "Hindi pa na-check")}
           </p>
         </div>
         {q.temperature ? (
@@ -108,7 +110,7 @@ export function QualificationCard({
 
       {prefs ? (
         <div className="rounded-xl border border-line p-3">
-          <p className="mb-2 text-xs font-medium text-muted">What the buyer told MyHomeSeller, {timeAgo(prefs.updated_at)}</p>
+          <p className="mb-2 text-xs font-medium text-muted">{say("What the buyer told MyHomeSeller,", "Ang sinabi ng buyer sa MyHomeSeller,")} {timeAgo(prefs.updated_at)}</p>
           <FactRows
             f={prefs}
             extra={[
@@ -138,7 +140,7 @@ export function QualificationCard({
             ) : null}
           </div>
           {check.error ? <Alert>{check.error}</Alert> : null}
-          {q.facts_by === "team" ? <p className="text-xs text-muted">Your team set these facts, so the AI only updates the score.</p> : null}
+          {q.facts_by === "team" ? <p className="text-xs text-muted">{say("Your team set these facts, so the AI only updates the score.", "Team mo ang nag-set ng facts na ito, kaya score lang ang ina-update ng AI.")}</p> : null}
 
           <details className="rounded-xl border border-line px-3.5 py-2.5">
             <summary className="cursor-pointer text-sm font-medium">Correct the facts</summary>

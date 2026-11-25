@@ -1,5 +1,6 @@
 "use client";
 
+import { useSay } from "@/components/lang";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { EllipsisVertical, Share, X } from "lucide-react";
@@ -86,6 +87,7 @@ export function InstallBanner() {
     () => true,
   );
   const [hidden, setHidden] = useState(false);
+  const say = useSay();
   if (!where || where === "installed" || dismissed || hidden) return null;
 
   function hide() {
@@ -105,11 +107,11 @@ export function InstallBanner() {
           <p className="font-bold">Get the MyHomeSeller app</p>
           <p className="mt-0.5 text-sm text-muted">
             {canPrompt ? (
-              "One tap to open, full screen. No app store needed."
+              say("One tap to open, full screen. No app store needed.", "Isang tap lang para buksan, full screen. Hindi kailangan ng app store.")
             ) : (
               <>
                 <span className="lg:hidden">{where === "ios" ? <IosSteps /> : <AndroidSteps />}</span>
-                <span className="max-lg:hidden">Install it on your phone or computer. No app store needed.</span>
+                <span className="max-lg:hidden">{say("Install it on your phone or computer. No app store needed.", "I-install sa phone o computer mo. Hindi kailangan ng app store.")}</span>
               </>
             )}
           </p>

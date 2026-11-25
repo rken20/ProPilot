@@ -147,6 +147,8 @@ export async function saveAgentSettings(_prev: SettingsState, form: FormData): P
   });
   if (error) return { error: "Couldn't save. Please try again." };
   refresh();
+  // The language also covers the business's public listing pages.
+  revalidatePath("/l/[id]", "page");
   return { saved: Date.now() };
 }
 
