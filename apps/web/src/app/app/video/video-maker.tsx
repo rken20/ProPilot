@@ -3,10 +3,12 @@
 import { useSay } from "@/components/lang";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Download, Pause, Play, Plus, Share2, Sparkles, X } from "lucide-react";
+import { Download, Pause, Play, Plus, Share2, Sparkles, Volume2, VolumeX, X } from "lucide-react";
 import { Alert, Field, Input, Panel, Select, buttonClass, cx } from "@/components/ui";
 import { drawFrame, timelineFor, type Photo, type RenderAd } from "@/lib/video-ad/draw";
+import { PreviewSound, decodeMusic, renderSoundtrack } from "@/lib/video-ad/audio";
 import { ensureFonts, exportVideo, loadPhotos, type VideoFile } from "@/lib/video-ad/export";
+import { MUSIC, MUSIC_FOR, MUSIC_IDS, soundCues, type MusicChoice } from "@/lib/video-ad/sound";
 import {
   LIMITS,
   MAX_LINES,
@@ -36,6 +38,10 @@ type Making =
   | { kind: "rendering"; progress: number }
   | { kind: "done"; url: string; name: string; file: VideoFile }
   | { kind: "error"; message: string };
+
+/** A music file the owner picked. It is read on the device and never uploaded. */
+type OwnMusic = { id: number; name: string; buffer: AudioBuffer };
+const MAX_MUSIC_BYTES = 30_000_000;
 
 const fileName = (name: string, shape: ShapeId, ext: string) =>
   `${
@@ -87,6 +93,15 @@ export function VideoMaker({
   const [playing, setPlaying] = useState(true);
   const [making, setMaking] = useState<Making>({ kind: "idle" });
   const [left, setLeft] = useState(limit === null ? null : Math.max(0, limit - used));
+  /** The owner's music choice; until they make one, the music follows the template. */
+  const [musicPick, setMusicPick] = useState<MusicChoice | null>(null);
+  const [effects, setEffects] = useState(true);
+  const [own, setOwn] = useState<OwnMusic | null>(null);
+  const [ownState, setOwnState] = useState<"idle" | "reading" | "error" | "too-big">("idle");
+  /** Whether the preview plays its sound. Off until pressed: browsers only allow sound after a tap. */
+  const [hear, setHear] = useState(false);
+  const [track, setTrack] = useState<{ key: string; buffer: AudioBuffer | null } | null>(null);
+  const preview = useRef<PreviewSound | null>(null);
 
   const item = byId.get(id) ?? first;
   /** The listing on screen now, so a slow answer for an earlier one is ignored. */
@@ -127,7 +142,10 @@ export function VideoMaker({
     void ensureFonts().then(() => setFontsReady(true));
     void Promise.resolve().then(() => loadFor(first));
     if (first.photos.length) void Promise.resolve().then(() => askAi(first.id, false));
-    return () => abort.current?.abort();
+    return () => {
+      abort.current?.abort();
+      preview.current?.close();
+    };
     // Runs once: later listings are loaded by choose().
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -199,10 +217,80 @@ export function VideoMaker({
   /** The photo behind each feature line, as the ad shows it now. */
   const linePhotos = useMemo(() => (timeline ? timeline.scenes.filter((sc) => sc.kind === "photo").map((sc) => sc.photo) : []), [timeline]);
 
-  // The live preview: the same drawing code that makes the file.
   const canvas = useRef<HTMLCanvasElement>(null);
   const bar = useRef<HTMLDivElement>(null);
+  /** Where the preview is, in seconds into the ad. */
   const clock = useRef({ t: 0, last: 0 });
+
+  // The soundtrack: music and sound effects, made on the device for the ad as it is now.
+  const music: MusicChoice = musicPick ?? MUSIC_FOR[template];
+  const cues = useMemo(() => (timeline ? soundCues(template, timeline) : []), [template, timeline]);
+  const soundMusic = music === "own" ? (own?.buffer ?? null) : music === "none" ? null : music;
+  const wantsSound = soundMusic !== null || effects;
+  const soundKey = timeline ? JSON.stringify([music, music === "own" ? (own?.id ?? 0) : 0, effects, timeline.duration, cues]) : "";
+  const soundFor = useCallback(
+    () => (timeline && wantsSound ? renderSoundtrack({ duration: timeline.duration, music: soundMusic, cues, effects }) : Promise.resolve(null)),
+    [timeline, wantsSound, soundMusic, cues, effects],
+  );
+  /** A change of sound makes a new video, but it isn't a change to the ad's words, so a late AI answer may still fill them in. */
+  const soundChanged = () => {
+    if (making.kind === "done" || making.kind === "error") setMaking({ kind: "idle" });
+  };
+
+  // Make the preview's sound when it's switched on, again after each change (a moment later, so typing doesn't redo it every key).
+  useEffect(() => {
+    if (!hear || !timeline || busy || track?.key === soundKey) return;
+    let live = true;
+    const timer = setTimeout(() => {
+      void soundFor()
+        .catch(() => null)
+        .then((buffer) => live && setTrack({ key: soundKey, buffer }));
+    }, 250);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [hear, timeline, busy, track, soundKey, soundFor]);
+
+  // Play it along with the picture.
+  useEffect(() => {
+    const player = preview.current;
+    if (!player) return;
+    if (!hear || !playing || busy || !track?.buffer || track.key !== soundKey) return player.stop();
+    player.play(track.buffer, clock.current.t);
+    return () => player.stop();
+  }, [hear, playing, busy, track, soundKey]);
+
+  /** Back to the start of the ad, picture and sound together. */
+  const rewind = () => {
+    clock.current.t = 0;
+    preview.current?.seek(0);
+  };
+
+  async function toggleSound() {
+    if (hear) return setHear(false);
+    preview.current ??= new PreviewSound();
+    if (await preview.current.unlock()) {
+      setHear(true);
+      setPlaying(true);
+    }
+  }
+
+  async function pickOwnMusic(file: File | undefined) {
+    if (!file) return;
+    soundChanged();
+    if (file.size > MAX_MUSIC_BYTES) return setOwnState("too-big");
+    setOwnState("reading");
+    try {
+      const buffer = await decodeMusic(file);
+      setOwn({ id: Date.now(), name: file.name, buffer });
+      setOwnState("idle");
+    } catch {
+      setOwnState("error");
+    }
+  }
+
+  // The live preview: the same drawing code that makes the file.
   useEffect(() => {
     const ctx = canvas.current?.getContext("2d");
     if (!ctx || !ad || !timeline || busy) return;
@@ -210,7 +298,10 @@ export function VideoMaker({
     clock.current.last = performance.now();
     const frame = (now: number) => {
       const c = clock.current;
-      if (playing) c.t = (c.t + (now - c.last) / 1000) % timeline.duration;
+      // While the sound plays, the picture follows it; otherwise the page's own clock.
+      const heard = preview.current?.time() ?? null;
+      if (heard !== null) c.t = heard % timeline.duration;
+      else if (playing) c.t = (c.t + (now - c.last) / 1000) % timeline.duration;
       c.last = now;
       drawFrame(ctx, ad, timeline, Math.min(c.t, timeline.duration - 0.01));
       if (bar.current) bar.current.style.width = `${(c.t / timeline.duration) * 100}%`;
@@ -235,7 +326,9 @@ export function VideoMaker({
     abort.current = new AbortController();
     setMaking({ kind: "rendering", progress: 0 });
     try {
-      const file = await exportVideo({ ...ad, text: clean }, (progress) => setMaking({ kind: "rendering", progress }), abort.current.signal);
+      // The sound is made first, in a fraction of a second; if it fails the video is made silent rather than not at all.
+      const sound = track?.key === soundKey ? track.buffer : await soundFor().catch(() => null);
+      const file = await exportVideo({ ...ad, text: clean }, sound, (progress) => setMaking({ kind: "rendering", progress }), abort.current.signal);
       setMaking({ kind: "done", url: URL.createObjectURL(file.blob), name: fileName(item.listing.name, shape, file.ext), file });
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return setMaking({ kind: "idle" });
@@ -265,7 +358,7 @@ export function VideoMaker({
   const pickTemplate = (t: TemplateId) => {
     touched.current = true;
     setTemplate(t);
-    clock.current.t = 0;
+    rewind();
     if (making.kind === "done" || making.kind === "error") setMaking({ kind: "idle" });
   };
 
@@ -312,7 +405,7 @@ export function VideoMaker({
                   aria-label={`Open the video with photo ${i + 1}`}
                   onClick={() => {
                     changed();
-                    clock.current.t = 0;
+                    rewind();
                     setPicks((p) => ({ ...p, opener: i }));
                   }}
                   className={cx("overflow-hidden rounded-xl border-2 transition-colors", picks.opener === i ? "border-grape-600 ring-2 ring-grape-100" : "border-transparent hover:border-grape-300")}
@@ -343,6 +436,17 @@ export function VideoMaker({
             aria-label={playing ? "Pause the preview" : "Play the preview"}
           >
             {playing ? <Pause className="size-4" aria-hidden /> : <Play className="size-4" aria-hidden />}
+          </button>
+          <button
+            type="button"
+            onClick={() => void toggleSound()}
+            disabled={!ad || busy || !wantsSound}
+            aria-pressed={hear}
+            className={cx("grid size-9 shrink-0 place-items-center rounded-full disabled:opacity-50", hear ? "bg-grape-600 text-white hover:bg-grape-700" : "bg-grape-50 text-grape-700 hover:bg-grape-100")}
+            aria-label={hear ? "Turn the preview's sound off" : "Hear the preview's sound"}
+            title={hear ? "Sound on" : "Sound off"}
+          >
+            {hear ? <Volume2 className="size-4" aria-hidden /> : <VolumeX className="size-4" aria-hidden />}
           </button>
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-grape-50" aria-hidden>
             <div ref={bar} className="h-full w-0 rounded-full bg-grape-600" />
@@ -377,12 +481,28 @@ export function VideoMaker({
                   </button>
                 ) : null}
               </div>
-              <p className="mt-3 text-xs text-muted">
-                {say(
-                  "The video has no sound. Add music when you post it: Facebook, TikTok and Instagram offer songs you're allowed to use.",
-                  "Walang sound ang video. Lagyan ng music kapag ipo-post mo na: may mga kantang puwedeng gamitin sa Facebook, TikTok at Instagram.",
-                )}
-              </p>
+              {wantsSound && !making.file.sound ? (
+                <div className="mt-3">
+                  <Alert tone="info">
+                    {say(
+                      "This browser couldn't put the sound in the file, so the video is silent. Try Chrome on an Android phone or a computer, or Safari on an iPhone with iOS 26 or newer.",
+                      "Hindi nailagay ng browser na ito ang sound sa file, kaya walang tunog ang video. Subukan sa Chrome sa Android phone o computer, o sa Safari sa iPhone na iOS 26 pataas.",
+                    )}
+                  </Alert>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-muted">
+                  {making.file.sound
+                    ? say(
+                        "For a trending song instead, pick No music under Sound and add the song when you post it on Facebook, TikTok or Instagram.",
+                        "Kung trending song ang gusto mo, piliin ang No music sa Sound at idagdag ang kanta kapag ipo-post mo na sa Facebook, TikTok o Instagram.",
+                      )
+                    : say(
+                        "The video has no sound. Add music when you post it: Facebook, TikTok and Instagram offer songs you're allowed to use.",
+                        "Walang sound ang video. Lagyan ng music kapag ipo-post mo na: may mga kantang puwedeng gamitin sa Facebook, TikTok at Instagram.",
+                      )}
+                </p>
+              )}
             </div>
           ) : (
             <>
@@ -476,6 +596,97 @@ export function VideoMaker({
           </div>
         </Panel>
 
+        <Panel title="Sound">
+          <p className="mt-1 text-sm text-muted">
+            {say(
+              "Music made for MyHomeSeller, so it's free to post anywhere, and sound effects timed to the cuts. Press the speaker under the preview to hear it.",
+              "Music na ginawa para sa MyHomeSeller, kaya libreng i-post kahit saan, at sound effects na sabay sa bawat cut. Pindutin ang speaker sa ilalim ng preview para marinig.",
+            )}
+          </p>
+          <div role="radiogroup" aria-label="Music" className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {(["none", ...MUSIC_IDS, "own"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                role="radio"
+                aria-checked={music === m}
+                disabled={busy}
+                onClick={() => {
+                  soundChanged();
+                  setMusicPick(m);
+                }}
+                className={cx("rounded-2xl border-2 p-3 text-left transition-colors", music === m ? "border-grape-600 bg-grape-50" : "border-line bg-white hover:border-grape-300")}
+              >
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-bold">{m === "none" ? "No music" : m === "own" ? "Your own music" : MUSIC[m].label}</span>
+                  {m === MUSIC_FOR[template] ? <span className="rounded-full bg-grape-100 px-2 py-0.5 text-[11px] font-bold text-grape-800">Suggested</span> : null}
+                </span>
+                <span className="mt-1 block text-xs text-ink/75">
+                  {m === "none"
+                    ? say("Silent, or add a song when you post.", "Walang music, o magdagdag ng kanta kapag ipo-post mo.")
+                    : m === "own"
+                      ? say("A music file on your device.", "Music file mula sa device mo.")
+                      : say(MUSIC[m].about[0], MUSIC[m].about[1])}
+                </span>
+              </button>
+            ))}
+          </div>
+          {music === "own" ? (
+            <div className="mt-3 rounded-2xl border border-line p-4">
+              <label htmlFor="video-music-file" className="text-sm font-medium text-ink">
+                Music file
+              </label>
+              <input
+                id="video-music-file"
+                type="file"
+                accept="audio/*"
+                disabled={busy || ownState === "reading"}
+                onChange={(e) => void pickOwnMusic(e.target.files?.[0])}
+                className="mt-2 block w-full text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-grape-50 file:px-4 file:py-2 file:font-semibold file:text-grape-800 hover:file:bg-grape-100"
+              />
+              <p className="mt-2 text-xs text-muted" role="status">
+                {ownState === "reading"
+                  ? say("Reading the file…", "Binabasa ang file…")
+                  : ownState === "error"
+                    ? say("This file couldn't be read. Try an MP3 or M4A file.", "Hindi mabasa ang file na ito. Subukan ang MP3 o M4A file.")
+                    : ownState === "too-big"
+                      ? say("That file is too big. Pick one under 30 MB.", "Masyadong malaki ang file. Pumili ng mas mababa sa 30 MB.")
+                      : own
+                        ? say(
+                            `Using ${own.name}${timeline ? `, from the start, for ${Math.round(timeline.duration)} seconds` : ""}.`,
+                            `Gamit ang ${own.name}${timeline ? `, mula sa simula, nang ${Math.round(timeline.duration)} segundo` : ""}.`,
+                          )
+                        : say("No file chosen yet.", "Wala pang napiling file.")}
+              </p>
+              <p className="mt-2 text-xs text-muted">
+                {say(
+                  "Use only music you have the right to use: Facebook, TikTok and Instagram may mute or take down a video with a song you don't have the rights to. The file stays on your device.",
+                  "Gumamit lang ng music na may karapatan kang gamitin: puwedeng i-mute o tanggalin ng Facebook, TikTok at Instagram ang video na may kantang wala kang karapatan. Sa device mo lang ang file.",
+                )}
+              </p>
+            </div>
+          ) : null}
+          <label className="mt-4 flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={effects}
+              disabled={busy}
+              onChange={(e) => {
+                soundChanged();
+                setEffects(e.target.checked);
+              }}
+              className="mt-0.5 size-4 accent-grape-600"
+            />
+            <span>
+              <span className="font-medium text-ink">Sound effects</span>
+              <span className="block text-xs text-muted">
+                {say("A whoosh on each cut, a pop as each line comes in, and a chime on the price.", "May whoosh sa bawat cut, pop sa bawat line na lalabas, at chime sa presyo.")}
+                {template === "reveal" ? say(" Price Reveal builds up to the price instead.", " Sa Price Reveal, may build-up papunta sa presyo.") : ""}
+              </span>
+            </span>
+          </label>
+        </Panel>
+
         <Panel title="Text">
           <p className="mt-1 text-sm text-muted">
             {say("Every word is yours to change. The price, location, financing and your business name come from the listing and are added for you.", "Pwede mong palitan ang bawat salita. Galing sa listing ang presyo, location, financing at pangalan ng business mo, at kusa nang idinadagdag.")}
@@ -494,7 +705,7 @@ export function VideoMaker({
                       type="button"
                       disabled={busy}
                       onClick={() => {
-                        clock.current.t = 0;
+                        rewind();
                         edit((t) => ({ ...t, hook: h }));
                       }}
                       className="rounded-full border border-grape-100 bg-grape-50 px-3 py-1.5 text-left text-sm font-semibold text-grape-800 hover:border-grape-300"
