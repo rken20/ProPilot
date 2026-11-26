@@ -379,6 +379,16 @@ function words(env: Env, text: string, local: number, o: Words) {
 /** Where a caption's bottom edge sits: above the buttons apps draw over a vertical video. */
 const captionBottom = (env: Env) => env.H - env.pad.bottom;
 
+/**
+ * The property is what sells, so the words keep to the lower part of the frame,
+ * at a size that reads at a glance and no larger, and only that part is
+ * darkened. Sizes are in units of `u`.
+ */
+const HOOK = { size: 7.8, min: 5, lines: 3 } as const;
+const CAPTION = { size: 6.6, min: 4.4, lines: 2 } as const;
+/** How far down the frame the shade under the words starts, and how dark it gets at the bottom edge. */
+const SHADE = { hook: 0.5, caption: 0.62, top: 0.13 } as const;
+
 // ---------------------------------------------------------------- the closing card (shared)
 
 type Closing = {
@@ -575,40 +585,30 @@ function closing(env: Env, scene: Scene, local: number, style: Closing) {
 // ---------------------------------------------------------------- Showcase
 
 function showcase(env: Env, scene: Scene, local: number) {
-  const { ctx, W, H, u, tu, pad, ad } = env;
+  const { ctx, W, u, tu, pad, ad } = env;
   if (scene.kind === "outro") return closing(env, scene, local, { bg: DEEP, overlay: 0.86, accent: SUN, family: SANS, align: "center", ctaBg: SUN, ctaFg: NAVY });
   photo(env, scene.photo, full(env), camera(scene, local, 1));
   const maxW = textWidth(env);
 
+  const tag = ad.listing.status === "reserved" ? "Reserved" : "For Sale";
   if (scene.kind === "intro") {
-    // The headline is on screen, large, from the very first frame: that frame is what stops a scroll.
-    ctx.fillStyle = "rgba(6,14,40,0.34)";
-    ctx.fillRect(0, 0, W, H);
-    wash(env, 0.75, 0, DEEP, 0.55);
-    const settle = 1 + 0.06 * (1 - easeOut(local / 0.45));
-    ctx.save();
-    ctx.translate(W / 2, H * 0.36);
-    ctx.scale(settle, settle);
-    ctx.translate(-W / 2, -H * 0.36);
-    const block = words(env, ad.text.hook, local, { cx: W / 2, y: H * (ad.shape === "vertical" ? 0.36 : 0.4), anchor: "middle", maxW, maxLines: 4, size: u * 11.5, min: u * 6, key: SUN, start: -1 });
-    ctx.restore();
+    // The headline is on screen from the very first frame, under the photo's subject: the photo is what stops a scroll.
+    wash(env, SHADE.hook, 1, DEEP, 0.7);
+    wash(env, SHADE.top, 0, DEEP, 0.28);
+    pill(ctx, tag, pad.x, pad.top, tu * 3.7, SUN, NAVY);
+    const block = words(env, ad.text.hook, local, { cx: W / 2, y: captionBottom(env), anchor: "bottom", maxW, maxLines: HOOK.lines, size: u * HOOK.size, min: u * HOOK.min, key: SUN, start: -1 });
     const e = enter(local, 0.3);
     ctx.save();
     ctx.globalAlpha *= e.a;
-    const y = block.bottom + tu * 2.4 + e.rise * u * 2.5;
-    const row = placeLine(env, W / 2, y, tu * 3.8, true);
-    font(ctx, 800, tu * 3.1);
-    const tag = ad.listing.status === "reserved" ? "Reserved" : "For Sale";
-    const tw = ctx.measureText(tag).width + tu * 3.1 * 1.6;
-    pill(ctx, tag, W / 2 - tw / 2, y + row + tu * 1.4, tu * 3.1, SUN, NAVY);
+    placeLine(env, W / 2, block.top - tu * 6 - e.rise * u * 2, tu * 3.4, true);
     ctx.restore();
     return;
   }
-  // A clip: the price stays in the corner for anyone who joins late, the caption comes in word by word.
-  wash(env, 0.42, 1, DEEP, 0.72);
-  wash(env, 0.24, 0, DEEP, 0.4);
+  // A clip: the price stays in the corner for anyone who joins late, the caption comes in word by word along the bottom.
+  wash(env, SHADE.caption, 1, DEEP, 0.6);
+  wash(env, SHADE.top, 0, DEEP, 0.28);
   pill(ctx, shortPrice(ad.listing), pad.x, pad.top, tu * 3.7, "#ffffff", NAVY);
-  if (scene.line) words(env, scene.line, local, { cx: W / 2, y: captionBottom(env), anchor: "bottom", maxW, maxLines: 3, size: u * 9.4, min: u * 5.4, key: SUN, start: CAPTION_AT });
+  if (scene.line) words(env, scene.line, local, { cx: W / 2, y: captionBottom(env), anchor: "bottom", maxW, maxLines: CAPTION.lines, size: u * CAPTION.size, min: u * CAPTION.min, key: SUN, start: CAPTION_AT });
 }
 
 // ---------------------------------------------------------------- Bold Deal
@@ -649,27 +649,17 @@ function bold(env: Env, scene: Scene, local: number) {
   if (scene.kind === "outro") closing(env, scene, local, { bg: BLUE, overlay: 0.9, accent: SUN, family: SANS, align: "left", ctaBg: "#ffffff", ctaFg: NAVY });
   else {
     photo(env, scene.photo, full(env), camera(scene, local, 1.35));
-    ctx.fillStyle = "rgba(6,16,46,0.2)";
-    ctx.fillRect(0, 0, W, env.H);
     const maxW = textWidth(env) - u * 4;
-    if (scene.kind === "intro") {
-      // Headline from the first frame.
-      wash(env, 0.7, 0, DEEP, 0.45);
-      const hook = fit(ctx, ad.text.hook.toUpperCase(), maxW, 4, u * 10.5, u * 5.4, 800);
-      const top = pad.top + u * 3;
-      const used = blocks(env, hook.lines, hook.size, pad.x, top, NAVY, "#ffffff", -0.035, local, -1, true);
-      // The price slams in under it, unless the headline already says it: then the place does.
-      const second = amountsIn(ad.text.hook).length ? shortPlace(ad.listing.location).toUpperCase() : shortPrice(ad.listing);
-      const price = fit(ctx, second, maxW, 1, u * 13, u * 5, 800);
-      blocks(env, [price.lines[0] ?? second], price.size, pad.x + u * 1.5, top + used + u * 3, SUN, NAVY, 0.03, local, 0.32, true);
-    } else {
-      wash(env, 0.5, 1, DEEP, 0.5);
-      // The price rides along on a tilted sticker.
+    // A tilted sticker in the corner: the price, riding along through every clip.
+    const sticker = (label: string, a: number) => {
+      if (a <= 0) return;
       ctx.save();
+      ctx.globalAlpha *= Math.min(1, a * 2);
       ctx.translate(pad.x, pad.top);
       ctx.rotate(-0.035);
+      const grow = 1.5 - 0.5 * easeOut(a);
+      ctx.scale(grow, grow);
       font(ctx, 800, tu * 4.6);
-      const label = shortPrice(ad.listing);
       const pw = ctx.measureText(label).width + tu * 4;
       ctx.fillStyle = SUN;
       ctx.fillRect(0, 0, pw, tu * 7.2);
@@ -678,8 +668,17 @@ function bold(env: Env, scene: Scene, local: number) {
       ctx.textAlign = "left";
       ctx.fillText(label, tu * 2, tu * 3.8);
       ctx.restore();
+    };
+    wash(env, scene.kind === "intro" ? SHADE.hook : SHADE.caption, 1, DEEP, 0.55);
+    if (scene.kind === "intro") {
+      // Headline from the first frame, along the bottom. The price slams into the corner, unless the headline already says it: then the place does.
+      const hook = fit(ctx, ad.text.hook.toUpperCase(), maxW, HOOK.lines, u * 7.4, u * 4.8, 800);
+      blocks(env, hook.lines, hook.size, pad.x, captionBottom(env), NAVY, "#ffffff", -0.035, local, -1);
+      sticker(amountsIn(ad.text.hook).length ? shortPlace(ad.listing.location).toUpperCase() : shortPrice(ad.listing), clamp01((local - 0.32) / 0.16));
+    } else {
+      sticker(shortPrice(ad.listing), 1);
       if (scene.line) {
-        const cap = fit(ctx, scene.line.toUpperCase(), maxW, 3, u * 9.6, u * 5, 800);
+        const cap = fit(ctx, scene.line.toUpperCase(), maxW, CAPTION.lines, u * 6.8, u * 4.6, 800);
         blocks(env, cap.lines, cap.size, pad.x, captionBottom(env), "#ffffff", NAVY, -0.035, local, 0.1);
       }
     }
@@ -715,13 +714,12 @@ function elegant(env: Env, scene: Scene, local: number) {
   photo(env, scene.photo, full(env), camera(scene, local, 0.6));
   ctx.textAlign = "center";
   if (scene.kind === "intro") {
-    ctx.fillStyle = "rgba(8,8,10,0.46)";
-    ctx.fillRect(0, 0, W, H);
+    wash(env, SHADE.hook - 0.06, 1, "#0b0b0d", 0.86);
     const rise = (1 - easeOut(local / 1.1)) * u * 2;
-    const cy = H * (ad.shape === "vertical" ? 0.4 : 0.46) + rise;
-    const block = words(env, ad.text.hook, local, { cx: W / 2, y: cy, anchor: "middle", maxW: W - pad.x * 2.4, maxLines: 4, size: u * 10, min: u * 5.2, weight: 500, family: SERIF, key: GOLD, outline: false, start: -1, leading: 1.14 });
+    const base = captionBottom(env);
+    const block = words(env, ad.text.hook, local, { cx: W / 2, y: base - tu * 5.6 + rise, anchor: "bottom", maxW: W - pad.x * 2.4, maxLines: HOOK.lines, size: u * 7.4, min: u * 4.8, weight: 500, family: SERIF, key: GOLD, outline: false, start: -1, leading: 1.14 });
     ctx.fillStyle = GOLD;
-    ctx.fillRect(W / 2 - u * 6, block.top - u * 4.4, u * 12 * easeOut(local / 0.7), Math.max(1.5, u * 0.24));
+    ctx.fillRect(W / 2 - u * 6, block.top - u * 3.4, u * 12 * easeOut(local / 0.7), Math.max(1.5, u * 0.24));
     const e = enter(local, 0.4, 0.6);
     ctx.save();
     ctx.globalAlpha *= e.a;
@@ -730,14 +728,14 @@ function elegant(env: Env, scene: Scene, local: number) {
     ctx.fillStyle = "rgba(255,255,255,0.88)";
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText(shortPlace(ad.listing.location).toUpperCase(), W / 2, block.bottom + u * 5);
+    ctx.fillText(shortPlace(ad.listing.location).toUpperCase(), W / 2, base - tu * 0.6);
     spaced(ctx, 0);
     ctx.restore();
     return;
   }
-  wash(env, 0.5, 1, "#0b0b0d", 0.82);
-  wash(env, 0.22, 0, "#0b0b0d", 0.55);
-  // The price sits small at the top; the caption fades up under the photograph's subject.
+  wash(env, SHADE.caption - 0.04, 1, "#0b0b0d", 0.8);
+  wash(env, SHADE.top + 0.05, 0, "#0b0b0d", 0.55);
+  // The price sits small at the top; the caption fades up along the bottom, under the photograph's subject.
   font(ctx, 500, tu * 4, SERIF);
   ctx.fillStyle = GOLD;
   ctx.textBaseline = "alphabetic";
@@ -747,9 +745,9 @@ function elegant(env: Env, scene: Scene, local: number) {
   const e = enter(local, 0.3, 0.7);
   ctx.save();
   ctx.globalAlpha *= e.a;
-  const block = words(env, scene.line, local, { cx: W / 2, y: captionBottom(env) + e.rise * u * 2, anchor: "bottom", maxW: W - pad.x * 2.4, maxLines: 3, size: u * 8, min: u * 4.6, weight: 500, family: SERIF, outline: false, start: -1, leading: 1.18 });
+  const block = words(env, scene.line, local, { cx: W / 2, y: captionBottom(env) + e.rise * u * 2, anchor: "bottom", maxW: W - pad.x * 2.4, maxLines: CAPTION.lines, size: u * 6.2, min: u * 4.4, weight: 500, family: SERIF, outline: false, start: -1, leading: 1.18 });
   ctx.fillStyle = GOLD;
-  ctx.fillRect(W / 2 - u * 4, block.top - u * 2.6, u * 8, Math.max(1.5, u * 0.22));
+  ctx.fillRect(W / 2 - u * 4, block.top - u * 2.4, u * 8, Math.max(1.5, u * 0.22));
   ctx.restore();
 }
 
@@ -760,7 +758,8 @@ function facts(env: Env, scene: Scene, local: number) {
   if (scene.kind === "outro") return closing(env, scene, local, { bg: NAVY, overlay: 0.93, accent: SUN, family: SANS, align: "left", ctaBg: SUN, ctaFg: NAVY });
   // Vertical: the photo above the facts. Square and wide: side by side.
   const stacked = ad.shape === "vertical";
-  const pic: Rect = stacked ? { x: 0, y: 0, w: W, h: H * 0.34 } : { x: 0, y: 0, w: W * (ad.shape === "wide" ? 0.52 : 0.44), h: H };
+  // The photo takes the larger part of the frame; the facts get what they need to be read and no more.
+  const pic: Rect = stacked ? { x: 0, y: 0, w: W, h: H * 0.52 } : { x: 0, y: 0, w: W * (ad.shape === "wide" ? 0.58 : 0.5), h: H };
   const panel: Rect = stacked ? { x: 0, y: pic.h, w: W, h: H - pic.h } : { x: pic.w, y: 0, w: W - pic.w, h: H };
   // The panel stays put from scene to scene; only the photo changes, with a quick punch on the cut.
   const cam = camera(scene, local, 0.9);
@@ -782,33 +781,39 @@ function facts(env: Env, scene: Scene, local: number) {
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
 
-  const price = fit(ctx, ad.listing.price, maxW, 1, tu * 7.6, tu * 4.6, 800);
+  const price = fit(ctx, ad.listing.price, maxW, 1, tu * (stacked ? 6.4 : 7.6), tu * 4.6, 800);
   font(ctx, 800, price.size);
   ctx.fillStyle = SUN;
   ctx.fillText(price.lines[0] ?? "", x, top + price.size * 0.9);
   let y = top + price.size * 1.2;
   // The headline while the ad opens (and beside the photo, where there is room); after that the space goes to the facts.
   if (scene.kind === "intro" || !stacked) {
-    const title = fit(ctx, scene.kind === "intro" ? ad.text.hook : ad.listing.name, maxW, 2, tu * 4, tu * 2.9, 700);
+    // Under the photo there is room for the headline alone while the ad opens, so it is set larger there.
+    const opening = stacked && scene.kind === "intro";
+    const title = fit(ctx, scene.kind === "intro" ? ad.text.hook : ad.listing.name, maxW, opening ? 3 : 2, tu * (opening ? 4.8 : 4), tu * 2.9, 700);
     font(ctx, 700, title.size);
     ctx.fillStyle = "#ffffff";
     title.lines.forEach((t, i) => ctx.fillText(t, x, y + (i + 0.9) * title.size * 1.2));
     y += title.lines.length * title.size * 1.2 + tu * 1;
   } else y += tu * 0.6;
-  y += placeLine(env, x, y, tu * 3, false, "rgba(255,255,255,0.82)") + tu * 1.6;
+  // Under the photo the place is named while the ad opens; after that its room goes to the facts (the closing card names it again).
+  if (scene.kind === "intro" || !stacked) y += placeLine(env, x, y, tu * 3, false, "rgba(255,255,255,0.82)") + tu * 1.6;
   ctx.fillStyle = "rgba(255,255,255,0.16)";
   ctx.fillRect(x, y, maxW, Math.max(1.5, u * 0.18));
   y += tu * 1.6;
 
-  // Every fact has its place from the start, faint, and ticks on in its own scene.
-  const lines = env.tl.scenes.filter((s) => s.kind === "photo" && s.line).map((s) => s.line!);
-  if (!lines.length) return;
-  const row = Math.min(tu * 9.5, (bottom - y) / lines.length);
+  // Every fact has its place, faint, and ticks on in its own scene. Under the photo four are shown at a time, moving on with the ad.
+  const all = env.tl.scenes.filter((s) => s.kind === "photo" && s.line).map((s) => s.line!);
+  if (!all.length || (stacked && scene.kind === "intro")) return;
+  const shown = stacked ? Math.min(4, all.length) : all.length;
+  const first = stacked && scene.kind === "photo" ? Math.max(0, Math.min(scene.index - (shown - 2), all.length - shown)) : 0;
+  const row = Math.min(tu * 9.5, (bottom - y) / shown);
   const size = Math.min(tu * 4.6, row * 0.5);
-  lines.forEach((text, i) => {
+  all.slice(first, first + shown).forEach((text, k) => {
+    const i = first + k;
     const now = scene.kind === "photo" && i === scene.index;
     const lit = scene.kind === "intro" ? 0 : i < scene.index ? 1 : now ? clamp01((local - 0.1) / 0.2) : 0;
-    const cy = y + row * (i + 0.5);
+    const cy = y + row * (k + 0.5);
     // One line where it fits; two smaller lines only if the row is tall enough for them.
     const fitted = fitShort(ctx, text, maxW - size * 2.3, size, size * 0.72, 700, Math.min(size * 0.8, row / 2.6));
     if (now && lit > 0) {
@@ -846,79 +851,52 @@ function facts(env: Env, scene: Scene, local: number) {
 // ---------------------------------------------------------------- Price Reveal
 
 function reveal(env: Env, scene: Scene, local: number) {
-  const { ctx, W, H, u, tu, pad, ad } = env;
+  const { ctx, W, u, tu, pad, ad } = env;
   if (scene.kind === "outro") return closing(env, scene, local, { bg: DEEP, overlay: 0.9, accent: SUN, family: SANS, align: "center", ctaBg: SUN, ctaFg: NAVY, reveal: true });
   photo(env, scene.photo, full(env), camera(scene, local, 1.1));
   const maxW = textWidth(env);
   // The tag that promises the price stays on screen the whole way: it is the reason to keep watching.
-  const tag = (y: number, centred: boolean) => {
-    font(ctx, 800, tu * 3.4);
-    const label = "Guess the price";
-    const w = ctx.measureText(label).width + tu * 3.4 * 1.6;
-    pill(ctx, label, centred ? W / 2 - w / 2 : pad.x, y, tu * 3.4, SUN, NAVY);
-  };
-  if (scene.kind === "intro") {
-    ctx.fillStyle = "rgba(6,14,40,0.36)";
-    ctx.fillRect(0, 0, W, H);
-    wash(env, 0.75, 0, DEEP, 0.55);
-    const block = words(env, ad.text.hook, local, { cx: W / 2, y: H * (ad.shape === "vertical" ? 0.36 : 0.4), anchor: "middle", maxW, maxLines: 4, size: u * 11, min: u * 6, key: SUN, start: -1 });
-    const e = enter(local, 0.3);
-    ctx.save();
-    ctx.globalAlpha *= e.a;
-    tag(block.bottom + tu * 2.6 + e.rise * u * 2.5, true);
-    ctx.restore();
-    return;
-  }
-  wash(env, 0.42, 1, DEEP, 0.72);
-  wash(env, 0.24, 0, DEEP, 0.4);
-  tag(pad.top, false);
-  if (scene.line) words(env, scene.line, local, { cx: W / 2, y: captionBottom(env), anchor: "bottom", maxW, maxLines: 3, size: u * 9.4, min: u * 5.4, key: SUN, keyBlock: true, start: CAPTION_AT });
+  const tag = () => pill(ctx, "Guess the price", pad.x, pad.top, tu * 3.4, SUN, NAVY);
+  wash(env, scene.kind === "intro" ? SHADE.hook : SHADE.caption, 1, DEEP, scene.kind === "intro" ? 0.7 : 0.6);
+  wash(env, SHADE.top, 0, DEEP, 0.28);
+  tag();
+  if (scene.kind === "intro") words(env, ad.text.hook, local, { cx: W / 2, y: captionBottom(env), anchor: "bottom", maxW, maxLines: HOOK.lines, size: u * HOOK.size, min: u * HOOK.min, key: SUN, start: -1 });
+  else if (scene.line) words(env, scene.line, local, { cx: W / 2, y: captionBottom(env), anchor: "bottom", maxW, maxLines: CAPTION.lines, size: u * CAPTION.size, min: u * CAPTION.min, key: SUN, keyBlock: true, start: CAPTION_AT });
 }
 
 // ---------------------------------------------------------------- Top 3 Reasons
 
 function reasons(env: Env, scene: Scene, local: number) {
-  const { ctx, W, H, u, tu, pad, ad, tl } = env;
+  const { ctx, W, u, tu, pad, ad, tl } = env;
   if (scene.kind === "outro") return closing(env, scene, local, { bg: NAVY, overlay: 0.9, accent: SUN, family: SANS, align: "center", ctaBg: SUN, ctaFg: NAVY });
   photo(env, scene.photo, full(env), camera(scene, local, 0.9));
   const maxW = textWidth(env);
   const count = tl.scenes.filter((s) => s.kind === "photo").length;
 
+  wash(env, scene.kind === "intro" ? SHADE.hook : SHADE.caption - 0.06, 1, NAVY, 0.7);
+  wash(env, SHADE.top + 0.03, 0, NAVY, 0.36);
+  progress(env, scene, local);
   if (scene.kind === "intro") {
-    ctx.fillStyle = "rgba(6,14,40,0.36)";
-    ctx.fillRect(0, 0, W, H);
-    wash(env, 0.75, 0, NAVY, 0.55);
-    progress(env, scene, local);
-    const block = words(env, ad.text.hook, local, { cx: W / 2, y: H * (ad.shape === "vertical" ? 0.36 : 0.42), anchor: "middle", maxW, maxLines: 4, size: u * 11, min: u * 6, key: SUN, start: -1 });
-    const e = enter(local, 0.3);
-    ctx.save();
-    ctx.globalAlpha *= e.a;
-    font(ctx, 800, tu * 3.4);
-    const label = count === 1 ? "The reason to see it" : `${count} reasons to see it`;
-    const w = ctx.measureText(label).width + tu * 3.4 * 1.6;
-    pill(ctx, label, W / 2 - w / 2, block.bottom + tu * 2.6 + e.rise * u * 2.5, tu * 3.4, SUN, NAVY);
-    ctx.restore();
+    pill(ctx, count === 1 ? "The reason to see it" : `${count} reasons to see it`, pad.x, pad.top, tu * 3.4, SUN, NAVY);
+    words(env, ad.text.hook, local, { cx: W / 2, y: captionBottom(env), anchor: "bottom", maxW, maxLines: HOOK.lines, size: u * HOOK.size, min: u * HOOK.min, key: SUN, start: -1 });
     return;
   }
-  wash(env, 0.34, 1, NAVY, 0.8);
-  wash(env, 0.24, 0, NAVY, 0.45);
-  progress(env, scene, local);
   pill(ctx, shortPrice(ad.listing), pad.x, pad.top, tu * 3.7, "#ffffff", NAVY);
   // The number slams in, then the reason reads out beside it (wide) or under it.
   const text = scene.line ?? ad.listing.name;
   const beside = ad.shape === "wide";
-  const numSize = u * (beside ? 26 : 30);
+  const numSize = u * (beside ? 15 : 14);
   font(ctx, 800, numSize);
   const digit = String(scene.index + 1);
   const numW = ctx.measureText(digit).width;
   const bottom = captionBottom(env);
   const reasonW = beside ? maxW - numW - u * 5 : maxW;
-  const probe = fit(ctx, text, reasonW, 3, u * 8.6, u * 5, 800);
+  const probe = fit(ctx, text, reasonW, CAPTION.lines, u * CAPTION.size, u * CAPTION.min, 800);
   const textH = probe.lines.length * probe.size * 1.16;
   const a = clamp01((local - 0.06) / 0.2);
   const s = 1.6 - 0.6 * easeOut(a);
   const nx = beside ? pad.x : W / 2 - numW / 2;
-  const ny = beside ? bottom : bottom - textH - u * 2;
+  const ny = beside ? bottom : bottom - textH - u * 1;
   ctx.save();
   ctx.globalAlpha *= Math.min(1, a * 2);
   ctx.translate(nx + numW / 2, ny - numSize * 0.36);
@@ -933,8 +911,8 @@ function reasons(env: Env, scene: Scene, local: number) {
   ctx.fillStyle = SUN;
   ctx.fillText(digit, 0, numSize * 0.36);
   ctx.restore();
-  if (beside) words(env, text, local, { cx: pad.x + numW + u * 5, y: bottom, anchor: "bottom", maxW: reasonW, maxLines: 3, size: u * 8.6, min: u * 5, align: "left", start: 0.24 });
-  else words(env, text, local, { cx: W / 2, y: bottom, anchor: "bottom", maxW: reasonW, maxLines: 3, size: u * 8.6, min: u * 5, start: 0.24 });
+  if (beside) words(env, text, local, { cx: pad.x + numW + u * 5, y: bottom, anchor: "bottom", maxW: reasonW, maxLines: CAPTION.lines, size: u * CAPTION.size, min: u * CAPTION.min, align: "left", start: 0.24 });
+  else words(env, text, local, { cx: W / 2, y: bottom, anchor: "bottom", maxW: reasonW, maxLines: CAPTION.lines, size: u * CAPTION.size, min: u * CAPTION.min, start: 0.24 });
 }
 
 const DRAW: Record<TemplateId, (env: Env, scene: Scene, local: number) => void> = { showcase, bold, elegant, facts, reveal, reasons };
