@@ -25,7 +25,7 @@ export default async function NewProspectPage() {
       <Link href="/app/pipeline" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
         <ArrowLeft className="size-4" aria-hidden /> Leads
       </Link>
-      <PageHeader title="Add a lead" description={say("For people who reach you outside MyHomeSeller: walk-ins, calls, referrals and past clients.", "Para sa mga taong kumontak sa'yo sa labas ng MyHomeSeller: walk-ins, calls, referrals at past clients.")} />
+      <PageHeader icon3d="wave" tone="peach" title="Add a lead" description={say("For people who reach you outside MyHomeSeller: walk-ins, calls, referrals and past clients.", "Para sa mga taong kumontak sa'yo sa labas ng MyHomeSeller: walk-ins, calls, referrals at past clients.")} />
       <Card>
         <NewProspectForm listings={listings ?? []} />
       </Card>

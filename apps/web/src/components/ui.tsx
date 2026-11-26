@@ -1,6 +1,53 @@
 import type { ComponentProps, ReactNode } from "react";
+import { Icon3d, type Icon3dName } from "./icon-3d";
 
 /** Small, dependency-free UI kit. Server-safe (no hooks). */
+
+/** The dashboard's pastel tile colours. Every screen draws from the same six, so the app reads as one. */
+export const TILES = {
+  sky: "bg-tile-sky",
+  mint: "bg-tile-mint",
+  peach: "bg-tile-peach",
+  lavender: "bg-tile-lavender",
+  pink: "bg-tile-pink",
+  lemon: "bg-tile-lemon",
+  /** The panel bar's navy, for the pale icons (chat bubble, envelope) that fade on a pastel. */
+  navy: "bg-frame-1",
+} as const;
+export type Tone = keyof typeof TILES;
+/** The six pastels only: for tiles that carry dark text. */
+export type Pastel = Exclude<Tone, "navy">;
+
+/** A 3D icon on a pastel tile: the mark of a page, a section or an empty screen. It bounces a little when hovered. */
+export function IconTile({ name, tone = "sky", size = 52, className }: { name: Icon3dName; tone?: Tone; size?: number; className?: string }) {
+  return (
+    <span className={cx("pp-bounce grid shrink-0 place-items-center rounded-[var(--radius-tile)]", TILES[tone], className)} style={{ width: size, height: size }}>
+      <Icon3d name={name} size={Math.round(size * 0.62)} />
+    </span>
+  );
+}
+
+/** A heading with a small 3D icon, for sections and plain cards that have no Panel bar. */
+export function IconTitle({
+  icon,
+  id,
+  size = 22,
+  className,
+  children,
+}: {
+  icon: Icon3dName;
+  id?: string;
+  size?: number;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <h2 id={id} className={cx("flex items-center gap-2", className)}>
+      <Icon3d name={icon} size={size} />
+      <span className="min-w-0">{children}</span>
+    </h2>
+  );
+}
 
 export function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -27,6 +74,7 @@ export function titleCase(text: string): string {
 export function Panel({
   title,
   icon,
+  icon3d,
   action,
   flush = false,
   className,
@@ -34,6 +82,8 @@ export function Panel({
 }: {
   title: ReactNode;
   icon?: ReactNode;
+  /** A 3D icon beside the title, as on the dashboard. */
+  icon3d?: Icon3dName;
   action?: ReactNode;
   flush?: boolean;
   className?: string;
@@ -43,7 +93,7 @@ export function Panel({
     <section className={cx("flex flex-col overflow-hidden rounded-[1.5rem] border border-line bg-white shadow-[var(--shadow-card)]", className)}>
       <div className="flex items-center justify-between gap-3 bg-frame-1 px-5 py-3 text-white">
         <h2 className="flex min-w-0 items-center gap-2.5 text-base font-extrabold tracking-tight">
-          {icon}
+          {icon3d ? <Icon3d name={icon3d} size={26} /> : icon}
           <span className="truncate">{typeof title === "string" ? titleCase(title) : title}</span>
         </h2>
         {action}
@@ -151,22 +201,55 @@ export function PageHeader({
   description,
   action,
   icon,
+  icon3d,
+  tone,
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
   icon?: ReactNode;
+  /** The page's own 3D icon, on a pastel tile. */
+  icon3d?: Icon3dName;
+  tone?: Tone;
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div className="flex items-center gap-4">
-        {icon}
-        <div>
+      <div className="flex min-w-0 items-center gap-3.5 sm:gap-4">
+        {icon3d ? <IconTile name={icon3d} tone={tone} /> : icon}
+        <div className="min-w-0">
           <h1 className="text-[1.6rem] leading-tight font-extrabold tracking-tight text-ink sm:text-[1.9rem]">{title}</h1>
           {description ? <p className="mt-1.5 max-w-xl text-sm text-muted">{description}</p> : null}
         </div>
       </div>
       {action}
+    </div>
+  );
+}
+
+/** A key number on a pastel tile with its 3D icon, as on the dashboard. */
+export function StatTile({ icon, tone = "sky", label, value, note }: { icon: Icon3dName; tone?: Pastel; label: string; value: ReactNode; note?: ReactNode }) {
+  return (
+    <div className={cx("pp-bounce flex flex-col items-start gap-2 rounded-[var(--radius-tile)] p-4 sm:flex-row sm:gap-3 sm:p-5", TILES[tone])}>
+      <Icon3d name={icon} size={36} />
+      <div className="min-w-0">
+        <p className="text-[13px] font-semibold text-ink/80">{label}</p>
+        <p className="mt-1.5 text-[1.75rem] leading-none font-extrabold tracking-tight text-ink tabular-nums">{value}</p>
+        {note ? <p className="mt-2 text-xs leading-snug text-ink/70">{note}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+/** What a screen shows when there is nothing on it yet: its icon, what goes here, and the next step. */
+export function EmptyState({ icon, tone = "sky", title, children, action, className }: { icon: Icon3dName; tone?: Tone; title: string; children?: ReactNode; action?: ReactNode; className?: string }) {
+  return (
+    <div className={cx("grid place-items-center rounded-[1.5rem] border-2 border-dashed border-grape-100 bg-white/60 px-6 py-10 text-center", className)}>
+      <div>
+        <IconTile name={icon} tone={tone} size={64} className="mx-auto" />
+        <p className="mt-3 text-lg font-bold text-ink">{title}</p>
+        {children ? <div className="mx-auto mt-1 max-w-md text-sm text-muted">{children}</div> : null}
+        {action ? <div className="mt-4">{action}</div> : null}
+      </div>
     </div>
   );
 }

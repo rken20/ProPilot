@@ -1,8 +1,8 @@
 import { appSay } from "@/lib/lang-server";
 import { redirect } from "next/navigation";
-import { CircleCheck, CircleDashed, CircleX, Sparkles } from "lucide-react";
+import { CircleDashed, CircleX, Sparkles } from "lucide-react";
 import { can } from "@propilot/shared";
-import { Card, PageHeader, cx } from "@/components/ui";
+import { Card, IconTile, IconTitle, PageHeader, cx } from "@/components/ui";
 import { AGENT_INFO, agentName, DEFAULT_AGENT_SETTINGS } from "@/lib/agent-info";
 import { requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -64,7 +64,7 @@ export default async function AgentsPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader icon3d="robot" tone="lavender"
         title="AI agents"
         description={say("Your AI sales team goes through your leads every morning and suggests what to do next. Nothing goes to a buyer until someone on your team approves it.", "Tuwing umaga, dinadaanan ng AI sales team mo ang leads mo at nagsa-suggest ng susunod na gagawin. Walang mapupunta sa buyer hangga't walang nag-a-approve sa team mo.")}
       />
@@ -73,9 +73,9 @@ export default async function AgentsPage() {
         <div className="space-y-8">
           <section aria-labelledby="waiting">
             <div className="mb-3 flex items-baseline justify-between gap-3">
-              <h2 id="waiting" className="text-xl font-bold tracking-tight">
+              <IconTitle id="waiting" icon="bell" size={26} className="text-xl font-bold tracking-tight">
                 Waiting for you
-              </h2>
+              </IconTitle>
               <span className="text-sm text-muted">{tasks.length ? `${tasks.length} suggestion${tasks.length === 1 ? "" : "s"}` : ""}</span>
             </div>
             {tasks.length ? (
@@ -85,8 +85,8 @@ export default async function AgentsPage() {
                 ))}
               </ul>
             ) : (
-              <div className="rounded-2xl border border-dashed border-line bg-white px-6 py-12 text-center">
-                <CircleCheck className="mx-auto size-8 text-good" aria-hidden />
+              <div className="rounded-[1.5rem] border-2 border-dashed border-grape-100 bg-white/60 px-6 py-12 text-center">
+                <IconTile name="party" tone="mint" size={64} className="mx-auto" />
                 <p className="mt-3 font-semibold">{say("You're all caught up", "Wala ka nang naiwan")}</p>
                 <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
                   {lastRun
@@ -98,9 +98,9 @@ export default async function AgentsPage() {
           </section>
 
           <section aria-labelledby="activity">
-            <h2 id="activity" className="mb-3 text-xl font-bold tracking-tight">
+            <IconTitle id="activity" icon="clipboard" size={26} className="mb-3 text-xl font-bold tracking-tight">
               Recent activity
-            </h2>
+            </IconTitle>
             {(runs ?? []).length || (decided ?? []).length ? (
               <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white text-sm">
                 {(decided ?? []).map((d) => {
@@ -136,7 +136,7 @@ export default async function AgentsPage() {
 
         <aside className="space-y-4">
           <Card className="p-5">
-            <h2 className="text-sm font-semibold">Your AI team</h2>
+            <IconTitle icon="robot" className="text-sm font-semibold">Your AI team</IconTitle>
             <ul className="mt-3 space-y-3.5">
               {AGENT_INFO.map((a) => (
                 <li key={a.key} className="flex gap-3">
@@ -164,7 +164,7 @@ export default async function AgentsPage() {
           {canManage ? (
             <Card className="space-y-5 p-5">
               <div>
-                <h2 className="text-sm font-semibold">Settings</h2>
+                <IconTitle icon="gear" className="text-sm font-semibold">Settings</IconTitle>
                 <p className="mt-1 text-xs text-muted">
                   {lastRun ? `Last run ${timeAgo(lastRun.started_at)}.` : "Not run yet."} Agents only suggest; they never message anyone on their own.
                 </p>

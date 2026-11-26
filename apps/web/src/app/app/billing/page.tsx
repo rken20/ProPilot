@@ -3,7 +3,7 @@ import { appLang } from "@/lib/lang-server";
 import { redirect } from "next/navigation";
 import { Check, Clock, X } from "lucide-react";
 import { can } from "@propilot/shared";
-import { Alert, Card, cx, PageHeader, Panel } from "@/components/ui";
+import { Alert, Card, cx, IconTitle, PageHeader, Panel } from "@/components/ui";
 import { getUser, requireBusiness } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
 import { businessPlan } from "@/lib/plan";
@@ -66,7 +66,7 @@ export default async function BillingPage() {
 
   return (
     <>
-      <PageHeader title="Billing" description={say("Your plan, and paying by GCash.", "Ang plan mo, at pagbayad via GCash.")} />
+      <PageHeader icon3d="card" tone="lemon" title="Billing" description={say("Your plan, and paying by GCash.", "Ang plan mo, at pagbayad via GCash.")} />
 
       <Card className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -87,7 +87,7 @@ export default async function BillingPage() {
       </Card>
 
       {superAdmin ? (
-        <Panel title="Test a plan" className="mb-6 border-dashed border-grape-300">
+        <Panel icon3d="key" title="Test a plan" className="mb-6 border-dashed border-grape-300">
           <p className="mt-0.5 text-sm text-muted">
             {say(
               `Only super admins see this. It puts ${biz.businessName} on any plan straight away, with no payment, so you can try each plan's features. A paid plan is set for one year from today.`,
@@ -107,7 +107,7 @@ export default async function BillingPage() {
 
       <UsageNotice items={usage} planCode={plan.code} canSeeBilling onBilling className="mb-6" say={say} />
       {usage.length ? (
-        <Panel title="AI allowances this month" className="mb-6">
+        <Panel icon3d="chart" title="AI allowances this month" className="mb-6">
           <p className="mt-0.5 mb-4 text-sm text-muted">{say("They renew on the 1st of each month.", "Nagre-renew ang mga ito tuwing a-uno ng buwan.")}</p>
           <UsageMeters items={usage} />
         </Panel>
@@ -172,7 +172,7 @@ export default async function BillingPage() {
       </div>
 
       {paid.length ? (
-        <Panel title={plan.code === FREE_PLAN ? "Upgrade" : "Renew or change your plan"} className="mt-6">
+        <Panel icon3d="rocket" title={plan.code === FREE_PLAN ? "Upgrade" : "Renew or change your plan"} className="mt-6">
           <p className="mt-1 mb-5 text-sm text-muted">
             {plan.code === FREE_PLAN
               ? say("Pay by GCash. Your plan starts when we confirm the payment.", "Magbayad via GCash. Magsisimula ang plan mo kapag na-confirm na namin ang bayad.")
@@ -197,9 +197,9 @@ export default async function BillingPage() {
 
       {payments?.length ? (
         <section className="mt-8" aria-labelledby="history">
-          <h2 id="history" className="mb-3 text-lg font-bold tracking-tight">
+          <IconTitle id="history" icon="money" size={24} className="mb-3 text-lg font-bold tracking-tight">
             Payment history
-          </h2>
+          </IconTitle>
           <div className="overflow-x-auto rounded-2xl border border-line bg-white">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead className="text-xs text-muted">

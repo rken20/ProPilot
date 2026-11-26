@@ -2,9 +2,10 @@ import { sayIn } from "@/lib/lang";
 import { businessLang } from "@/lib/lang-server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Clock, MessageCircle, Plus, Smartphone, UserRound, CalendarDays, Hand } from "lucide-react";
+import { Clock, MessageCircle, Plus, Smartphone, CalendarDays, Hand } from "lucide-react";
 import { can } from "@propilot/shared";
-import { PageHeader, buttonClass, cx } from "@/components/ui";
+import { IconTile, PageHeader, TILES, buttonClass, cx, type Pastel } from "@/components/ui";
+import { Icon3d, type Icon3dName } from "@/components/icon-3d";
 import { DEFAULT_AGENT_SETTINGS } from "@/lib/agent-info";
 import { getUser, requireBusiness } from "@/lib/auth";
 import { formatPeso } from "@/lib/money";
@@ -28,6 +29,17 @@ type Row = {
   lost_reason: string | null;
   temperature: "hot" | "warm" | "cold" | null;
   score: number | null;
+};
+
+// Each stage has its own color and icon, so the board reads at a glance.
+const STAGE_LOOK: Record<Stage, { icon: Icon3dName | null; tone: Pastel | null }> = {
+  inquiry: { icon: "wave", tone: "sky" },
+  qualified: { icon: "target", tone: "lavender" },
+  viewing: { icon: "calendar", tone: "peach" },
+  offer: { icon: "money", tone: "lemon" },
+  reservation: { icon: "key", tone: "pink" },
+  won: { icon: "trophy", tone: "mint" },
+  lost: { icon: null, tone: null },
 };
 
 const TEMP = {
@@ -112,7 +124,7 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
 
   return (
     <>
-      <PageHeader
+      <PageHeader icon3d="handshake" tone="peach"
         title="Leads"
         description={say("Everyone you're selling to, from first inquiry to closing. New leads from viewing requests and chats appear here on their own.", "Lahat ng binebentahan mo, mula first inquiry hanggang closing. Kusang lumalabas dito ang bagong leads mula sa viewing requests at chats.")}
         action={
@@ -185,10 +197,15 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
               const col = rows.filter((r) => r.stage === stage).sort((a, b) => tempRank(a.temperature) - tempRank(b.temperature));
               const value = col.reduce((s, r) => s + (r.deal_value_minor ?? 0), 0);
               return (
-                <section key={stage} aria-labelledby={`col-${stage}`} className="flex min-h-64 flex-col rounded-2xl bg-surface p-2">
+                <section
+                  key={stage}
+                  aria-labelledby={`col-${stage}`}
+                  className={cx("flex min-h-64 flex-col rounded-[var(--radius-tile)] p-2", STAGE_LOOK[stage].tone ? TILES[STAGE_LOOK[stage].tone] : "bg-surface")}
+                >
                   <header className="px-2 pt-1.5 pb-2.5">
                     <div className="flex items-baseline justify-between gap-2">
-                      <h2 id={`col-${stage}`} className="text-sm font-semibold">
+                      <h2 id={`col-${stage}`} className="flex items-center gap-1.5 text-sm font-semibold">
+                        {STAGE_LOOK[stage].icon ? <Icon3d name={STAGE_LOOK[stage].icon} size={20} /> : null}
                         {STAGE_INFO[stage].label}
                       </h2>
                       <span className="text-xs tabular-nums text-muted">{col.length}</span>
@@ -272,8 +289,8 @@ export default async function PipelinePage({ searchParams }: PageProps<"/app/pip
           ))}
         </ul>
       ) : (
-        <div className="rounded-2xl border border-dashed border-line bg-white px-6 py-14 text-center">
-          <UserRound className="mx-auto size-8 text-muted" aria-hidden />
+        <div className="rounded-[1.5rem] border-2 border-dashed border-grape-100 bg-white/60 px-6 py-14 text-center">
+          <IconTile name={view === "won" ? "trophy" : "wave"} tone={view === "won" ? "lemon" : "peach"} size={64} className="mx-auto" />
           <p className="mt-3 font-semibold">{view === "won" ? say("No closed deals yet", "Wala pang closed deal") : say("No lost leads", "Walang lost lead")}</p>
           <p className="mt-1 text-sm text-muted">
             {view === "won" ? say("Move a lead to Won when the sale or lease closes.", "Ilipat ang lead sa Won kapag na-close na ang sale o lease.") : say("Leads you mark as Lost show up here with the reason.", "Dito lalabas ang leads na minarkahan mong Lost, kasama ang dahilan.")}

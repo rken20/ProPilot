@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarCheck, CalendarDays, CalendarPlus, Download, Phone } from "lucide-react";
 import { can } from "@propilot/shared";
-import { PageHeader, buttonClass, cx } from "@/components/ui";
+import { IconTile, PageHeader, buttonClass, cx } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -61,7 +61,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
 
   return (
     <>
-      <PageHeader
+      <PageHeader icon3d="envelope" tone="navy"
         title="Inquiries"
         description={say("People who asked about a listing from its public page. Call or text them to confirm a viewing. Each one is also on your Leads page.", "Mga taong nagtanong tungkol sa listing mula sa public page nito. Tawagan o i-text sila para i-confirm ang viewing. Nasa Leads page mo rin ang bawat isa.")}
         action={
@@ -95,8 +95,8 @@ export default async function LeadsPage({ searchParams }: PageProps<"/app/leads"
       </nav>
 
       {!leads?.length ? (
-        <div className="rounded-2xl border border-dashed border-line bg-white px-6 py-14 text-center">
-          <CalendarDays className="mx-auto size-8 text-muted" aria-hidden />
+        <div className="rounded-[1.5rem] border-2 border-dashed border-grape-100 bg-white/60 px-6 py-14 text-center">
+          <IconTile name="envelope" tone="navy" size={64} className="mx-auto" />
           <p className="mt-3 font-semibold">{filter === "open" ? say("No open leads", "Walang open lead") : say("Nothing here", "Wala rito")}</p>
           <p className="mt-1 text-sm text-muted">
             {say("Turn on", "I-on ang")} <span className="font-medium text-ink">Give it a public page</span>{" "}

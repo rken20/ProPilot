@@ -16,7 +16,7 @@ export function BusinessLanguage() {
     {},
   );
   return (
-    <Panel title="Language" className="mb-6">
+    <Panel icon3d="chat" title="Language" className="mb-6">
       <form action={action} className="mt-1 flex flex-wrap items-end gap-3">
         <div className="w-full max-w-sm">
           <Field

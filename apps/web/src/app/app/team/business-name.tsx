@@ -12,7 +12,7 @@ export function BusinessName({ name }: { name: string }) {
   const [state, action] = useActionState<FormState, FormData>(renameBusiness, { data: { businessName: name } });
   const say = useSay();
   return (
-    <Panel title="Business name" className="mb-6">
+    <Panel icon3d="memo" title="Business name" className="mb-6">
       <form action={action} className="mt-1 flex flex-wrap items-end gap-3">
         <div className="w-full max-w-sm">
           <Field

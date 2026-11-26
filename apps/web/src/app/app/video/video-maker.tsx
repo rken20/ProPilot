@@ -409,7 +409,7 @@ export function VideoMaker({
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
       <div className="min-w-0 space-y-6 lg:col-start-1">
-        <Panel title="Listing">
+        <Panel icon3d="houses" title="Listing">
           <Field label="Which listing is the ad for?" htmlFor="video-listing" hint={say("Only listings that are available or reserved are shown.", "Available o reserved na listings lang ang ipinapakita.")}>
             <Select id="video-listing" value={id} onChange={(e) => choose(e.target.value)} disabled={busy}>
               {items.map((i) => (
@@ -439,7 +439,7 @@ export function VideoMaker({
         </Panel>
 
         {item.photos.length ? (
-          <Panel title="Template">
+          <Panel icon3d="sparkles" title="Template">
             <p className="mt-1 text-sm text-muted" role="status">
               {planning === "first"
                 ? say("The AI is looking at the photos and making your ad…", "Tinitingnan ng AI ang photos at ginagawa ang ad mo…")
@@ -480,7 +480,7 @@ export function VideoMaker({
         ) : null}
       </div>
 
-      <Panel title="Your Ad" className="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1">
+      <Panel icon3d="camera" title="Your Ad" className="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1">
         <div className="relative mx-auto grid place-items-center overflow-hidden rounded-2xl bg-[#0b1020]" style={{ aspectRatio: `${size.width} / ${size.height}`, maxHeight: "30rem", maxWidth: "100%" }}>
           {ad ? (
             <canvas ref={canvas} width={size.width} height={size.height} className="size-full" aria-label={`Preview of the video ad for ${item.listing.name}`} />

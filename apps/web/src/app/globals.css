@@ -266,12 +266,13 @@ body::before {
   font-weight: 800;
 }
 
-/* 3D icons get a soft drop shadow so they sit on the page like stickers. */
+/* 3D icons get a soft drop shadow so they sit on the page like stickers. The thin first shadow
+   outlines the pale ones (chat bubble, envelope) so they don't fade into a pastel tile. */
 .pp-icon3d {
-  filter: drop-shadow(0 4px 6px rgb(12 36 97 / 0.18));
+  filter: drop-shadow(0 0 0.75px rgb(12 36 97 / 0.55)) drop-shadow(0 4px 6px rgb(12 36 97 / 0.18));
 }
 :root[data-theme="dark"] .pp-icon3d {
-  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.45));
+  filter: drop-shadow(0 0 0.75px rgb(255 255 255 / 0.45)) drop-shadow(0 4px 8px rgb(0 0 0 / 0.45));
 }
 /* A little bounce when a tile with a 3D icon is hovered. */
 .pp-bounce .pp-icon3d {

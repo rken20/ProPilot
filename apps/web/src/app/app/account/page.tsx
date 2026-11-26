@@ -1,6 +1,6 @@
 import { appSay } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
-import { Card, Field, Input, PageHeader } from "@/components/ui";
+import { Card, Field, IconTitle, Input, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { requireUser } from "@/lib/auth";
 import { str } from "@/lib/form";
@@ -30,7 +30,7 @@ export default async function AccountPage() {
 
   return (
     <>
-      <PageHeader title="Account" description={say("Your personal details. Business settings are separate.", "Personal details mo ito. Hiwalay ang business settings.")} />
+      <PageHeader icon3d="gear" tone="sky" title="Account" description={say("Your personal details. Business settings are separate.", "Personal details mo ito. Hiwalay ang business settings.")} />
       <Card className="mb-6 max-w-xl">
         <AvatarEditor userId={user.id} name={profile?.full_name || user.email || ""} url={avatarUrl(profile?.avatar_path)} />
       </Card>
@@ -49,7 +49,7 @@ export default async function AccountPage() {
         </form>
       </Card>
       <Card className="mt-6 max-w-xl">
-        <p className="font-medium">Password</p>
+        <IconTitle icon="key" size={24} className="font-medium">Password</IconTitle>
         <p className="mt-1 text-sm text-zinc-600">
           We&apos;ll email you a secure link to set a new one.{" "}
           <Link href="/forgot-password" className="text-brand-700">

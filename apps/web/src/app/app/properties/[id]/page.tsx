@@ -139,7 +139,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       <Link href="/app/properties" className="text-sm text-zinc-500 hover:text-zinc-800">
         ← Properties
       </Link>
-      <PageHeader
+      <PageHeader icon3d="house" tone="sky"
         title={p.name}
         description={p.location}
         action={
@@ -207,7 +207,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       {manager && plan.negotiation && p.status === "available" ? (
         <LowestPrice propertyId={p.id} askingMinor={Number(p.price_minor)} currentPesos={centavosToPesosInput(lowestMinor)} acceptPesos={centavosToPesosInput(acceptMinor)} />
       ) : manager && aiOn && !plan.negotiation && p.status === "available" ? (
-        <Panel title="AI negotiation" className="mt-6">
+        <Panel icon3d="robot" title="AI negotiation" className="mt-6">
           <p className="mt-1 max-w-2xl text-sm text-muted">
             {say(
               "On Pro and Agency, the AI negotiates price offers in the chat down to a lowest price you set privately, and closes deals at a price you pre-approve.",
@@ -233,7 +233,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       ) : null}
 
       {canEdit ? (
-        <Panel title="Listing status" className="mt-6">
+        <Panel icon3d="clipboard" title="Listing status" className="mt-6">
           <p className="mt-1 max-w-2xl text-sm text-muted">
             {say("Now", "Ngayon:")} <span className="font-semibold text-ink">{STATUS_LABEL[p.status as keyof typeof STATUS_LABEL] ?? p.status}</span>.{" "}
             {say(

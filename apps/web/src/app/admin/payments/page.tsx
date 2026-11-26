@@ -1,7 +1,7 @@
 import { LangProvider } from "@/components/lang";
 import { sayIn } from "@/lib/lang";
 import { userLang } from "@/lib/lang-server";
-import { Card, PageHeader, Panel } from "@/components/ui";
+import { Card, IconTitle, PageHeader, Panel } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPeso } from "@/lib/money";
 import { requireSuperAdmin } from "@/lib/superadmin";
@@ -59,7 +59,7 @@ export default async function AdminPaymentsPage() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
       <AdminTabs current="/admin/payments" />
-      <PageHeader
+      <PageHeader icon3d="money" tone="lemon"
         title="Payments to check"
         description={say("Find each payment in your GCash transaction history by its reference number and amount, then confirm it. Confirming turns the plan on right away.", "Hanapin ang bawat payment sa GCash transaction history mo gamit ang reference number at amount nito, tapos i-confirm. Kapag kinonfirm, agad na mao-on ang plan.")}
       />
@@ -115,7 +115,7 @@ export default async function AdminPaymentsPage() {
         </Card>
       )}
 
-      <Panel title="Give a plan to beta testers" className="mt-8">
+      <Panel icon3d="party" title="Give a plan to beta testers" className="mt-8">
         <p className="mt-1 mb-4 text-sm text-muted">
           {say("Type the email each tester signs in with. If they already have a business here, the plan is on at once. If they haven't signed up yet, it turns on by itself when they sign up with that email and set up their business. The months start counting when the plan turns on.", "I-type ang email na gamit ng bawat tester sa pag-sign in. Kung may business na sila rito, agad na mao-on ang plan. Kung hindi pa sila nag-sign up, kusa itong mao-on kapag nag-sign up sila gamit ang email na iyon at nag-set up ng business. Magsisimula ang bilang ng months kapag na-on na ang plan.")}
         </p>
@@ -126,7 +126,7 @@ export default async function AdminPaymentsPage() {
         <GrantsTable grants={grants} cancel={cancelGrant} say={say} />
       </Panel>
 
-      <Panel title="Give a plan to a business" className="mt-8">
+      <Panel icon3d="handshake" title="Give a plan to a business" className="mt-8">
         <p className="mt-1 mb-4 text-sm text-muted">
           {say("Pick a business that is already here. It works like a confirmed payment of ₱0 and shows in their payment history.", "Pumili ng business na nandito na. Para itong confirmed payment na ₱0 at lalabas ito sa payment history nila.")}
         </p>
@@ -176,7 +176,7 @@ export default async function AdminPaymentsPage() {
 
       {recent?.length ? (
         <section className="mt-8">
-          <h2 className="mb-3 text-lg font-bold tracking-tight">Recently checked</h2>
+          <IconTitle icon="clipboard" size={24} className="mb-3 text-lg font-bold tracking-tight">Recently checked</IconTitle>
           <div className="overflow-x-auto rounded-2xl border border-line bg-white">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="text-xs text-muted">

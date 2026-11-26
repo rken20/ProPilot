@@ -4,7 +4,7 @@ import { useSay } from "@/components/lang";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Star, Trash2 } from "lucide-react";
-import { cx } from "@/components/ui";
+import { IconTitle, cx } from "@/components/ui";
 import { FULL_EDGE, MAX_INPUT_BYTES, MAX_PHOTOS, MEDIA_BUCKET, THUMB_EDGE, fitWithin, mediaUrl, photoPaths } from "@/lib/media";
 import { createClient } from "@/lib/supabase/client";
 import { addPhoto, deletePhoto, makeCover } from "./photo-actions";
@@ -95,7 +95,7 @@ export function PhotoManager({
     <section className="rounded-2xl border border-line bg-white p-6 shadow-[var(--shadow-card)]" aria-label="Photos">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Photos</h2>
+          <IconTitle icon="camera" size={24} className="text-lg font-semibold">Photos</IconTitle>
           <p className="text-sm text-muted">
             {photos.length} / {MAX_PHOTOS}. {say("The first photo is the cover buyers see in search.", "Ang unang photo ang cover na makikita ng buyers.")}
           </p>

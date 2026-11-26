@@ -37,7 +37,7 @@ const OUTCOME: Record<Offer["outcome"], { label: string; tone: "neutral" | "bran
 export function Offers({ offers, canDecide, showListing = false, linkToChat = false, title = "Offers" }: { offers: Offer[]; canDecide: boolean; showListing?: boolean; linkToChat?: boolean; title?: string }) {
   if (!offers.length) return null;
   return (
-    <Panel title={title} className="mt-5">
+    <Panel icon3d="money" title={title} className="mt-5">
       <ul className="mt-2 divide-y divide-line">
         {offers.map((o) => (
           <OfferRow key={o.id} offer={o} canDecide={canDecide} showListing={showListing} linkToChat={linkToChat} />
@@ -129,7 +129,7 @@ export function LowestPrice({ propertyId, askingMinor, currentPesos, acceptPesos
   const say = useSay();
   const [state, action] = useActionState<FloorState, FormData>(saveLowestPrice.bind(null, propertyId), {});
   return (
-    <Panel title="AI negotiation" className="mt-6">
+    <Panel icon3d="robot" title="AI negotiation" className="mt-6">
       <p className="mt-1 max-w-2xl text-sm text-muted">
         {say(
           "When a buyer names a price in the chat, the AI negotiates like an agent: it offers counteroffers that come down in smaller and smaller steps, never under your lowest price. Only you and your admins can see these numbers, and the AI is never told them.",

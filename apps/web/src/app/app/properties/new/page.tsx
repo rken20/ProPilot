@@ -30,7 +30,7 @@ export default async function NewPropertyPage() {
       <Link href="/app/properties" className="text-sm text-zinc-500 hover:text-zinc-800">
         ← Properties
       </Link>
-      <PageHeader title="Add property" />
+      <PageHeader icon3d="house" tone="mint" title="Add property" />
       <NewProperty
         canPaste={await aiEnabled(biz.businessId)}
         pages={metaConfig() ? (await businessPages(biz.businessId)).map((p) => ({ id: p.id, name: p.name })) : []}

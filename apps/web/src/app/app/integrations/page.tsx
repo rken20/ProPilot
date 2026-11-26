@@ -1,10 +1,10 @@
 import { appSay } from "@/lib/lang-server";
-import { CalendarDays, FileSpreadsheet, Mail, type LucideIcon } from "lucide-react";
 import { businessPages } from "@/lib/facebook-pages";
 import { canPublish } from "@/lib/meta";
 import { missingMetaSettings } from "@/lib/meta-oauth";
 import { can } from "@propilot/shared";
-import { Alert, Badge, PageHeader, buttonClass, cx } from "@/components/ui";
+import { Alert, Badge, PageHeader, TILES, buttonClass, cx, type Tone } from "@/components/ui";
+import { Icon3d, type Icon3dName } from "@/components/icon-3d";
 import { SubmitButton } from "@/components/submit-button";
 import { requireBusiness } from "@/lib/auth";
 import { emailProvider } from "@/lib/email";
@@ -70,7 +70,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
 
   return (
     <>
-      <PageHeader title="Integrations" description={say("Connect the tools your team already uses.", "I-connect ang tools na gamit na ng team mo.")} />
+      <PageHeader icon3d="plug" tone="sky" title="Integrations" description={say("Connect the tools your team already uses.", "I-connect ang tools na gamit na ng team mo.")} />
       {notice ? (
         <div className="mb-6">
           <Alert tone={notice[0]}>{say(notice[1], notice[2])}</Alert>
@@ -80,6 +80,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
       <div className="space-y-4">
         <Panel
           icon={FacebookIcon}
+          tone="sky"
           title="Facebook Pages"
           status={pages.length ? <Badge tone="brand">{pages.length === 1 ? "1 Page" : `${pages.length} Pages`}</Badge> : <Badge>Not connected</Badge>}
         >
@@ -140,7 +141,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
           )}
         </Panel>
 
-        <Panel icon={Mail} title="Email alerts" status={email ? <Badge tone="brand">On</Badge> : <Badge>Not set up</Badge>}>
+        <Panel icon="envelope" tone="navy" title="Email alerts" status={email ? <Badge tone="brand">On</Badge> : <Badge>Not set up</Badge>}>
           <p>
             {email
               ? say("The owner, admins and agents get an email the moment a buyer requests a viewing, with the buyer's mobile number and a link to the lead.", "Makakatanggap ng email ang owner, admins at agents sa oras na mag-request ng viewing ang buyer, kasama ang mobile number ng buyer at link sa lead.")
@@ -150,6 +151,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
 
         <Panel
           icon={GoogleIcon}
+          tone="lemon"
           title="Google account"
           status={conn ? <Badge tone="brand">Connected</Badge> : <Badge>Not connected</Badge>}
         >
@@ -181,7 +183,8 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
         </Panel>
 
         <Panel
-          icon={FileSpreadsheet}
+          icon="chart"
+          tone="mint"
           title="Google Sheets: live leads sheet"
           status={syncing ? <Badge tone="brand">Syncing</Badge> : <Badge>Off</Badge>}
         >
@@ -228,7 +231,8 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
         </Panel>
 
         <Panel
-          icon={CalendarDays}
+          icon="calendar"
+          tone="peach"
           title="Google Calendar: viewings"
           status={conn?.scopes.includes(CALENDAR_SCOPE) ? <Badge tone="brand">On for you</Badge> : <Badge>Off</Badge>}
         >
@@ -243,12 +247,25 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/app
   );
 }
 
-function Panel({ icon: Icon, title, status, children }: { icon: LucideIcon | typeof GoogleIcon | typeof FacebookIcon; title: string; status: React.ReactNode; children: React.ReactNode }) {
+/** `icon` is a 3D icon name, or a company's own logo for Google and Facebook. */
+function Panel({
+  icon: Icon,
+  tone,
+  title,
+  status,
+  children,
+}: {
+  icon: Icon3dName | typeof GoogleIcon | typeof FacebookIcon;
+  tone: Tone;
+  title: string;
+  status: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <section className="rounded-2xl border border-line bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
+    <section className="rounded-[1.5rem] border border-line bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
       <div className="flex items-center gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600">
-          <Icon className="size-5" aria-hidden />
+        <span className={cx("pp-bounce grid size-10 shrink-0 place-items-center rounded-xl text-brand-600", TILES[tone])}>
+          {typeof Icon === "string" ? <Icon3d name={Icon} size={26} /> : <Icon className="size-5" aria-hidden />}
         </span>
         <h2 className="flex-1 font-semibold">{title}</h2>
         {status}

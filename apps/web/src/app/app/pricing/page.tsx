@@ -1,7 +1,7 @@
 import { appSay } from "@/lib/lang-server";
 import Link from "next/link";
 import { can } from "@propilot/shared";
-import { PageHeader, buttonClass } from "@/components/ui";
+import { IconTitle, PageHeader, buttonClass } from "@/components/ui";
 import { Icon3d } from "@/components/icon-3d";
 import { requireBusiness } from "@/lib/auth";
 import { manilaMonthStart } from "@/lib/matching";
@@ -24,7 +24,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/app/pric
   const propertyId = typeof sp.property === "string" && /^[0-9a-f-]{36}$/i.test(sp.property) ? sp.property : null;
 
   const header = (
-    <PageHeader
+    <PageHeader icon3d="money" tone="lemon"
       title="Pricing Advisor"
       description={say("Tell it about a property and the AI researches similar listings nearby, then suggests a price range and three asking prices. You decide the final price.", "Ikwento ang property at ire-research ng AI ang mga katulad na listing sa malapit, tapos magsa-suggest ng price range at tatlong asking price. Ikaw pa rin ang magde-decide ng final price.")}
     />
@@ -77,9 +77,9 @@ export default async function PricingPage({ searchParams }: PageProps<"/app/pric
 
       {recent?.length ? (
         <section className="mt-10" aria-labelledby="recent-title">
-          <h2 id="recent-title" className="text-lg font-extrabold tracking-tight">
+          <IconTitle id="recent-title" icon="chart" size={24} className="text-lg font-extrabold tracking-tight">
             Recent price checks
-          </h2>
+          </IconTitle>
           <ul className="mt-3 divide-y divide-line rounded-[1.5rem] border border-line bg-white px-5 shadow-[var(--shadow-card)]">
             {recent.map((c) => {
               const input = (c.input ?? {}) as { location?: string; type?: string };

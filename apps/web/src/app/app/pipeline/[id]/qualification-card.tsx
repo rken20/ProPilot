@@ -3,7 +3,7 @@
 import { useSay } from "@/components/lang";
 import { useActionState } from "react";
 import { RefreshCw } from "lucide-react";
-import { Alert, Card, cx } from "@/components/ui";
+import { Alert, Card, IconTitle, cx } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { centavosToPesosInput, formatPeso } from "@/lib/money";
 import { TYPE_LABEL } from "@/lib/property-labels";
@@ -86,7 +86,7 @@ export function QualificationCard({
     <Card className="space-y-4 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold">Qualification</h2>
+          <IconTitle icon="search" className="text-sm font-semibold">Qualification</IconTitle>
           <p className="mt-0.5 text-xs text-muted">
             {q.qualified_at ? say(`Checked by the lead qualifier ${timeAgo(q.qualified_at)}`, `Na-check ng lead qualifier ${timeAgo(q.qualified_at)}`) : say("Not checked yet", "Hindi pa na-check")}
           </p>

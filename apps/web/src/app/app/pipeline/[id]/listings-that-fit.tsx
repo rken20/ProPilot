@@ -1,6 +1,6 @@
 import type { Say } from "@/lib/lang";
 import Link from "next/link";
-import { Card } from "@/components/ui";
+import { Card, IconTitle } from "@/components/ui";
 import { formatPeso } from "@/lib/money";
 import type { Match } from "@/lib/matching";
 
@@ -10,7 +10,7 @@ export type FitRow = { id: string; name: string; location: string; price_minor: 
 export function ListingsThatFit({ rows, enough, say }: { rows: FitRow[]; enough: boolean; say: Say }) {
   return (
     <Card className="p-5">
-      <h2 className="text-sm font-semibold">Listings that fit</h2>
+      <IconTitle icon="houses" className="text-sm font-semibold">Listings that fit</IconTitle>
       {!enough ? (
         <p className="mt-1 text-sm text-muted">{say("Add at least two of budget, area and property type above to see matching listings.", "Mag-add ng kahit dalawa sa budget, area at property type sa taas para makita ang mga bagay na listing.")}</p>
       ) : rows.length === 0 ? (

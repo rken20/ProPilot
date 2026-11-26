@@ -323,7 +323,7 @@ export function AccountsView({
     .join(" · ");
   return (
     <>
-      <PageHeader
+      <PageHeader icon3d="team" tone="lavender"
         title="Accounts"
         description={say(
           "Everyone who has signed up, their businesses and plans. Change a plan, restrict an account or delete one.",

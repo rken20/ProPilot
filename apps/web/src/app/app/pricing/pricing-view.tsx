@@ -4,7 +4,7 @@ import { useSay } from "@/components/lang";
 import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
 import { ExternalLink } from "lucide-react";
-import { Alert, Field, Input, Select, buttonClass, cx } from "@/components/ui";
+import { Alert, Field, IconTile, IconTitle, Input, Select, buttonClass, cx } from "@/components/ui";
 import { Icon3d, type Icon3dName } from "@/components/icon-3d";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPeso } from "@/lib/money";
@@ -112,7 +112,7 @@ export function PricingAdvisor({
         ) : (
           <div className="grid h-full min-h-72 place-items-center rounded-[1.5rem] border-2 border-dashed border-grape-100 p-8 text-center">
             <div>
-              <Icon3d name="money" size={72} className="mx-auto" />
+              <IconTile name="money" tone="lemon" size={72} className="mx-auto" />
               <p className="mt-3 text-lg font-bold">{say("Your price report shows up here", "Dito lalabas ang price report mo")}</p>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted">
                 {say("A price range, the price per square meter, three asking prices to choose from, and a link to every comparable listing the AI used.", "Price range, presyo per square meter, tatlong asking price na mapagpipilian, at link sa bawat comparable listing na ginamit ng AI.")}
@@ -134,9 +134,9 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
     <div className="pp-enter space-y-5">
       <section aria-labelledby="options-title">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="options-title" className="text-xl font-extrabold tracking-tight">
+          <IconTitle id="options-title" icon="target" size={26} className="text-xl font-extrabold tracking-tight">
             Pick your asking price
-          </h2>
+          </IconTitle>
           <span className={cx("rounded-full px-2.5 py-1 text-xs font-bold", c.tone)}>{c.label}</span>
         </div>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -230,9 +230,9 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
       </section>
 
       <section className="rounded-[1.5rem] border border-line bg-white p-5 shadow-[var(--shadow-card)] sm:p-6" aria-labelledby="comps-title">
-        <h2 id="comps-title" className="text-lg font-extrabold tracking-tight">
+        <IconTitle id="comps-title" icon="houses" size={24} className="text-lg font-extrabold tracking-tight">
           Similar properties listed now
-        </h2>
+        </IconTitle>
         {report.comparedArea ? (
           <p className="mt-0.5 text-sm">
             {say("Compared with listings in", "Ikinumpara sa listings sa")} <span className="font-semibold">{report.comparedArea}</span>.

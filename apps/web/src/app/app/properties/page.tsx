@@ -1,7 +1,7 @@
 import { appSay } from "@/lib/lang-server";
 import Link from "next/link";
 import { can } from "@propilot/shared";
-import { Alert, Card, PageHeader, buttonClass } from "@/components/ui";
+import { Alert, EmptyState, PageHeader, buttonClass } from "@/components/ui";
 import { requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getCoverThumbs } from "@/lib/listings";
@@ -26,7 +26,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
 
   return (
     <>
-      <PageHeader
+      <PageHeader icon3d="houses" tone="sky"
         title="Properties"
         description={say("The assistant answers buyers only from what's listed here.", "Ang nakalista lang dito ang ginagamit ng assistant sa pagsagot sa mga buyer.")}
         action={
@@ -69,10 +69,9 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
       </div>
 
       {rows && rows.length === 0 ? (
-        <Card className="text-center">
-          <p className="font-medium">{showArchived ? "No archived properties" : "No properties yet"}</p>
-          {!showArchived ? <p className="mt-1 text-sm text-zinc-600">{say("Add a listing with its price, location and financing.", "Mag-add ng listing kasama ang presyo, location at financing nito.")}</p> : null}
-        </Card>
+        <EmptyState icon="houses" tone="sky" title={showArchived ? "No archived properties" : "No properties yet"}>
+          {!showArchived ? say("Add a listing with its price, location and financing.", "Mag-add ng listing kasama ang presyo, location at financing nito.") : null}
+        </EmptyState>
       ) : (
         <PropertiesList rows={(rows ?? []).map((r) => ({ ...r, coverUrl: mediaUrl(covers.get(r.id)) ?? null }))} />
       )}

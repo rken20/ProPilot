@@ -3,7 +3,7 @@
 import { useSay } from "@/components/lang";
 import { useActionState, useState, useTransition } from "react";
 import { ExternalLink, Sparkles } from "lucide-react";
-import { Alert, Badge, Card, Select, Textarea, buttonClass, cx } from "@/components/ui";
+import { Alert, Badge, Card, IconTitle, Select, Textarea, buttonClass, cx } from "@/components/ui";
 import { MAX_CAPTION } from "@/lib/listing-caption";
 import { draftCaption, publishToFacebook, type PublishState } from "./facebook-actions";
 
@@ -53,7 +53,7 @@ export function FacebookPost({
     <Card className="mt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Post to Facebook</h2>
+          <IconTitle icon="megaphone" size={30} className="text-2xl font-bold tracking-tight">Post to Facebook</IconTitle>
           <p className="mt-1 text-sm text-muted">{say("Share this listing on your Page. Edit the caption first; nothing is posted until you press Post.", "I-share ang listing na ito sa Page mo. I-edit muna ang caption; walang mapo-post hangga't hindi mo pinipindot ang Post.")}</p>
         </div>
       </div>

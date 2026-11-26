@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, CalendarDays, Mail, MessageCircle, MessageSquareText, Phone, Smartphone } from "lucide-react";
 import { can } from "@propilot/shared";
-import { Card, cx } from "@/components/ui";
+import { Card, IconTitle, cx } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { getUser, requireBusiness } from "@/lib/auth";
 import { isoToManilaInput, manilaDateTime, STATUS_LABEL } from "@/lib/leads";
@@ -160,9 +160,9 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
         <div className="space-y-6">
           {tasks?.length ? (
             <section aria-labelledby="ai-tasks">
-              <h2 id="ai-tasks" className="mb-3 text-sm font-semibold">
+              <IconTitle id="ai-tasks" icon="sparkles" className="mb-3 text-sm font-semibold">
                 AI suggestions
-              </h2>
+              </IconTitle>
               <ul className="space-y-3">
                 {(tasks as TaskRow[]).map((t) => (
                   <TaskCard key={t.id} t={t} canAct={canEdit} showLead={false} />
@@ -173,9 +173,9 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
 
           {requests?.length || chats?.length ? (
             <section aria-labelledby="linked">
-              <h2 id="linked" className="mb-3 text-sm font-semibold">
+              <IconTitle id="linked" icon="chat" className="mb-3 text-sm font-semibold">
                 Requests and chats
-              </h2>
+              </IconTitle>
               <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white">
                 {(requests ?? []).map((r) => (
                   <li key={r.id}>
@@ -207,9 +207,9 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
           ) : null}
 
           <section aria-labelledby="timeline">
-            <h2 id="timeline" className="mb-3 text-sm font-semibold">
+            <IconTitle id="timeline" icon="calendar" className="mb-3 text-sm font-semibold">
               Timeline
-            </h2>
+            </IconTitle>
             {canEdit ? (
               <form action={addProspectNote.bind(null, p.id)} className="mb-4 flex gap-2">
                 <label htmlFor="note" className="sr-only">
@@ -294,7 +294,7 @@ export default async function ProspectPage({ params }: PageProps<"/app/pipeline/
           ) : null}
 
           <Card className="p-5">
-            <h2 className="text-sm font-semibold">Handled by</h2>
+            <IconTitle icon="team" className="text-sm font-semibold">Handled by</IconTitle>
             <p className="mt-1 text-sm text-muted">{p.assigned_to ? (nameOf.get(p.assigned_to) ?? "A teammate") : say("No one yet", "Wala pa")}</p>
             {canAssign ? (
               <form action={assignProspect.bind(null, p.id)} className="mt-3 flex gap-2">

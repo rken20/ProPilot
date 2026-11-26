@@ -3,7 +3,7 @@ import { Avatar } from "@/components/avatar";
 import { avatarUrl } from "@/lib/media";
 import { redirect } from "next/navigation";
 import { BUSINESS_ROLES, can, canAssignRole, type BusinessRole } from "@propilot/shared";
-import { Badge, Card, PageHeader } from "@/components/ui";
+import { Badge, Card, IconTitle, PageHeader } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { getUser, requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -50,14 +50,14 @@ export default async function TeamPage() {
 
   return (
     <>
-      <PageHeader title="Team" description={say("Who can work in this business, and what they can do.", "Sino ang pwedeng magtrabaho sa business na ito, at ano ang pwede nilang gawin.")} />
+      <PageHeader icon3d="team" tone="mint" title="Team" description={say("Who can work in this business, and what they can do.", "Sino ang pwedeng magtrabaho sa business na ito, at ano ang pwede nilang gawin.")} />
 
       {can(biz.role, "business.update") ? <BusinessName name={biz.businessName} /> : null}
       {can(biz.role, "business.update") ? <BusinessLanguage /> : null}
 
       {can(biz.role, "team.invite") ? (
         <Card className="mb-6">
-          <p className="mb-4 font-medium">Invite someone</p>
+          <IconTitle icon="wave" size={24} className="mb-4 font-medium">Invite someone</IconTitle>
           <InviteForm roles={roleOptions} />
         </Card>
       ) : null}
@@ -122,7 +122,7 @@ export default async function TeamPage() {
 
       {invites.length > 0 ? (
         <>
-          <h2 className="mb-3 mt-8 font-medium">Pending invitations</h2>
+          <IconTitle icon="envelope" size={24} className="mb-3 mt-8 font-medium">Pending invitations</IconTitle>
           <Card className="overflow-hidden p-0!">
             <ul className="divide-y divide-zinc-100">
               {invites.map((inv) => (

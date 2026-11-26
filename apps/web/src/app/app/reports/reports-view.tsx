@@ -1,7 +1,8 @@
 import type { Say } from "@/lib/lang";
 import Link from "next/link";
 import { Download } from "lucide-react";
-import { buttonClass, cx } from "@/components/ui";
+import { Icon3d, type Icon3dName } from "@/components/icon-3d";
+import { IconTile, StatTile, buttonClass, cx, type Pastel } from "@/components/ui";
 import { CountUp } from "@/components/count-up";
 import { formatPeso } from "@/lib/money";
 import { STATUS_LABEL } from "@/lib/property-labels";
@@ -32,23 +33,28 @@ export function ReportsView({
   return (
     <div className="pp-stagger space-y-10">
       <header style={{ "--i": 0 } as React.CSSProperties} className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[2rem] leading-tight font-bold tracking-tight">Reports</h1>
-          <p className="mt-1.5 text-sm text-muted">{range.label}. Times are Manila time.</p>
+        <div className="flex min-w-0 items-center gap-3.5 sm:gap-4">
+          <IconTile name="chart" tone="mint" />
+          <div className="min-w-0">
+            <h1 className="text-[1.6rem] leading-tight font-extrabold tracking-tight text-ink sm:text-[1.9rem]">Reports</h1>
+            <p className="mt-1.5 text-sm text-muted">{range.label}. Times are Manila time.</p>
+          </div>
         </div>
         <RangePicker range={range} />
       </header>
 
-      <Section i={1} title="Leads and conversions" csv={csv("leads")}>
+      <Section i={1} icon="handshake" title="Leads and conversions" csv={csv("leads")}>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Tile label="New inquiries" value={<CountUp value={leads.inquiries} />} note={`${leads.fromProPilot} from listing pages, ${leads.fromMessenger} on Messenger`} />
-          <Tile label="Viewing requests" value={<CountUp value={leads.viewingRequests} />} note="From both sources" />
+          <Tile icon="wave" tone="sky" label="New inquiries" value={<CountUp value={leads.inquiries} />} note={`${leads.fromProPilot} from listing pages, ${leads.fromMessenger} on Messenger`} />
+          <Tile icon="calendar" tone="mint" label="Viewing requests" value={<CountUp value={leads.viewingRequests} />} note="From both sources" />
           <Tile
+            icon="target"
+            tone="peach"
             label="Reached a viewing"
             value={leads.conversion === null ? "—" : `${leads.conversion}%`}
             note={`${leads.reachedViewing} scheduled or done, ${leads.closed} closed`}
           />
-          <Tile label="First response" value={fmtDuration(leads.medianFirstResponseMs)} note="Median time to first contact a MyHomeSeller buyer" />
+          <Tile icon="bell" tone="lavender" label="First response" value={fmtDuration(leads.medianFirstResponseMs)} note="Median time to first contact a MyHomeSeller buyer" />
         </div>
         <div className="mt-5 grid gap-5 lg:grid-cols-[1.6fr_1fr]">
           <Panel title="Inquiries over time">
@@ -60,7 +66,7 @@ export function ReportsView({
         </div>
       </Section>
 
-      <Section i={2} title="Listing performance" csv={csv("listings")}>
+      <Section i={2} icon="houses" title="Listing performance" csv={csv("listings")}>
         {listings.length ? (
           <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[var(--shadow-card)]">
             <table className="pp-table w-full min-w-[46rem] text-sm">
@@ -101,17 +107,21 @@ export function ReportsView({
         <p className="mt-2 text-xs text-muted">{say("Counts are for the selected period. Days listed runs from when the listing was added to when it sold, or today.", "Para sa napiling period ang counts. Ang Days listed ay mula nang ma-add ang listing hanggang ma-sold ito, o hanggang ngayon.")}</p>
       </Section>
 
-      <Section i={3} title="AI chat" csv={messengerOn ? csv("messenger") : undefined}>
+      <Section i={3} icon="robot" title="AI chat" csv={messengerOn ? csv("messenger") : undefined}>
         {messengerOn ? (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Tile label="Conversations" value={<CountUp value={messenger.conversations} />} note={`${messenger.viewingRequests} became viewing requests`} />
+            <Tile icon="phone" tone="sky" label="Conversations" value={<CountUp value={messenger.conversations} />} note={`${messenger.viewingRequests} became viewing requests`} />
             <Tile
+              icon="robot"
+              tone="mint"
               label="Handled by the AI alone"
               value={messenger.conversations ? `${Math.round((messenger.aiOnly / messenger.conversations) * 100)}%` : "—"}
               note={`${messenger.handedOver} handed to your team`}
             />
-            <Tile label="After-hours answers" value={<CountUp value={messenger.afterHoursAnswered} />} note="Messages answered outside 8 am to 6 pm, or on Sundays" />
+            <Tile icon="sparkles" tone="peach" label="After-hours answers" value={<CountUp value={messenger.afterHoursAnswered} />} note="Messages answered outside 8 am to 6 pm, or on Sundays" />
             <Tile
+              icon="bell"
+              tone="lavender"
               label="Reply time"
               value={fmtDuration(messenger.medianAiReplyMs)}
               note={`AI median. Your team: ${fmtDuration(messenger.medianTeamReplyMs)}`}
@@ -123,7 +133,7 @@ export function ReportsView({
       </Section>
 
       {team ? (
-        <Section i={4} title="Team" csv={csv("team")}>
+        <Section i={4} icon="team" title="Team" csv={csv("team")}>
           <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-[var(--shadow-card)]">
             <table className="pp-table w-full min-w-[46rem] text-sm">
               <thead>
@@ -199,11 +209,12 @@ function RangePicker({ range }: { range: Range }) {
   );
 }
 
-function Section({ i, title, csv, children }: { i: number; title: string; csv?: string; children: React.ReactNode }) {
+function Section({ i, icon, title, csv, children }: { i: number; icon: Icon3dName; title: string; csv?: string; children: React.ReactNode }) {
   return (
     <section style={{ "--i": i } as React.CSSProperties} aria-labelledby={`report-${i}`}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 id={`report-${i}`} className="text-2xl font-bold tracking-tight">
+        <h2 id={`report-${i}`} className="flex items-center gap-2.5 text-2xl font-extrabold tracking-tight">
+          <Icon3d name={icon} size={30} />
           {title}
         </h2>
         {csv ? (
@@ -217,14 +228,8 @@ function Section({ i, title, csv, children }: { i: number; title: string; csv?: 
   );
 }
 
-function Tile({ label, value, note }: { label: string; value: React.ReactNode; note: string }) {
-  return (
-    <div className="rounded-2xl border border-line bg-white p-4 shadow-[var(--shadow-card)] sm:p-5">
-      <p className="text-sm text-muted">{label}</p>
-      <p className="mt-2 text-[1.9rem] leading-none font-bold tracking-tight tabular-nums text-ink">{value}</p>
-      <p className="mt-2 text-xs leading-snug text-muted">{note}</p>
-    </div>
-  );
+function Tile({ icon, tone, label, value, note }: { icon: Icon3dName; tone: Pastel; label: string; value: React.ReactNode; note: string }) {
+  return <StatTile icon={icon} tone={tone} label={label} value={value} note={note} />;
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {

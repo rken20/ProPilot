@@ -2,7 +2,7 @@ import { appSay } from "@/lib/lang-server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { can } from "@propilot/shared";
-import { PageHeader, buttonClass } from "@/components/ui";
+import { IconTile, PageHeader, buttonClass } from "@/components/ui";
 import { Icon3d } from "@/components/icon-3d";
 import { requireBusiness } from "@/lib/auth";
 import { businessPages } from "@/lib/facebook-pages";
@@ -28,7 +28,7 @@ export default async function VideoAdPage({ searchParams }: PageProps<"/app/vide
   const plan = await businessPlan(biz.businessId);
 
   const header = (
-    <PageHeader
+    <PageHeader icon3d="camera" tone="pink"
       title="Video Ad Maker"
       description={say("Turn a listing's photos into a short video ad for Facebook, TikTok and Reels. The AI looks at the photos and makes the ad, with the words and the music. You pick the look, then keep it or ask for another version.", "Gawing short video ad ang photos ng listing para sa Facebook, TikTok at Reels. Tinitingnan ng AI ang photos at ginagawa ang ad, kasama ang words at music. Ikaw ang pipili ng look, tapos i-keep mo o humingi ng ibang version.")}
     />
@@ -102,7 +102,7 @@ export default async function VideoAdPage({ searchParams }: PageProps<"/app/vide
       ) : (
         <div className="grid min-h-72 place-items-center rounded-[1.5rem] border-2 border-dashed border-grape-100 p-8 text-center">
           <div>
-            <Icon3d name="houses" size={72} className="mx-auto" />
+            <IconTile name="houses" tone="sky" size={72} className="mx-auto" />
             <p className="mt-3 text-lg font-bold">Add a property first</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted">{say("A video ad is made from a listing's photos and details.", "Gawa ang video ad mula sa photos at details ng listing.")}</p>
             {can(biz.role, "property.create") ? (
