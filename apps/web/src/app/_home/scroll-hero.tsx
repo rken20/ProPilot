@@ -83,12 +83,12 @@ export function ScrollHero({
   second: ReactNode;
   third: ReactNode;
   mascot: ReactNode;
-  /** The Sound button's words: [when on, when off]. */
-  soundLabels: [on: string, off: string];
+  /** The Sound button's words: on, off, and on but waiting for the visitor's first tap. */
+  soundLabels: { on: string; off: string; waiting: string };
 }) {
   const root = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const sound = useSyncExternalStore(heroSound.subscribe, heroSound.isOn, heroSound.isOnServer);
+  const sound = useSyncExternalStore(heroSound.subscribe, heroSound.state, heroSound.stateOnServer);
 
   useEffect(() => {
     const section = root.current;
@@ -349,9 +349,10 @@ export function ScrollHero({
             className="sh-still"
           />
         </noscript>
-        <button type="button" className="sh-sound" aria-pressed={sound} onClick={() => heroSound.set(!sound)}>
-          {sound ? <Volume2 className="size-4" aria-hidden /> : <VolumeX className="size-4" aria-hidden />}
-          {sound ? soundLabels[0] : soundLabels[1]}
+        {/* Waiting: a click here starts the sound rather than turning it off. */}
+        <button type="button" className="sh-sound" data-state={sound} aria-pressed={sound !== "off"} onClick={() => heroSound.set(sound !== "on")}>
+          {sound === "off" ? <VolumeX className="size-4" aria-hidden /> : <Volume2 className="size-4" aria-hidden />}
+          {soundLabels[sound]}
         </button>
         <div className="sh-robot" data-robot aria-hidden>
           {mascot}

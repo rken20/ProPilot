@@ -731,7 +731,13 @@ table.pp-table > thead :is(tr, th) {
     border-color: rgb(255 255 255 / 0.5);
     color: #fff;
   }
-  .sh[data-live="on"] .sh-sound[aria-pressed="true"] {
+  /* Waiting for the first tap: a soft pulse says there is sound to be had. */
+  .sh[data-live="on"] .sh-sound[data-state="waiting"] {
+    border-color: rgb(248 196 35 / 0.55);
+    color: #fff;
+    animation: sh-nudge 2.4s ease-in-out 1.2s 3;
+  }
+  .sh[data-live="on"] .sh-sound[data-state="on"] {
     border-color: rgb(248 196 35 / 0.7);
     color: #fff;
   }
@@ -764,5 +770,15 @@ table.pp-table > thead :is(tr, th) {
       right: 2%;
       height: 36svh;
     }
+  }
+}
+
+@keyframes sh-nudge {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(248 196 35 / 0);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(248 196 35 / 0.18);
   }
 }

@@ -138,7 +138,7 @@ export default async function Home() {
               </div>
             </div>
           }
-          soundLabels={["Sound On", "Sound Off"]}
+          soundLabels={{ on: "Sound On", off: "Sound Off", waiting: "Tap for Sound" }}
           mascot={
             // eslint-disable-next-line @next/next/no-img-element -- pre-sized static art
             <img src="/images/dashboard/mascot.webp" alt="" width={641} height={720} loading="lazy" />

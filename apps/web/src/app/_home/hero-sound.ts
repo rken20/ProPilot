@@ -2,41 +2,70 @@ import { HERO_SEQUENCE, type HeroEffect } from "./hero-sequence";
 
 /**
  * Sound for the home page's scroll opening: short effects made in the browser
- * (no audio files), played as the house is built. Off until the visitor turns
- * it on, because browsers only allow sound after a tap, click or key press.
+ * (no audio files), played as the house is built.
+ *
+ * On by default (owner's decision, 26 Nov). Browsers only let a page make
+ * sound after the visitor taps, clicks or presses a key, so until then the
+ * sound is "waiting", and it starts at the first such touch anywhere on the
+ * page. A visitor who turns it off is remembered on that device.
  */
 
+export type HeroSoundState = "off" | "waiting" | "on";
+
 const KEY = "mhs-hero-sound";
+/** The inputs browsers accept as permission to play sound. Scrolling with a wheel is not one of them. */
+const GESTURES = [
+  "pointerdown",
+  "pointerup",
+  "mousedown",
+  "touchend",
+  "keydown",
+] as const;
 const listeners = new Set<() => void>();
-let on = false;
+let on = true;
 let read = false;
 let ctx: AudioContext | null = null;
 let out: GainNode | null = null;
 let noise: AudioBuffer | null = null;
 
+const notify = () => listeners.forEach((fn) => fn());
+
+function listen(add: boolean) {
+  for (const type of GESTURES) {
+    if (add)
+      window.addEventListener(type, onGesture, {
+        capture: true,
+        passive: true,
+      });
+    else window.removeEventListener(type, onGesture, { capture: true });
+  }
+}
+
+function onGesture() {
+  void unlock();
+}
+
 function remembered(): boolean {
   if (!read && typeof window !== "undefined") {
     read = true;
     try {
-      on = window.localStorage.getItem(KEY) === "1";
+      on = window.localStorage.getItem(KEY) !== "0";
     } catch {
       // Private mode: the choice just isn't remembered.
     }
-    // A remembered "on" still needs one tap, click or key press on this visit.
-    if (on)
-      for (const type of ["pointerdown", "keydown"] as const)
-        window.addEventListener(type, unlock, { once: true, passive: true });
+    if (on) listen(true);
   }
   return on;
 }
 
-function unlock() {
-  if (!on || typeof window === "undefined") return;
+/** Starts the sound, if it is on. Call only from a tap, click or key press. Resolves once it can play. */
+async function unlock(): Promise<boolean> {
+  if (!on || typeof window === "undefined") return false;
   const Ctor =
     window.AudioContext ??
     (window as unknown as { webkitAudioContext?: typeof AudioContext })
       .webkitAudioContext;
-  if (!Ctor) return;
+  if (!Ctor) return false;
   if (!ctx) {
     ctx = new Ctor();
     out = ctx.createGain();
@@ -49,18 +78,30 @@ function unlock() {
     noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const data = noise.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    ctx.onstatechange = () => {
+      if (ctx?.state === "running") listen(false);
+      notify();
+    };
   }
-  if (ctx.state === "suspended") void ctx.resume().catch(() => {});
+  if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+  const running = ctx.state === "running";
+  if (running) listen(false);
+  return running;
 }
 
-/** For `useSyncExternalStore`: whether the visitor has sound on. */
+function current(): HeroSoundState {
+  if (!remembered()) return "off";
+  return ctx?.state === "running" ? "on" : "waiting";
+}
+
+/** For `useSyncExternalStore`: off, waiting for the visitor's first tap, or on. */
 export const heroSound = {
   subscribe(fn: () => void) {
     listeners.add(fn);
     return () => listeners.delete(fn);
   },
-  isOn: () => remembered(),
-  isOnServer: () => false,
+  state: current,
+  stateOnServer: (): HeroSoundState => "waiting",
   /** Call from the click itself, so the browser lets the sound start. */
   set(next: boolean) {
     remembered();
@@ -71,10 +112,14 @@ export const heroSound = {
       // Not remembered; still works for this visit.
     }
     if (next) {
-      unlock();
-      play("pop", 1);
+      void unlock().then((ok) => {
+        if (ok) play("pop", 1);
+        notify();
+      });
+    } else {
+      listen(false);
     }
-    listeners.forEach((fn) => fn());
+    notify();
   },
 };
 
