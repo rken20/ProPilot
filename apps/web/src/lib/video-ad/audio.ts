@@ -17,8 +17,8 @@ export const SAMPLE_RATE = 48_000;
 export type SoundPlan = {
   /** The video's tempo and shape; the built-in music is written to it. */
   shape: MusicShape;
-  /** One of ours, the owner's own decoded file, or none. */
-  music: MusicId | AudioBuffer | null;
+  /** One of our tracks, or none. */
+  music: MusicId | null;
   cues: Cue[];
   effects: boolean;
 };
@@ -58,42 +58,31 @@ export async function renderSoundtrack(
   if (plan.music) {
     const out = ctx.createGain();
     out.connect(limiter);
-    const level = typeof plan.music === "string" ? 0.62 : 0.75;
+    const level = 0.62;
     // Fade in briefly, then out at the end so the ad never stops mid-note.
     out.gain.setValueAtTime(0, 0);
     out.gain.linearRampToValueAtTime(level, 0.08);
     out.gain.setValueAtTime(level, Math.max(0.1, duration - FADE_OUT));
     out.gain.linearRampToValueAtTime(0, duration);
-    if (typeof plan.music === "string") {
-      const send = ctx.createGain();
-      send.gain.value = 0.55;
-      send.connect(room);
-      // The chords and bass dip under every kick and swell back: the "pump" that makes a beat feel like a record.
-      const pumped = ctx.createGain();
-      pumped.connect(out);
-      const notes = musicNotes(plan.music, plan.shape);
-      const beat = 60 / plan.shape.bpm;
-      pumped.gain.setValueAtTime(1, 0);
-      for (const n of notes) {
-        if (n.voice !== "kick") continue;
-        pumped.gain.setValueAtTime(1, n.t);
-        pumped.gain.linearRampToValueAtTime(1 - 0.5 * n.vel, n.t + 0.012);
-        pumped.gain.linearRampToValueAtTime(
-          1,
-          n.t + Math.min(0.3, beat * 0.55),
-        );
-      }
-      const drums: Bus = { dry: out, room: send };
-      const tones: Bus = { dry: pumped, room: send };
-      for (const note of notes)
-        play(ctx, DRUMS.has(note.voice) ? drums : tones, noise, note);
-    } else {
-      const src = ctx.createBufferSource();
-      src.buffer = plan.music;
-      src.loop = plan.music.duration < duration;
-      src.connect(out);
-      src.start(0);
+    const send = ctx.createGain();
+    send.gain.value = 0.55;
+    send.connect(room);
+    // The chords and bass dip under every kick and swell back: the "pump" that makes a beat feel like a record.
+    const pumped = ctx.createGain();
+    pumped.connect(out);
+    const notes = musicNotes(plan.music, plan.shape);
+    const beat = 60 / plan.shape.bpm;
+    pumped.gain.setValueAtTime(1, 0);
+    for (const n of notes) {
+      if (n.voice !== "kick") continue;
+      pumped.gain.setValueAtTime(1, n.t);
+      pumped.gain.linearRampToValueAtTime(1 - 0.5 * n.vel, n.t + 0.012);
+      pumped.gain.linearRampToValueAtTime(1, n.t + Math.min(0.3, beat * 0.55));
     }
+    const drums: Bus = { dry: out, room: send };
+    const tones: Bus = { dry: pumped, room: send };
+    for (const note of notes)
+      play(ctx, DRUMS.has(note.voice) ? drums : tones, noise, note);
   }
   if (plan.effects) {
     const out = ctx.createGain();
@@ -106,12 +95,6 @@ export async function renderSoundtrack(
       effect(ctx, { dry: out, room: send }, noise, cue);
   }
   return ctx.startRendering();
-}
-
-/** Read a music file the owner picked. Throws if the browser can't read it. */
-export async function decodeMusic(file: File): Promise<AudioBuffer> {
-  const ctx = new OfflineAudioContext(2, 1, SAMPLE_RATE);
-  return ctx.decodeAudioData(await file.arrayBuffer());
 }
 
 // ------------------------------------------------------------------ instruments

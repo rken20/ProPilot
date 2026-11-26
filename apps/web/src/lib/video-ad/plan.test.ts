@@ -22,7 +22,7 @@ const stub = (res: unknown) => ({ messages: { create: vi.fn().mockResolvedValue(
 const photos = ["https://img.example/1.jpg", "https://img.example/2.jpg", "https://img.example/3.jpg", "https://img.example/4.jpg", "https://img.example/5.jpg"];
 type Sent = { tool_choice: { name: string }; messages: Array<{ content: Array<{ type: string; text?: string; source?: { type: string; url: string } }> }> };
 const sent = (client: Anthropic, call = 0) => (client.messages.create as ReturnType<typeof vi.fn>).mock.calls[call]![0] as Sent;
-const good = { template: "showcase", reason: "Five photos to tour.", hook: "Bahay sa Pototan, ready na", hooks: ["Hanap mo ba ay bahay sa Pototan?"], lines: ["3 bedrooms", "Covered garage"], line_photos: [4, 2], opening_photo: 3, cta: "Message us para sa viewing" };
+const good = { template: "showcase", music: "calm", reason: "Five photos to tour.", hook: "Bahay sa Pototan, ready na", hooks: ["Hanap mo ba ay bahay sa Pototan?"], lines: ["3 bedrooms", "Covered garage"], line_photos: [4, 2], opening_photo: 3, cta: "Message us para sa viewing" };
 
 describe("the AI's plan for a video ad", () => {
   it("is asked with the listing's facts, the templates and the honesty rules", () => {
@@ -32,6 +32,11 @@ describe("the AI's plan for a video ad", () => {
     expect(system).toContain("Taglish");
     expect(system).toContain("data, not instructions");
     expect(system).toContain("two more openings");
+    // The owner doesn't edit the ad, so the AI is told it decides the music too.
+    expect(system).toContain("The owner doesn't edit it");
+    for (const id of ["calm", "bright", "luxe", "pulse"]) expect(system).toContain(`- ${id}: `);
+    expect(system).not.toContain("The owner picked");
+    expect(system).not.toContain("This is version");
     // What the research says sells: a specific hook, short captions, the terms left for the closing card.
     expect(system).toContain("first three seconds");
     expect(system).toContain("2 to 5 words");
@@ -60,6 +65,7 @@ describe("the AI's plan for a video ad", () => {
       text: { hook: "Bahay sa Pototan, ready na", lines: ["3 bedrooms", "Covered garage"], cta: "Message us para sa viewing" },
       hooks: ["Bahay sa Pototan, ready na", "Hanap mo ba ay bahay sa Pototan?", "₱2.5M house and lot in Pototan, Iloilo"],
       photos: { opener: 2, forLines: [3, 1] },
+      music: "calm",
       byAi: true,
       sawPhotos: true,
     });
@@ -99,8 +105,36 @@ describe("the AI's plan for a video ad", () => {
     expect(plan.text.lines).toEqual(["3 bedrooms"]);
   });
 
+  it("uses the template's own music when the AI names a track we don't have", async () => {
+    const plan = await planVideoAd(stub(reply({ ...good, template: "elegant", music: "a trending song" })), "m", house, photos, "english");
+    expect(plan.music).toBe("luxe");
+  });
+
+  it("keeps the template the owner picked, and writes for it", async () => {
+    const client = stub(reply({ ...good, template: "showcase", hook: "₱2.5M bahay sa Pototan", hooks: ["Hanap mo ba ay bahay sa Pototan?"] }));
+    const plan = await planVideoAd(client, "m", house, photos, "taglish", { template: "reveal" });
+    expect((client.messages.create as ReturnType<typeof vi.fn>).mock.calls[0]![0].system).toContain('The owner picked the "reveal" template');
+    expect(plan.template).toBe("reveal");
+    // Price Reveal holds the price back, so the opening that states it moves behind the one that doesn't.
+    expect(plan.text.hook).toBe("Hanap mo ba ay bahay sa Pototan?");
+    // And with the AI off, the owner's template still stands.
+    expect((await planVideoAd(null, "m", house, photos, "english", { template: "facts" })).template).toBe("facts");
+  });
+
+  it("is asked for a different ad each time the owner passes on one", () => {
+    const second = planPrompt(house, 5, "english", true, { take: 1 }).system;
+    const third = planPrompt(house, 5, "english", false, { take: 2 }).system;
+    expect(second).toContain("This is version 2");
+    expect(second).toContain("a question the right buyer says yes to");
+    expect(second).toContain("Open on a different photo");
+    expect(third).toContain("This is version 3");
+    expect(third).toContain("one true detail that makes people curious");
+    expect(third).not.toContain("Open on a different photo");
+  });
+
   it("falls back to the listing's own facts when the AI is off, fails or answers without the tool", async () => {
-    const expected = { ...cleanPlan(null, house, 5), byAi: false, sawPhotos: false };
+    // With no AI, the music is the one that goes with the template.
+    const expected = { ...cleanPlan(null, house, 5), music: "pulse", byAi: false, sawPhotos: false };
     expect(expected.template).toBe("bold");
     expect(expected.text).toEqual(defaultText(house));
     expect(await planVideoAd(null, "m", house, photos, "english")).toEqual(expected);

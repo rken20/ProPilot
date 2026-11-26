@@ -10,7 +10,7 @@ import { businessPlan } from "@/lib/plan";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { AD_COLUMNS, adListing } from "@/lib/video-ad/listing";
-import { planVideoAd, type AdPlan } from "@/lib/video-ad/plan";
+import { planVideoAd, type AdPlan, type PlanAsk } from "@/lib/video-ad/plan";
 import { MAX_PHOTOS, SHAPE_IDS, TEMPLATE_IDS, cleanText, type AdLanguage, type AdText, type ShapeId, type TemplateId } from "@/lib/video-ad/spec";
 import { mediaUrl } from "@/lib/media";
 import type { Say } from "@/lib/lang";
@@ -33,8 +33,13 @@ async function load(propertyId: string, businessId: string, businessName: string
   return { supabase, listing: row ? adListing(row as Parameters<typeof adListing>[0], businessName) : null, photos, language };
 }
 
-/** The AI's suggestion for a listing's video ad: a template, the words, and which photos go where. Nothing is saved or counted. */
-export async function suggestAd(propertyId: string): Promise<{ plan?: AdPlan; error?: string }> {
+/**
+ * The AI's video ad for a listing: a template, the music, the words, and which
+ * photos go where. `ask.template` is the look the owner picked, if they picked
+ * one; `ask.take` is how many versions they've already seen and passed on.
+ * Nothing is saved or counted.
+ */
+export async function suggestAd(propertyId: string, ask?: PlanAsk): Promise<{ plan?: AdPlan; error?: string }> {
   const say = await appSay();
   const biz = await requireBusiness();
   if (!mayMake(biz.role) || !UUID.test(propertyId)) return { error: say("Your role can't make video ads.", "Hindi pwedeng gumawa ng video ads ang role mo.") };
@@ -48,7 +53,10 @@ export async function suggestAd(propertyId: string): Promise<{ plan?: AdPlan; er
   // Without the AI (no key, or too many requests this hour) the plan comes from the listing's own facts.
   // Looking at the photos takes a little longer than text alone; the page allows 30 seconds in all.
   const client = apiKey && allowed === true ? new Anthropic({ apiKey, timeout: 13_000, maxRetries: 0 }) : null;
-  return { plan: await planVideoAd(client, process.env.ANTHROPIC_MODEL || DEFAULT_MODEL, listing, photos, language) };
+  // The page sends these, so they are checked like any other input.
+  const template = TEMPLATE_IDS.find((t) => t === ask?.template);
+  const take = Number.isInteger(ask?.take) && ask!.take! > 0 ? Math.min(ask!.take!, 50) : 0;
+  return { plan: await planVideoAd(client, process.env.ANTHROPIC_MODEL || DEFAULT_MODEL, listing, photos, language, { template, take }) };
 }
 
 /**
@@ -64,7 +72,7 @@ export async function startVideoAd(propertyId: string, template: TemplateId, sha
   const plan = await businessPlan(biz.businessId);
   if (plan.videoAds === 0) return { error: notIncluded(say) };
   const clean = cleanText({ hook: String(text?.hook ?? ""), lines: Array.isArray(text?.lines) ? text.lines.map(String) : [], cta: String(text?.cta ?? "") });
-  if (clean.hook.length < 3) return { error: say("Write a headline for the ad first.", "Sumulat muna ng headline para sa ad.") };
+  if (clean.hook.length < 3) return { error: say("This ad has no headline. Ask for another version and try again.", "Walang headline ang ad na ito. Humingi ng ibang version at subukan ulit.") };
 
   const admin = createAdminClient();
   if (!admin) return { error: say("The Video Ad Maker isn't available right now.", "Hindi available ang Video Ad Maker ngayon.") };

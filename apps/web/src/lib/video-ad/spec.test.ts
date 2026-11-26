@@ -3,6 +3,7 @@ import {
   FPS,
   MAX_LINES,
   TEMPLATE_IDS,
+  adFor,
   amountsIn,
   buildTimeline,
   cleanPlan,
@@ -233,5 +234,33 @@ describe("what the AI proposes", () => {
     expect(plan.text.cta.length).toBeLessThanOrEqual(44);
     expect(plan.text.lines).toHaveLength(MAX_LINES);
     expect(cleanText({ hook: "  Hi  there ", lines: ["", " a  b "], cta: "Go" })).toEqual({ hook: "Hi there", lines: ["a b"], cta: "Go" });
+  });
+});
+
+describe("one plan shown in each template", () => {
+  const plan = {
+    text: { hook: "₱2.5M bahay sa Pototan", lines: ["Only ₱2.5M", "3 bedrooms", "Covered garage"], cta: "Message us" },
+    hooks: ["₱2.5M bahay sa Pototan", "Hanap mo ba ay bahay sa Pototan?", "May sariling garden ang bahay na ito"],
+    photos: { opener: 2, forLines: [4, 1, 3] },
+  };
+
+  it("uses the plan as it is in most templates", () => {
+    expect(adFor("showcase", plan)).toEqual({ text: plan.text, photos: plan.photos });
+  });
+
+  it("holds the price back in Price Reveal: no opening or caption that states it, and each caption keeps its photo", () => {
+    expect(adFor("reveal", plan)).toEqual({
+      text: { hook: "Hanap mo ba ay bahay sa Pototan?", lines: ["3 bedrooms", "Covered garage"], cta: "Message us" },
+      photos: { opener: 2, forLines: [1, 3] },
+    });
+    // Unless that would leave nothing to show.
+    const priced = { ...plan, text: { ...plan.text, lines: ["Only ₱2.5M"] }, hooks: ["₱2.5M bahay sa Pototan"], photos: { opener: 0, forLines: [] } };
+    expect(adFor("reveal", priced)).toEqual({ text: { hook: "₱2.5M bahay sa Pototan", lines: ["Only ₱2.5M"], cta: "Message us" }, photos: { opener: 0, forLines: [] } });
+  });
+
+  it("moves to the next spare opening for another version, and comes back round", () => {
+    expect(adFor("bold", plan, 1).text.hook).toBe("Hanap mo ba ay bahay sa Pototan?");
+    expect(adFor("bold", plan, 3).text.hook).toBe("₱2.5M bahay sa Pototan");
+    expect(adFor("reveal", plan, 2).text.hook).toBe("Hanap mo ba ay bahay sa Pototan?");
   });
 });

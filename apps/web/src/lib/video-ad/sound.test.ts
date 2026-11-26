@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MUSIC_FOR,
   MUSIC_IDS,
+  musicChoice,
   musicNotes,
   musicShape,
   soundCues,
@@ -90,8 +91,11 @@ describe("musicNotes", () => {
 });
 
 describe("soundCues", () => {
-  it("suggests a track for every template", () => {
+  it("has a track for every template, and takes the AI's choice only when it's one of ours", () => {
     for (const t of TEMPLATE_IDS) expect(MUSIC_IDS).toContain(MUSIC_FOR[t]);
+    expect(musicChoice("luxe", "bold")).toBe("luxe");
+    expect(musicChoice("own", "bold")).toBe("pulse");
+    expect(musicChoice(undefined, "facts")).toBe("calm");
   });
 
   it("puts a whoosh on every cut and a pop as every caption comes in", () => {

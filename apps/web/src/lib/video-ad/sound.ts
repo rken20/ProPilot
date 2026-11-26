@@ -44,10 +44,7 @@ export const MUSIC = {
 export type MusicId = keyof typeof MUSIC;
 export const MUSIC_IDS = Object.keys(MUSIC) as MusicId[];
 
-/** No music, one of ours, or a file the owner picks on their device. */
-export type MusicChoice = MusicId | "none" | "own";
-
-/** The track each template starts with. The owner can pick any. */
+/** The track that goes with each template when the AI hasn't chosen one. */
 export const MUSIC_FOR: Record<TemplateId, MusicId> = {
   showcase: "bright",
   bold: "pulse",
@@ -56,6 +53,10 @@ export const MUSIC_FOR: Record<TemplateId, MusicId> = {
   reveal: "pulse",
   reasons: "bright",
 };
+
+/** The AI's music choice if it named one of our tracks, else the template's own. */
+export const musicChoice = (raw: unknown, template: TemplateId): MusicId =>
+  MUSIC_IDS.includes(raw as MusicId) ? (raw as MusicId) : MUSIC_FOR[template];
 
 export type Voice =
   | "pad"

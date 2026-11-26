@@ -14,7 +14,7 @@ import { MAX_PHOTOS, type AdLanguage } from "@/lib/video-ad/spec";
 import { startVideoAd, suggestAd } from "./actions";
 import { VideoMaker, type VideoItem } from "./video-maker";
 
-// The AI's suggestion for an ad (it looks at the photos) takes several seconds.
+// The AI making an ad (it looks at the photos) takes several seconds.
 export const maxDuration = 30;
 
 export default async function VideoAdPage({ searchParams }: PageProps<"/app/video">) {
@@ -27,7 +27,7 @@ export default async function VideoAdPage({ searchParams }: PageProps<"/app/vide
   const header = (
     <PageHeader
       title="Video Ad Maker"
-      description={say("Turn a listing's photos into a short video ad for Facebook, TikTok and Reels. The AI looks at the photos, picks a template and writes the text; you can change all of it.", "Gawing short video ad ang photos ng listing para sa Facebook, TikTok at Reels. Tinitingnan ng AI ang photos, pumipili ng template at sinusulat ang text; pwede mong palitan lahat.")}
+      description={say("Turn a listing's photos into a short video ad for Facebook, TikTok and Reels. The AI looks at the photos and makes the ad, with the words and the music. You pick the look, then keep it or ask for another version.", "Gawing short video ad ang photos ng listing para sa Facebook, TikTok at Reels. Tinitingnan ng AI ang photos at ginagawa ang ad, kasama ang words at music. Ikaw ang pipili ng look, tapos i-keep mo o humingi ng ibang version.")}
     />
   );
 

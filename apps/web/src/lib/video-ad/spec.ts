@@ -73,7 +73,7 @@ export const TEMPLATES = {
 export type TemplateId = keyof typeof TEMPLATES;
 export const TEMPLATE_IDS = Object.keys(TEMPLATES) as TemplateId[];
 
-/** What the ad says. Every word is the owner's to edit. */
+/** What the ad says. */
 export type AdText = { hook: string; lines: string[]; cta: string };
 
 /** The listing facts an ad can show. Money values are already formatted, e.g. "₱2,500,000". */
@@ -304,7 +304,26 @@ export function cleanPlan(raw: unknown, l: AdListing, photoCount: number, langua
   };
 }
 
-/** The owner's edits, tidied the same way before a video is made. */
+/**
+ * The words and photo choices an ad uses in a given template, from one plan, so
+ * the owner can try each look without the AI writing again. Price Reveal keeps
+ * the price for the last card, so there it skips an opening or a caption that
+ * states an amount (unless that would leave none). `turn` moves on to the next
+ * spare opening, for another version when the AI can't be reached.
+ */
+export function adFor(template: TemplateId, plan: Pick<CleanPlan, "text" | "hooks" | "photos">, turn = 0): { text: AdText; photos: PhotoPlan } {
+  const free = (s: string) => template !== "reveal" || amountsIn(s).length === 0;
+  const all = plan.hooks.length ? plan.hooks : [plan.text.hook];
+  const hooks = all.some(free) ? all.filter(free) : all;
+  const lines = plan.text.lines.map((line, i) => ({ line, photo: plan.photos.forLines[i] ?? -1 }));
+  const kept = lines.some((x) => free(x.line)) ? lines.filter((x) => free(x.line)) : lines;
+  return {
+    text: { hook: hooks[turn % hooks.length]!, lines: kept.map((x) => x.line), cta: plan.text.cta },
+    photos: { opener: plan.photos.opener, forLines: plan.photos.forLines.length ? kept.map((x) => x.photo) : [] },
+  };
+}
+
+/** The ad's words, tidied once more before a video is made. */
 export function cleanText(text: AdText): AdText {
   return {
     hook: tidy(text.hook, LIMITS.hook),

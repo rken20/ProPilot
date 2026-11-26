@@ -65,7 +65,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Buyer Finder: 20 AI-found potential buyers a month",
       "Up to 10,000 AI replies a month",
       "AI negotiation: the chat negotiates down to a lowest price you set, and closes deals at a price you pre-approve",
-      "Video Ad Maker: 10 video ads a month from your listing photos, with AI-picked templates and text",
+      "Video Ad Maker: 10 video ads a month from your listing photos, with AI-picked templates, text and music",
     ],
   },
   agency: {
@@ -75,7 +75,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Buyer Finder: 60 AI-found potential buyers a month",
       "Up to 25,000 AI replies a month",
       "Pricing Advisor: 20 AI price checks a month, with comparable listings",
-      "Video Ad Maker: 30 video ads a month from your listing photos, with AI-picked templates and text",
+      "Video Ad Maker: 30 video ads a month from your listing photos, with AI-picked templates, text and music",
     ],
   },
 };
@@ -106,7 +106,7 @@ const PLAN_COPY_TL: typeof PLAN_COPY = {
       "Buyer Finder: 20 potential buyers na hanap ng AI kada buwan",
       "Hanggang 10,000 AI replies kada buwan",
       "AI negotiation: nakikipag-negotiate ang chat hanggang sa lowest price na sine-set mo, at nagko-close ng deal sa presyong pre-approved mo",
-      "Video Ad Maker: 10 video ads kada buwan mula sa listing photos mo, na AI ang pumipili ng template at text",
+      "Video Ad Maker: 10 video ads kada buwan mula sa listing photos mo, na AI ang pumipili ng template, text at music",
     ],
   },
   agency: {
@@ -116,7 +116,7 @@ const PLAN_COPY_TL: typeof PLAN_COPY = {
       "Buyer Finder: 60 potential buyers na hanap ng AI kada buwan",
       "Hanggang 25,000 AI replies kada buwan",
       "Pricing Advisor: 20 AI price checks kada buwan, na may comparable listings",
-      "Video Ad Maker: 30 video ads kada buwan mula sa listing photos mo, na AI ang pumipili ng template at text",
+      "Video Ad Maker: 30 video ads kada buwan mula sa listing photos mo, na AI ang pumipili ng template, text at music",
     ],
   },
 };
