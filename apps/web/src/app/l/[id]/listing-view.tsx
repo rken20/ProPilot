@@ -141,6 +141,12 @@ export function PublicListingView({
         </div>
       </main>
 
+      <p className="pb-8 text-center">
+        <Link href="/properties" className="text-sm font-semibold text-grape-700 underline underline-offset-2">
+          {say("See more properties", "Tingnan ang iba pang properties")}
+        </Link>
+      </p>
+
       <footer className="border-t border-line py-6 text-center text-xs text-muted">
         {say("Shared with", "Shinare gamit ang")} <Link href="/" className="font-semibold text-grape-700">MyHomeSeller</Link>
         {say(", the AI sales assistant for property owners and agents.", ", ang AI sales assistant ng mga property owner at agent.")}

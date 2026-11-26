@@ -77,6 +77,7 @@ describe("the sitemap", () => {
     const entries = sitemapEntries("https://myhomeseller.example", [{ id: house.id, updated_at: house.updated_at }]);
     expect(entries.map((e) => e.url)).toEqual([
       "https://myhomeseller.example/",
+      "https://myhomeseller.example/properties",
       "https://myhomeseller.example/get-app",
       "https://myhomeseller.example/privacy",
       url,

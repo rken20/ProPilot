@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { Volume2, VolumeX } from "lucide-react";
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { HERO_SEQUENCE as SEQ, framePath } from "./hero-sequence";
+import { heroSound, soundBuild, soundGlide } from "./hero-sound";
 
 /** Where the house sits on the stage, as fractions of it: centre x, centre y, width, height. */
 type Box = [cx: number, cy: number, w: number, h: number];
@@ -74,15 +76,19 @@ export function ScrollHero({
   second,
   third,
   mascot,
+  soundLabels,
 }: {
   header: ReactNode;
   lead: ReactNode;
   second: ReactNode;
   third: ReactNode;
   mascot: ReactNode;
+  /** The Sound button's words: [when on, when off]. */
+  soundLabels: [on: string, off: string];
 }) {
   const root = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const sound = useSyncExternalStore(heroSound.subscribe, heroSound.isOn, heroSound.isOnServer);
 
   useEffect(() => {
     const section = root.current;
@@ -117,6 +123,8 @@ export function ScrollHero({
     let frame = reduce ? 1 : 0; // where the sequence is, 0 to 1, eased
     let intro = reduce ? 1 : 0; // 0 to 1: the short build that plays once on arrival
     let introStart = 0;
+    let heard = -1; // the build position the sound last caught up with
+    let side = 0; // which beat's position the house last settled toward
 
     const progress = () => {
       const travel = section.offsetHeight - window.innerHeight;
@@ -220,6 +228,12 @@ export function ScrollHero({
       // Ease toward the target so a jumpy wheel or thumb still reads as one motion.
       frame += (target - frame) * 0.2;
       if (Math.abs(target - frame) < 0.0005) frame = target;
+      // Sound follows the build, and a whoosh marks the house setting off across the screen.
+      if (heard >= 0) soundBuild(heard, frame);
+      heard = frame;
+      const toward = p < (BEATS[0].to + BEATS[1].from) / 2 ? 0 : p < (BEATS[1].to + BEATS[2].from) / 2 ? 1 : 2;
+      if (toward !== side && w >= 1024) soundGlide();
+      side = toward;
       draw(p);
       // With reduced motion the three beats are plain text in the page; leave them alone.
       if (!reduce) words(p);
@@ -335,6 +349,10 @@ export function ScrollHero({
             className="sh-still"
           />
         </noscript>
+        <button type="button" className="sh-sound" aria-pressed={sound} onClick={() => heroSound.set(!sound)}>
+          {sound ? <Volume2 className="size-4" aria-hidden /> : <VolumeX className="size-4" aria-hidden />}
+          {sound ? soundLabels[0] : soundLabels[1]}
+        </button>
         <div className="sh-robot" data-robot aria-hidden>
           {mascot}
         </div>

@@ -1,7 +1,9 @@
 import "server-only";
 import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { filterBrowse, pageOf, sortBrowse, type BrowseQuery, type BrowseRow } from "@/lib/browse-rules";
 import type { Listing } from "@/lib/listings";
+import { planRank } from "@/lib/match-alert-rules";
 
 /**
  * A listing as anyone with its link sees it. Read with the service role because
@@ -86,6 +88,69 @@ export async function publicListingIds(limit = 5000): Promise<Array<{ id: string
     // The sitemap is also built during a deploy; a database hiccup then mustn't fail the deploy.
     return [];
   }
+}
+
+/** A listing as a card on the public Properties page. */
+export type BrowseListing = BrowseRow & {
+  currency: string;
+  financing: Listing["financing"];
+  /** The seller is on a paid plan, which is why it shows first by default. */
+  featured: boolean;
+  thumb: string | null;
+};
+
+/**
+ * The public Properties page: every listing with a public page, filtered,
+ * ordered and cut to one page. The default order puts paid sellers first.
+ *
+ * Ordering by plan needs each seller's current plan, so this reads the newest
+ * `cap` listings and orders them here. Past that many public listings, the
+ * oldest fall off the page; move the ordering into the database before then.
+ */
+export async function browsePublicListings(query: BrowseQuery, cap = 1000): Promise<{ items: BrowseListing[]; page: number; pages: number; total: number; all: number }> {
+  const none = { items: [], page: 1, pages: 1, total: 0, all: 0 };
+  const admin = createAdminClient();
+  if (!admin) return none;
+  const { data } = await admin
+    .from("properties")
+    .select("id, business_id, name, type, location, price_minor, currency, status, financing, created_at, businesses!inner(restricted_at)")
+    .eq("is_public", true)
+    .is("businesses.restricted_at", null)
+    .in("status", ["available", "reserved"])
+    .order("created_at", { ascending: false })
+    .limit(cap);
+  if (!data?.length) return none;
+  const rows = data.map((p) => ({
+    id: p.id as string,
+    business_id: p.business_id as string,
+    name: p.name as string,
+    type: p.type as string,
+    location: p.location as string,
+    price_minor: Number(p.price_minor),
+    currency: (p.currency as string) ?? "PHP",
+    status: p.status as "available" | "reserved",
+    financing: (p.financing as Listing["financing"]) ?? null,
+    created_at: (p.created_at as string | null) ?? null,
+  }));
+
+  // Only plans whose paid period is still running count; everyone else is on Free.
+  const sellers = [...new Set(rows.map((r) => r.business_id))];
+  const { data: subs } = await admin.from("subscriptions").select("business_id, plans(code)").in("business_id", sellers).gt("current_period_end", new Date().toISOString());
+  const plan = new Map((subs ?? []).map((s) => [s.business_id as string, (s.plans as unknown as { code: string } | null)?.code]));
+  const planOf = (b: string) => plan.get(b);
+
+  const found = pageOf(sortBrowse(filterBrowse(rows, query), query.sort, planOf), query.page);
+  const ids = found.items.map((r) => r.id);
+  const { data: media } = ids.length
+    ? await admin.from("property_media").select("property_id, storage_path, thumb_path").in("property_id", ids).eq("kind", "photo").order("sort_order").order("created_at")
+    : { data: [] };
+  const cover = new Map<string, string>();
+  for (const m of media ?? []) if (!cover.has(m.property_id as string)) cover.set(m.property_id as string, (m.thumb_path ?? m.storage_path) as string);
+  return {
+    ...found,
+    all: rows.length,
+    items: found.items.map((r) => ({ ...r, featured: planRank(planOf(r.business_id)) > 0, thumb: cover.get(r.id) ?? null })),
+  };
 }
 
 /** The shareable address of a listing's public page. */

@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/l/"],
+      allow: ["/", "/l/", "/properties"],
       // The sign-in pages aren't listed here: they carry a "noindex" tag, which a crawler has to be allowed to read.
       disallow: ["/app/", "/admin/", "/api/", "/auth/", "/alerts/", "/invite/", "/onboarding", "/start"],
     },

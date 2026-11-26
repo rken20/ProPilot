@@ -67,6 +67,7 @@ export const jsonLdText = (data: unknown) => JSON.stringify(data).replace(/</g, 
 export function sitemapEntries(origin: string, listings: Array<{ id: string; updated_at: string | null }>): MetadataRoute.Sitemap {
   return [
     { url: `${origin}/`, changeFrequency: "weekly", priority: 1 },
+    { url: `${origin}/properties`, changeFrequency: "daily", priority: 0.9 },
     { url: `${origin}/get-app`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${origin}/privacy`, changeFrequency: "yearly", priority: 0.2 },
     ...listings.map((l) => ({

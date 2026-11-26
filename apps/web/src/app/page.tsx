@@ -57,6 +57,9 @@ export default async function Home() {
                 <Logo className="text-white" tone="dark" />
               </Link>
               <nav className="flex items-center gap-1.5">
+                <Link href="/properties" className="sh-link">
+                  Properties
+                </Link>
                 <Link href="/get-app" className="sh-link max-sm:hidden">
                   Get the App
                 </Link>
@@ -135,6 +138,7 @@ export default async function Home() {
               </div>
             </div>
           }
+          soundLabels={["Sound On", "Sound Off"]}
           mascot={
             // eslint-disable-next-line @next/next/no-img-element -- pre-sized static art
             <img src="/images/dashboard/mascot.webp" alt="" width={641} height={720} loading="lazy" />
@@ -260,6 +264,9 @@ export default async function Home() {
         <footer className="bg-frame-1 text-white">
           <div className={`${wrap} flex flex-col gap-4 py-8 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between`}>
             <Logo className="text-white" tone="dark" />
+            <Link href="/properties" className="font-semibold text-white/85 hover:text-white">
+              Properties
+            </Link>
             <Link href="/get-app" className="font-semibold text-white/85 hover:text-white">
               Get the App
             </Link>
