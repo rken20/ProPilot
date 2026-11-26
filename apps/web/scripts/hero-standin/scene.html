@@ -1,0 +1,280 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html, body { margin: 0; background: #0b1f4d; overflow: hidden; }
+      canvas { display: block; }
+    </style>
+    <script type="importmap">
+      { "imports": { "three": "./node_modules/three/build/three.module.js", "three/addons/": "./node_modules/three/examples/jsm/" } }
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      import * as THREE from "three";
+      import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+
+      const W = 1600, H = 900, BG = 0x0b1f4d;
+      const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+      renderer.setSize(W, H);
+      renderer.setPixelRatio(1);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.12;
+      document.body.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(BG);
+      const camera = new THREE.PerspectiveCamera(27, W / H, 1, 200);
+
+      scene.add(new THREE.HemisphereLight(0xdfeaff, 0x1a2c5e, 1.15));
+      const key = new THREE.DirectionalLight(0xfff1dc, 2.6);
+      key.position.set(-14, 22, 16);
+      key.castShadow = true;
+      key.shadow.mapSize.set(4096, 4096);
+      Object.assign(key.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 70 });
+      key.shadow.bias = -0.0004;
+      key.shadow.normalBias = 0.03;
+      key.shadow.radius = 5;
+      scene.add(key);
+      const fill = new THREE.DirectionalLight(0x9db9ff, 0.7);
+      fill.position.set(16, 8, -10);
+      scene.add(fill);
+
+      const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0, ...o });
+      const M = {
+        lawn: mat(0x58b368, { roughness: 0.95 }),
+        earth: mat(0x7a5a3c, { roughness: 1 }),
+        slab: mat(0xd9dee8),
+        wall: mat(0xf6f8fc, { roughness: 0.6 }),
+        wallB: mat(0xe7edf7, { roughness: 0.6 }),
+        accent: mat(0x1f5fd6, { roughness: 0.55 }),
+        roof: mat(0x2c3b5f, { roughness: 0.55 }),
+        wood: mat(0xb9753a, { roughness: 0.6 }),
+        frame: mat(0xffffff, { roughness: 0.5 }),
+        stone: mat(0xe3e6ec, { roughness: 0.9 }),
+        trunk: mat(0x8a5a35, { roughness: 0.9 }),
+        leaf: mat(0x3fa45a, { roughness: 0.9 }),
+        leaf2: mat(0x57bd6d, { roughness: 0.9 }),
+        hedge: mat(0x2f8f4c, { roughness: 0.95 }),
+        gold: mat(0xf5b63a, { roughness: 0.4, metalness: 0.2 }),
+      };
+      const glass = () => new THREE.MeshStandardMaterial({ color: 0x9cc6f2, roughness: 0.25, metalness: 0.1, emissive: 0xffc15a, emissiveIntensity: 0 });
+      const panes = [];
+
+      const box = (w, h, d, m, r = 0.06) => {
+        const g = r > 0 ? new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2.01, h / 2.01, d / 2.01)) : new THREE.BoxGeometry(w, h, d);
+        const mesh = new THREE.Mesh(g, m);
+        mesh.castShadow = mesh.receiveShadow = true;
+        return mesh;
+      };
+
+      // --- The plot: always there. ---
+      const plot = new THREE.Group();
+      const earth = box(15, 1.1, 12.5, M.earth, 0.45);
+      earth.position.y = -0.62;
+      const lawn = box(15, 0.3, 12.5, M.lawn, 0.14);
+      lawn.position.y = -0.15;
+      plot.add(earth, lawn);
+      scene.add(plot);
+
+      // A soft shadow floating under the plot.
+      {
+        const c = document.createElement("canvas");
+        c.width = c.height = 256;
+        const x = c.getContext("2d");
+        const g = x.createRadialGradient(128, 128, 10, 128, 128, 128);
+        g.addColorStop(0, "rgba(2,8,26,0.9)");
+        g.addColorStop(0.55, "rgba(2,8,26,0.35)");
+        g.addColorStop(1, "rgba(2,8,26,0)");
+        x.fillStyle = g;
+        x.fillRect(0, 0, 256, 256);
+        const s = new THREE.Mesh(new THREE.PlaneGeometry(22, 19), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, toneMapped: false }));
+        s.rotation.x = -Math.PI / 2;
+        s.position.y = -2.6;
+        scene.add(s);
+      }
+
+      // --- Blueprint lines on the grass. ---
+      const blueprint = new THREE.Group();
+      const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+      const line = (x1, z1, x2, z2) => {
+        const len = Math.hypot(x2 - x1, z2 - z1);
+        const m = new THREE.Mesh(new THREE.BoxGeometry(len, 0.02, 0.07), lineMat);
+        m.position.set((x1 + x2) / 2, 0.02, (z1 + z2) / 2);
+        m.rotation.y = -Math.atan2(z2 - z1, x2 - x1);
+        blueprint.add(m);
+      };
+      const rect = (x1, z1, x2, z2) => { line(x1, z1, x2, z1); line(x2, z1, x2, z2); line(x2, z2, x1, z2); line(x1, z2, x1, z1); };
+      rect(-5.2, -3.2, 0.4, 2.4);
+      rect(0.4, -2.6, 4.6, 2.4);
+      line(-2.4, -3.2, -2.4, 2.4); line(-5.2, -0.4, 0.4, -0.4); line(2.5, -2.6, 2.5, 2.4);
+      scene.add(blueprint);
+
+      // --- Pieces that fly in. ---
+      const pieces = [];
+      const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+      const easeBack = (x) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+      /** from: offset the piece starts at; pop: scales up from nothing with a little overshoot. */
+      function add(mesh, t0, t1, { from = [0, 0, 0], rot = [0, 0, 0], pop = false } = {}) {
+        mesh.traverse((o) => { if (o.isMesh) { o.material = o.material.clone(); if (o.userData.pane) panes.push(o.material); } });
+        scene.add(mesh);
+        pieces.push({ mesh, t0, t1, home: mesh.position.clone(), homeRot: mesh.rotation.clone(), from: new THREE.Vector3(...from), rot, pop });
+        return mesh;
+      }
+
+      const MX = -2.4, MZ = -0.4, MW = 5.6, MD = 5.6, FH = 2.9; // main block centre, size, storey height
+      const WX = 2.5, WZ = -0.1, WW = 4.2, WD = 5.0;             // wing
+      const T = 0.24;                                              // wall thickness
+
+      // Foundation.
+      const f1 = box(MW + 0.5, 0.36, MD + 0.5, M.slab, 0.08); f1.position.set(MX, 0.18, MZ);
+      const f2 = box(WW + 0.5, 0.36, WD + 0.5, M.slab, 0.08); f2.position.set(WX + 0.1, 0.18, WZ);
+      add(f1, 0.05, 0.16, { from: [0, -0.7, 0] });
+      add(f2, 0.08, 0.19, { from: [0, -0.7, 0] });
+
+      // Walls: four panels per storey, each from its own side.
+      function walls(cx, cz, w, d, y, h, m, t0, step) {
+        const y0 = y + h / 2;
+        const defs = [
+          [w, T, cx, cz + d / 2 - T / 2, [0, 0, 7]],
+          [w, T, cx, cz - d / 2 + T / 2, [0, 0, -7]],
+          [T, d, cx - w / 2 + T / 2, cz, [-7, 0, 0]],
+          [T, d, cx + w / 2 - T / 2, cz, [7, 0, 0]],
+        ];
+        defs.forEach(([bw, bd, x, z, from], i) => {
+          const p = box(bw, h, bd, m, 0.05);
+          p.position.set(x, y0, z);
+          add(p, t0 + i * step, t0 + i * step + 0.13, { from: [from[0], 3.5, from[2]], rot: [from[2] ? 0.5 * Math.sign(from[2]) : 0, 0, from[0] ? -0.5 * Math.sign(from[0]) : 0] });
+        });
+      }
+      walls(MX, MZ, MW, MD, 0.36, FH, M.wall, 0.15, 0.035);
+      walls(WX + 0.1, WZ, WW, WD, 0.36, FH, M.wallB, 0.21, 0.035);
+      // Floor between storeys, then the upper walls drop from above.
+      const mid = box(MW + 0.3, 0.22, MD + 0.3, M.slab, 0.06); mid.position.set(MX, 0.36 + FH + 0.11, MZ);
+      add(mid, 0.36, 0.45, { from: [0, 6, 0] });
+      const UY = 0.36 + FH + 0.22;
+      walls(MX, MZ, MW, MD, UY, FH - 0.2, M.wall, 0.40, 0.03);
+      // A blue band on the upper front, for the brand colour.
+      const band = box(MW + 0.04, 0.5, 0.1, M.accent, 0.04); band.position.set(MX, UY + 0.25, MZ + MD / 2 + 0.03);
+      add(band, 0.5, 0.58, { from: [0, 0, 4] });
+
+      // Roofs.
+      const topY = UY + FH - 0.2;
+      {
+        const s = new THREE.Shape();
+        const half = MD / 2 + 0.55, rise = 2.3;
+        s.moveTo(-half, 0); s.lineTo(half, 0); s.lineTo(0, rise); s.closePath();
+        const g = new THREE.ExtrudeGeometry(s, { depth: MW + 1.0, bevelEnabled: true, bevelSize: 0.08, bevelThickness: 0.08, bevelSegments: 3 });
+        g.translate(0, 0, -(MW + 1.0) / 2);
+        const roof = new THREE.Mesh(g, M.roof);
+        roof.castShadow = roof.receiveShadow = true;
+        roof.rotation.y = Math.PI / 2;
+        roof.position.set(MX, topY, MZ);
+        add(roof, 0.53, 0.68, { from: [0, 9, 0], rot: [0, 0.5, 0] });
+      }
+      const flat = box(WW + 0.7, 0.3, WD + 0.7, M.roof, 0.08); flat.position.set(WX + 0.1, 0.36 + FH + 0.15, WZ);
+      add(flat, 0.5, 0.62, { from: [0, 8, 0], rot: [0, -0.4, 0] });
+      const rail = box(WW + 0.3, 0.5, 0.1, M.frame, 0.04); rail.position.set(WX + 0.1, 0.36 + FH + 0.55, WZ + WD / 2 + 0.1);
+      add(rail, 0.6, 0.67, { pop: true });
+      const chim = box(0.8, 1.9, 0.8, M.wallB, 0.06); chim.position.set(MX - 1.3, topY + 1.5, MZ - 1.2);
+      add(chim, 0.62, 0.7, { from: [0, 6, 0] });
+
+      // Door and windows.
+      const FZ = MZ + MD / 2; // main front face
+      const door = new THREE.Group();
+      const dFrame = box(1.5, 2.45, 0.16, M.frame, 0.04);
+      const dLeaf = box(1.2, 2.2, 0.2, M.wood, 0.04); dLeaf.position.set(0, -0.06, 0.02);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 12), M.gold); knob.position.set(0.4, -0.1, 0.16);
+      door.add(dFrame, dLeaf, knob);
+      door.position.set(MX - 1.2, 0.36 + 1.22, FZ + 0.02);
+      add(door, 0.64, 0.71, { pop: true });
+      const step = box(2.0, 0.2, 0.9, M.stone, 0.05); step.position.set(MX - 1.2, 0.1, FZ + 0.6);
+      add(step, 0.66, 0.72, { pop: true });
+
+      function windowAt(x, y, z, w, h, ry, t0) {
+        const g = new THREE.Group();
+        const fr = box(w + 0.3, h + 0.3, 0.14, M.frame, 0.04);
+        const pane = box(w, h, 0.18, glass(), 0.02); pane.userData.pane = true; pane.castShadow = false;
+        const bar = box(0.07, h, 0.2, M.frame, 0);
+        g.add(fr, pane, bar);
+        if (w > 1.6) { const bar2 = box(w, 0.07, 0.2, M.frame, 0); g.add(bar2); }
+        g.position.set(x, y, z);
+        g.rotation.y = ry;
+        add(g, t0, t0 + 0.07, { pop: true });
+      }
+      windowAt(MX + 1.3, 0.36 + 1.6, FZ + 0.02, 1.5, 1.4, 0, 0.66);
+      windowAt(MX - 1.3, UY + 1.55, FZ + 0.02, 1.4, 1.3, 0, 0.69);
+      windowAt(MX + 1.3, UY + 1.55, FZ + 0.02, 1.4, 1.3, 0, 0.71);
+      windowAt(WX + 0.1, 0.36 + 1.5, WZ + WD / 2 + 0.02, 2.6, 1.7, 0, 0.73);
+      windowAt(WX + 0.1 + WW / 2 + 0.02, 0.36 + 1.6, WZ + 0.2, 1.8, 1.3, Math.PI / 2, 0.75);
+      windowAt(MX - MW / 2 - 0.02, UY + 1.55, MZ + 0.6, 1.4, 1.3, -Math.PI / 2, 0.74);
+      windowAt(MX - MW / 2 - 0.02, 0.36 + 1.6, MZ + 0.6, 1.4, 1.4, -Math.PI / 2, 0.76);
+
+      // Path, hedge, trees.
+      for (let i = 0; i < 4; i++) {
+        const s = box(1.3, 0.12, 0.62, M.stone, 0.05);
+        s.position.set(MX - 1.2 + (i % 2 ? 0.12 : -0.12), 0.06, FZ + 1.5 + i * 0.85);
+        s.rotation.y = (i % 2 ? 1 : -1) * 0.06;
+        add(s, 0.76 + i * 0.022, 0.81 + i * 0.022, { from: [0, 1.6, 0], pop: true });
+      }
+      [[1.0, 5.3, 2.6], [3.9, 5.3, 2.6], [6.6, 5.3, 1.3], [-5.4, 5.3, 2.4]].forEach(([x, z, w], i) => {
+        const h = box(w, 0.75, 0.75, M.hedge, 0.3);
+        h.position.set(x, 0.37, z);
+        add(h, 0.8 + i * 0.02, 0.86 + i * 0.02, { pop: true });
+      });
+      function tree(x, z, s, t0) {
+        const g = new THREE.Group();
+        const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.24, 1.9, 12), M.trunk); tr.position.y = 0.95; tr.castShadow = true;
+        const mk = (r, px, py, pz, m) => { const b = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 3), m); b.position.set(px, py, pz); b.castShadow = b.receiveShadow = true; return b; };
+        g.add(tr, mk(1.25, 0, 2.6, 0, M.leaf), mk(0.9, 0.75, 2.2, 0.3, M.leaf2), mk(0.8, -0.65, 2.3, -0.2, M.leaf2), mk(0.75, 0.1, 3.5, 0.1, M.leaf2));
+        g.position.set(x, 0, z);
+        g.scale.setScalar(s);
+        add(g, t0, t0 + 0.08, { pop: true });
+      }
+      tree(5.9, 3.4, 1.0, 0.82);
+      tree(-6.3, 1.6, 1.1, 0.85);
+      tree(6.1, -4.3, 0.8, 0.87);
+
+      const glow = new THREE.PointLight(0xffc15a, 0, 14, 1.6);
+      glow.position.set(MX + 0.5, 3.4, FZ + 2.2);
+      scene.add(glow);
+
+      const clamp = (x) => Math.min(1, Math.max(0, x));
+      const smooth = (x) => x * x * (3 - 2 * x);
+      const v = new THREE.Vector3();
+
+      window.renderAt = (t) => {
+        for (const p of pieces) {
+          const k = clamp((t - p.t0) / (p.t1 - p.t0));
+          p.mesh.visible = k > 0;
+          if (!p.mesh.visible) continue;
+          const e = easeOut(k);
+          p.mesh.position.copy(p.home).add(v.copy(p.from).multiplyScalar(1 - e));
+          p.mesh.rotation.set(p.homeRot.x + p.rot[0] * (1 - e), p.homeRot.y + p.rot[1] * (1 - e), p.homeRot.z + p.rot[2] * (1 - e));
+          const base = p.mesh.userData.base ?? (p.mesh.userData.base = p.mesh.scale.x);
+          p.mesh.scale.setScalar(base * (p.pop ? Math.max(0.001, easeBack(k)) : 1));
+          const a = p.pop ? 1 : clamp(k * 3.5);
+          p.mesh.traverse((o) => { if (o.isMesh) { o.material.transparent = a < 1; o.material.opacity = a; } });
+        }
+        lineMat.opacity = 0.9 * (1 - smooth(clamp((t - 0.1) / 0.22)));
+        blueprint.visible = lineMat.opacity > 0.01;
+        const lit = smooth(clamp((t - 0.9) / 0.08));
+        for (const m of panes) { m.emissiveIntensity = 1.5 * lit; m.color.setHex(0x9cc6f2).lerp(new THREE.Color(0xffdf9e), lit); }
+        glow.intensity = 30 * lit;
+
+        // A slow orbit to the right with a slight push in; the whole plot bobs a little.
+        const s = smooth(t);
+        const ang = THREE.MathUtils.degToRad(-34 + 20 * s);
+        const r = 47 - 2.5 * s;
+        camera.position.set(Math.sin(ang) * r * -1, 19 - 1.5 * s, Math.cos(ang) * r);
+        camera.lookAt(-0.2, 2.5, 0.2);
+        renderer.render(scene, camera);
+      };
+      window.renderAt(1);
+      window.ready = true;
+    </script>
+  </body>
+</html>

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Lang } from "@/lib/lang";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // In Taglish the buyer and the assistant write the way the AI chat does by default.
 const CHAT: Record<Lang, { question: string; answer: string }> = {
@@ -16,29 +16,42 @@ const CHAT: Record<Lang, { question: string; answer: string }> = {
 };
 
 /**
- * The home page's one moment: a buyer's question and the assistant's answer
- * play once when the page opens. Under reduced motion both show at once.
+ * A buyer's question and the assistant's answer play once, when the chat
+ * scrolls into view. Under reduced motion both show at once.
  */
 export function HeroChat({ lang }: { lang: Lang }) {
   const { question: QUESTION, answer: ANSWER } = CHAT[lang];
   // 0 nothing yet, 1 question, 2 typing, 3 answer
   const [step, setStep] = useState(0);
+  const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const plan: Array<[number, number]> = reduce
       ? [[0, 3]]
       : [
-          [700, 1],
-          [1300, 2],
-          [2900, 3],
+          [300, 1],
+          [900, 2],
+          [2500, 3],
         ];
-    const timers = plan.map(([delay, next]) => window.setTimeout(() => setStep(next), delay));
-    return () => timers.forEach(window.clearTimeout);
+    let timers: number[] = [];
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        io.disconnect();
+        timers = plan.map(([delay, next]) => window.setTimeout(() => setStep(next), delay));
+      },
+      { threshold: 0.5 },
+    );
+    if (box.current) io.observe(box.current);
+    return () => {
+      io.disconnect();
+      timers.forEach(window.clearTimeout);
+    };
   }, []);
 
   return (
-    <div className="flex min-h-[170px] flex-col justify-end gap-3" aria-label="Example question from a buyer">
+    <div ref={box} className="flex min-h-[170px] flex-col justify-end gap-3" aria-label="Example question from a buyer">
       {step >= 1 ? (
         <p className="pp-enter ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-[#1565e6] px-4 py-2.5 text-sm leading-relaxed text-white">
           {QUESTION}

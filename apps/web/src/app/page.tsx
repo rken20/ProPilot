@@ -12,6 +12,7 @@ import { getUser, homePathFor } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { Icon3d, type Icon3dName } from "@/components/icon-3d";
 import { HeroChat } from "./_home/hero-chat";
+import { ScrollHero } from "./_home/scroll-hero";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
@@ -48,80 +49,126 @@ export default async function Home() {
       </a>
 
       <main id="main">
-        {/* Hero: the dashboard's look, on the first screen. */}
-        <section className="flex min-h-svh flex-col">
-          <header className={`${wrap} flex items-center justify-between py-5`}>
-            <Link href="/" aria-label="MyHomeSeller home">
-              <Logo />
-            </Link>
-            <nav className="flex items-center gap-2">
-              <Link href="/get-app" className={buttonClass("ghost", "min-h-11 max-sm:hidden")}>
-                Get the App
+        {/* Opening: a house builds itself as the visitor scrolls, with the pitch in three beats over it. */}
+        <ScrollHero
+          header={
+            <header className={`${wrap} sh-header flex items-center justify-between py-5`}>
+              <Link href="/" aria-label="MyHomeSeller home">
+                <Logo className="text-white" tone="dark" />
               </Link>
-              <Link href="/login" className={buttonClass("ghost", "min-h-11")}>
-                Log In
-              </Link>
-              {configured ? (
-                <Link href="/signup" className={buttonClass("primary", "min-h-11 max-sm:hidden")}>
-                  Create an Account
+              <nav className="flex items-center gap-1.5">
+                <Link href="/get-app" className="sh-link max-sm:hidden">
+                  Get the App
                 </Link>
-              ) : null}
-            </nav>
-          </header>
+                <Link href="/login" className="sh-link">
+                  Log In
+                </Link>
+                {configured ? (
+                  <Link href="/signup" className={buttonClass("primary", "ml-1.5 min-h-11 max-sm:hidden")}>
+                    Create an Account
+                  </Link>
+                ) : null}
+              </nav>
+            </header>
+          }
+          lead={
+            <div className={wrap}>
+              <div className="sh-copy pp-stagger">
+                <p
+                  style={{ "--i": 0 } as React.CSSProperties}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#9fdcb8] bg-[#e2f6ea] px-3.5 py-1 text-sm font-bold text-[#0a6d39] max-sm:hidden"
+                >
+                  <CircleCheck className="size-4.5 fill-[#12a356] text-white" aria-hidden /> Free to start, AI from ₱499 a month
+                </p>
+                <h1 style={{ "--i": 1 } as React.CSSProperties} className="sh-h1 font-display sm:mt-5">
+                  The AI Sales Assistant for Property Owners and Agents
+                </h1>
+                <p style={{ "--i": 2 } as React.CSSProperties} className="sh-sub">
+                  {say(
+                    "It answers buyers on Messenger and on your listing's page day and night, using only the details you entered.",
+                    "Sumasagot ito sa buyers sa Messenger at sa page ng listing mo, araw at gabi, gamit lang ang details na nilagay mo.",
+                  )}
+                </p>
+                {configured ? (
+                  <div style={{ "--i": 3 } as React.CSSProperties}>
+                    <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row">
+                      <Link href="/signup" className={buttonClass("sun", "min-h-12 px-7 text-[15px]")}>
+                        Create Your Free Account <ArrowRight className="size-4" aria-hidden />
+                      </Link>
+                      <Link href="#plans" className="sh-outline max-sm:hidden">
+                        See the Plans
+                      </Link>
+                    </div>
+                    <p className="mt-5 text-sm text-white/60 max-lg:hidden">{say("Made in the Philippines, for Pag-IBIG, bank and in-house financing.", "Gawang Pinoy, para sa Pag-IBIG, bank at in-house financing.")}</p>
+                  </div>
+                ) : (
+                  <p className="mt-9 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                    Supabase isn&apos;t connected yet. Set the environment variables listed in <code>.env.example</code>.
+                  </p>
+                )}
+              </div>
+            </div>
+          }
+          second={
+            <div className={wrap}>
+              <div className="sh-copy sh-copy-far">
+                <h2 className="sh-h2 font-display">It Gets to Know Every Buyer</h2>
+                <p className="sh-sub">
+                  {say(
+                    "As it chats, it notes each buyer's budget, preferred area and timing, and scores the lead for you.",
+                    "Habang nakikipag-chat, tinatandaan nito ang budget, gustong area at timing ng bawat buyer, at binibigyan nito ng score ang lead para sa'yo.",
+                  )}
+                </p>
+              </div>
+            </div>
+          }
+          third={
+            <div className={wrap}>
+              <div className="sh-copy">
+                <h2 className="sh-h2 font-display">Then It Shows You Who Fits Each Property</h2>
+                <p className="sh-sub">{say("Open your dashboard and call the right buyer first.", "Buksan ang dashboard mo at ang tamang buyer ang unahin mong tawagan.")}</p>
+                {configured ? (
+                  <Link href="/signup" className={buttonClass("sun", "mt-6 min-h-12 px-7 text-[15px] sm:mt-8")}>
+                    Create Your Free Account <ArrowRight className="size-4" aria-hidden />
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          }
+          mascot={
+            // eslint-disable-next-line @next/next/no-img-element -- pre-sized static art
+            <img src="/images/dashboard/mascot.webp" alt="" width={641} height={720} loading="lazy" />
+          }
+        />
 
-          <div className={`${wrap} grid flex-1 items-center gap-12 pb-10 pt-6 lg:grid-cols-[1.05fr_1fr] lg:gap-14`}>
-            <div className="pp-stagger">
-              <p
-                style={{ "--i": 0 } as React.CSSProperties}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#9fdcb8] bg-[#e2f6ea] px-3.5 py-1 text-sm font-bold text-[#0a6d39]"
-              >
-                <CircleCheck className="size-4.5 fill-[#12a356] text-white" aria-hidden /> Free to start, AI from ₱499 a month
-              </p>
-              <h1 style={{ "--i": 1 } as React.CSSProperties} className="font-display mt-5 text-[2.4rem] leading-[1.06] font-extrabold text-ink sm:text-[3.2rem] lg:text-[3.5rem]">
-                The AI Sales Assistant for Property Owners and Agents
-              </h1>
-              <p style={{ "--i": 2 } as React.CSSProperties} className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
+        {/* The assistant at work, and four facts about the product. */}
+        <section className="border-t border-line">
+          <div className={`${wrap} grid items-center gap-12 py-16 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:py-20`}>
+            <div>
+              <h2 className="font-display text-[2rem] leading-tight font-extrabold sm:text-[2.6rem]">Watch It Answer a Buyer</h2>
+              <p className="mt-3 max-w-xl text-lg text-muted">
                 {say(
-                  "It answers buyers on Messenger and on your listing's page day and night, using only the details you entered. Then it sizes up each buyer and shows you who fits each property.",
-                  "Sumasagot ito sa buyers sa Messenger at sa page ng listing mo, araw at gabi, gamit lang ang details na nilagay mo. Tapos sinusuri nito ang bawat buyer at ipinapakita kung sino ang bagay sa bawat property.",
+                  "A buyer asks about the reservation fee and Pag-IBIG. The answer comes from the listing's own details.",
+                  "Nagtanong ang buyer tungkol sa reservation fee at Pag-IBIG. Galing sa sariling details ng listing ang sagot.",
                 )}
               </p>
-              {configured ? (
-                <div style={{ "--i": 3 } as React.CSSProperties}>
-                  <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                    <Link href="/signup" className={buttonClass("primary", "min-h-12 px-7 text-[15px]")}>
-                      Create Your Free Account <ArrowRight className="size-4" aria-hidden />
-                    </Link>
-                    <Link href="#plans" className={buttonClass("secondary", "min-h-12 px-7 text-[15px]")}>
-                      See the Plans
-                    </Link>
-                  </div>
-                  <p className="mt-5 text-sm text-muted">{say("Made in the Philippines, for Pag-IBIG, bank and in-house financing.", "Gawang Pinoy, para sa Pag-IBIG, bank at in-house financing.")}</p>
-                </div>
-              ) : (
-                <p className="mt-9 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-                  Supabase isn&apos;t connected yet. Set the environment variables listed in <code>.env.example</code>.
-                </p>
-              )}
+              <ul className="mt-8 grid grid-cols-2 gap-3">
+                {FACTS.map((f) => (
+                  <li key={f.label} className={`flex flex-col gap-2.5 rounded-[var(--radius-tile)] p-3.5 sm:flex-row sm:items-center sm:gap-3.5 sm:p-4 ${f.tile}`}>
+                    <span className={`grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br text-white shadow-[0_8px_18px_-8px_rgb(0_0_0/0.45)] ${f.circle}`}>
+                      <f.icon className="size-6" aria-hidden />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[13px] font-semibold text-ink/80">{f.label}</span>
+                      <span className="mt-0.5 block text-[1.75rem] leading-none font-extrabold tracking-tight tabular-nums sm:text-[2rem]">{f.value}</span>
+                      <span className="mt-1 block text-xs text-muted">{say(...f.note)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
-
             <AgentScene lang={lang} />
           </div>
-
-          <ul className={`${wrap} grid grid-cols-2 gap-3 pb-10 lg:grid-cols-4`}>
-            {FACTS.map((f) => (
-              <li key={f.label} className={`flex flex-col gap-2.5 rounded-[var(--radius-tile)] p-3.5 sm:flex-row sm:items-center sm:gap-3.5 sm:p-4 ${f.tile}`}>
-                <span className={`grid size-12 shrink-0 place-items-center rounded-full bg-gradient-to-br text-white shadow-[0_8px_18px_-8px_rgb(0_0_0/0.45)] ${f.circle}`}>
-                  <f.icon className="size-6" aria-hidden />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-[13px] font-semibold text-ink/80">{f.label}</span>
-                  <span className="mt-0.5 block text-[1.75rem] leading-none font-extrabold tracking-tight tabular-nums sm:text-[2rem]">{f.value}</span>
-                  <span className="mt-1 block text-xs text-muted">{say(...f.note)}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
         </section>
 
         {/* For agents: the real three-step sequence. */}
@@ -228,10 +275,10 @@ export default async function Home() {
 /** The dashboard's AI agent card: the mascot in front of the house scene, with a buyer's question being answered underneath. */
 function AgentScene({ lang }: { lang: Lang }) {
   return (
-    <div className="pp-enter mx-auto w-full max-w-[540px] overflow-hidden rounded-[2rem] border border-[var(--hero-line)] bg-white shadow-[var(--shadow-lift)] [animation-delay:160ms] lg:mx-0 lg:justify-self-end">
+    <div className="mx-auto w-full max-w-[540px] overflow-hidden rounded-[2rem] border border-[var(--hero-line)] bg-white shadow-[var(--shadow-lift)] lg:mx-0 lg:justify-self-end">
       <div className="relative isolate aspect-[3/2] overflow-hidden bg-[var(--hero-wash)]">
         {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized static art */}
-        <img src="/images/dashboard/house.webp" alt="" width={1600} height={893} fetchPriority="high" className="absolute inset-0 -z-10 size-full object-cover object-[38%_50%]" />
+        <img src="/images/dashboard/house.webp" alt="" width={1600} height={893} loading="lazy" className="absolute inset-0 -z-10 size-full object-cover object-[38%_50%]" />
         <p className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-[#9fdcb8] bg-[#e2f6ea] px-3 py-0.5 text-sm font-bold text-[#0a6d39]">
           <CircleCheck className="size-4.5 fill-[#12a356] text-white" aria-hidden /> Active 24/7
         </p>

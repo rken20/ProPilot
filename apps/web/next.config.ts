@@ -48,7 +48,11 @@ const nextConfig: NextConfig = {
     turbopackFileSystemCacheForBuild: false,
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // The home page's scroll frames. Each clip gets a new folder (v1, v2...), so these never change.
+      { source: "/hero-seq/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
+    ];
   },
   turbopack: {
     rules: {
