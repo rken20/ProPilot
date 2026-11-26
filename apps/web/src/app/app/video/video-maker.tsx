@@ -3,18 +3,34 @@
 import { useSay } from "@/components/lang";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Download, Pause, Play, RefreshCw, Share2, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { Download, ExternalLink, Pause, Play, RefreshCw, Send, Share2, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { Alert, Field, Panel, Select, buttonClass, cx } from "@/components/ui";
 import { drawFrame, timelineFor, type Photo, type RenderAd } from "@/lib/video-ad/draw";
+import { createClient } from "@/lib/supabase/client";
 import { PreviewSound, renderSoundtrack } from "@/lib/video-ad/audio";
+import { videoCaption } from "@/lib/video-ad/caption";
 import { ensureFonts, exportVideo, loadPhotos, type VideoFile } from "@/lib/video-ad/export";
 import type { AdPlan } from "@/lib/video-ad/plan";
 import { MUSIC, MUSIC_FOR, musicShape, soundCues } from "@/lib/video-ad/sound";
 import { SHAPES, SHAPE_IDS, TEMPLATES, TEMPLATE_IDS, adFor, cleanPlan, cleanText, type AdLanguage, type AdListing, type ShapeId, type TemplateId } from "@/lib/video-ad/spec";
-import type { startVideoAd, suggestAd } from "./actions";
+import type { postVideoAd, prepareVideoPost, startVideoAd, suggestAd } from "./actions";
 
 /** A listing to make an ad for. `thumbs` are small versions of `photos`, in the same order. */
-export type VideoItem = { id: string; listing: AdListing; photos: string[]; thumbs: string[] };
+export type VideoItem = { id: string; listing: AdListing; photos: string[]; thumbs: string[]; /** The listing's public page, if it has one. */ link: string | null };
+
+/** Posting a finished video to the business's Facebook Page. */
+export type FacebookPosting = {
+  /** Connected Pages this person may post to. */
+  pages: Array<{ id: string; name: string }>;
+  /** Whether the business has connected any Page at all. */
+  connected: boolean;
+  /** Whether this person's role may post. */
+  mayPost: boolean;
+  prepare: typeof prepareVideoPost;
+  post: typeof postVideoAd;
+};
+
+type Posting = { kind: "idle" } | { kind: "uploading" } | { kind: "posting" } | { kind: "done"; page: string; link?: string } | { kind: "error"; message: string };
 
 type Making =
   | { kind: "idle" }
@@ -72,6 +88,7 @@ export function VideoMaker({
   language,
   suggest,
   begin,
+  facebook,
 }: {
   items: VideoItem[];
   initialId: string;
@@ -82,6 +99,7 @@ export function VideoMaker({
   suggest: typeof suggestAd;
   /** Takes one video from the month's allowance (a server action). */
   begin: typeof startVideoAd;
+  facebook: FacebookPosting;
 }) {
   const say = useSay();
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
@@ -105,6 +123,10 @@ export function VideoMaker({
   const [playing, setPlaying] = useState(true);
   const [making, setMaking] = useState<Making>({ kind: "idle" });
   const [left, setLeft] = useState(limit === null ? null : Math.max(0, limit - used));
+  /** The record of the video that was made last, which a post to Facebook is tied to. */
+  const [adId, setAdId] = useState<string | null>(null);
+  const [posting, setPosting] = useState<Posting>({ kind: "idle" });
+  const [pageId, setPageId] = useState(facebook.pages[0]?.id ?? "");
   /** Whether the preview plays its sound. Off until pressed: browsers only allow sound after a tap. */
   const [hear, setHear] = useState(false);
   const [track, setTrack] = useState<{ key: string; buffer: AudioBuffer | null } | null>(null);
@@ -186,6 +208,7 @@ export function VideoMaker({
   /** A finished video is for the ad as it was: any change brings the Make button back. */
   const changed = () => {
     if (making.kind === "done" || making.kind === "error") setMaking({ kind: "idle" });
+    setPosting({ kind: "idle" });
   };
 
   function choose(nextId: string) {
@@ -311,6 +334,8 @@ export function VideoMaker({
       const res = await begin(id, template, shape, ad.text).catch(() => ({ ok: undefined, left: undefined, error: say("Couldn't reach the server. Check your connection and try again.", "Hindi maabot ang server. I-check ang connection mo at subukan ulit.") }));
       if (res.error || !res.ok) return setMaking({ kind: "error", message: res.error ?? "Couldn't start the video. Please try again." });
       counted.current = key;
+      setAdId(res.id ?? null);
+      setPosting({ kind: "idle" });
       if (res.left !== undefined) setLeft(res.left);
     }
     abort.current = new AbortController();
@@ -327,6 +352,25 @@ export function VideoMaker({
         message: say("The video couldn't be made on this device. It wasn't counted again, so you can press Make the Video once more, or try in Chrome on a computer.", "Hindi nagawa ang video sa device na ito. Hindi ito binilang ulit, kaya pwede mong pindutin ulit ang Make the Video, o subukan sa Chrome sa computer."),
       });
     }
+  }
+
+  /** The owner pressed Post: only now does the video leave the device, to go to their Facebook Page. */
+  async function postToPage() {
+    if (making.kind !== "done" || !adId || !pageId || posting.kind === "uploading" || posting.kind === "posting") return;
+    const offline = say("Couldn't reach the server. Check your connection and try again.", "Hindi maabot ang server. I-check ang connection mo at subukan ulit.");
+    const { blob, ext } = making.file;
+    setPosting({ kind: "uploading" });
+    const link = await facebook.prepare(adId, ext).catch(() => ({ bucket: undefined, path: undefined, token: undefined, error: offline }));
+    if (link.error || !link.bucket || !link.path || !link.token) return setPosting({ kind: "error", message: link.error ?? offline });
+    const sent = await createClient()
+      .storage.from(link.bucket)
+      .uploadToSignedUrl(link.path, link.token, blob, { contentType: `video/${ext}`, upsert: true })
+      .catch(() => ({ error: true }));
+    if (sent.error) return setPosting({ kind: "error", message: say("The video couldn't be uploaded. Check your connection and try again.", "Hindi na-upload ang video. I-check ang connection mo at subukan ulit.") });
+    setPosting({ kind: "posting" });
+    const res = await facebook.post(adId, ext, pageId).catch(() => ({ postedTo: undefined, link: undefined, error: offline }));
+    if (res.error || !res.postedTo) return setPosting({ kind: "error", message: res.error ?? offline });
+    setPosting({ kind: "done", page: res.postedTo, link: res.link });
   }
 
   async function share() {
@@ -554,6 +598,58 @@ export function VideoMaker({
                   </Alert>
                 </div>
               )}
+              <div className="mt-4 rounded-2xl border border-line p-4">
+                <p className="text-sm font-bold">Post to Your Facebook Page</p>
+                {!facebook.mayPost ? (
+                  <p className="mt-1 text-xs text-muted">{say("Your role can't post to Facebook. An owner, admin or marketing teammate can.", "Hindi pwedeng mag-post sa Facebook ang role mo. Pwede ang owner, admin o marketing na teammate.")}</p>
+                ) : !facebook.pages.length ? (
+                  <p className="mt-1 text-xs text-muted">
+                    {facebook.connected
+                      ? say("You need to be an admin or editor of the connected Page to post there.", "Kailangan admin o editor ka ng naka-connect na Page para makapag-post doon.")
+                      : say("Connect your Facebook Page first.", "I-connect muna ang Facebook Page mo.")}{" "}
+                    <Link href="/app/integrations" className="font-bold text-grape-700 hover:underline">
+                      Integrations
+                    </Link>
+                  </p>
+                ) : posting.kind === "done" ? (
+                  <div className="mt-2">
+                    <Alert tone="success">
+                      {say(`Posted to ${posting.page}. Facebook may take a minute to show the video.`, `Na-post na sa ${posting.page}. Baka abutin ng isang minuto bago lumabas ang video sa Facebook.`)}
+                    </Alert>
+                    {posting.link ? (
+                      <a href={posting.link} target="_blank" rel="noreferrer" className={cx(buttonClass("secondary"), "mt-2")}>
+                        <ExternalLink className="size-4" aria-hidden /> View on Facebook
+                      </a>
+                    ) : null}
+                  </div>
+                ) : (
+                  <>
+                    {facebook.pages.length > 1 ? (
+                      <Select aria-label="Facebook Page" value={pageId} onChange={(e) => setPageId(e.target.value)} disabled={posting.kind === "uploading" || posting.kind === "posting"} className="mt-2">
+                        {facebook.pages.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : null}
+                    <p className="mt-2 text-xs text-muted">{say(`It goes on ${facebook.pages.find((p) => p.id === pageId)?.name ?? "your Page"} with this caption:`, `Mapo-post ito sa ${facebook.pages.find((p) => p.id === pageId)?.name ?? "Page mo"} na may ganitong caption:`)}</p>
+                    {ad ? <p className="mt-1.5 max-h-40 overflow-y-auto rounded-xl bg-grape-50 p-3 text-xs whitespace-pre-line text-ink/90">{videoCaption(ad.text, item.listing, item.link)}</p> : null}
+                    <button type="button" onClick={() => void postToPage()} disabled={!adId || posting.kind === "uploading" || posting.kind === "posting"} className={cx(buttonClass("primary"), "mt-3 w-full")}>
+                      <Send className="size-4" aria-hidden />
+                      {posting.kind === "uploading" ? "Uploading the video…" : posting.kind === "posting" ? "Posting to Facebook…" : "Post to Facebook"}
+                    </button>
+                    <p className="mt-2 text-xs text-muted">
+                      {say("The video is uploaded only when you press Post, and our copy is deleted a day later.", "Ina-upload lang ang video kapag pinindot mo ang Post, at binubura ang kopya namin pagkalipas ng isang araw.")}
+                    </p>
+                    {posting.kind === "error" ? (
+                      <div className="mt-2">
+                        <Alert>{posting.message}</Alert>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </div>
               <div className="mt-4">{anotherButton}</div>
             </div>
           ) : (

@@ -5,17 +5,20 @@ import { can } from "@propilot/shared";
 import { PageHeader, buttonClass } from "@/components/ui";
 import { Icon3d } from "@/components/icon-3d";
 import { requireBusiness } from "@/lib/auth";
+import { businessPages } from "@/lib/facebook-pages";
 import { manilaMonthStart } from "@/lib/matching";
 import { mediaUrl } from "@/lib/media";
+import { canPublish } from "@/lib/meta";
 import { businessPlan } from "@/lib/plan";
+import { siteOrigin } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { AD_COLUMNS, adListing } from "@/lib/video-ad/listing";
 import { MAX_PHOTOS, type AdLanguage } from "@/lib/video-ad/spec";
-import { startVideoAd, suggestAd } from "./actions";
+import { postVideoAd, prepareVideoPost, startVideoAd, suggestAd } from "./actions";
 import { VideoMaker, type VideoItem } from "./video-maker";
 
-// The AI making an ad (it looks at the photos) takes several seconds.
-export const maxDuration = 30;
+// The AI making an ad (it looks at the photos) takes several seconds, and Facebook takes its time fetching a posted video.
+export const maxDuration = 60;
 
 export default async function VideoAdPage({ searchParams }: PageProps<"/app/video">) {
   const say = await appSay();
@@ -57,11 +60,13 @@ export default async function VideoAdPage({ searchParams }: PageProps<"/app/vide
   }
 
   const supabase = await createClient();
-  const [{ data: rows }, { count: used }, { data: settings }] = await Promise.all([
-    supabase.from("properties").select(AD_COLUMNS).eq("business_id", biz.businessId).in("status", ["available", "reserved"]).order("updated_at", { ascending: false }).limit(60),
+  const [{ data: rows }, { count: used }, { data: settings }, pages] = await Promise.all([
+    supabase.from("properties").select(`${AD_COLUMNS}, is_public`).eq("business_id", biz.businessId).in("status", ["available", "reserved"]).order("updated_at", { ascending: false }).limit(60),
     supabase.from("video_ads").select("id", { count: "exact", head: true }).eq("business_id", biz.businessId).gte("created_at", manilaMonthStart()),
     supabase.from("agent_settings").select("chat_language").eq("business_id", biz.businessId).maybeSingle(),
+    businessPages(biz.businessId),
   ]);
+  const origin = siteOrigin();
   const ids = (rows ?? []).map((r) => r.id as string);
   const { data: media } = ids.length
     ? await supabase.from("property_media").select("property_id, storage_path, thumb_path").in("property_id", ids).eq("kind", "photo").order("sort_order").order("created_at")
@@ -77,6 +82,8 @@ export default async function VideoAdPage({ searchParams }: PageProps<"/app/vide
     listing: adListing(r as Parameters<typeof adListing>[0], biz.businessName),
     photos: (photos.get(r.id as string) ?? []).map((p) => p.full),
     thumbs: (photos.get(r.id as string) ?? []).map((p) => p.thumb),
+    // The listing's public page, named in the caption when the ad is posted to Facebook.
+    link: r.is_public && origin ? `${origin}/l/${r.id as string}` : null,
   }));
   const wanted = typeof sp.property === "string" ? items.find((i) => i.id === sp.property)?.id : undefined;
   const language: AdLanguage = settings?.chat_language === "english" ? "english" : "taglish";
@@ -85,7 +92,13 @@ export default async function VideoAdPage({ searchParams }: PageProps<"/app/vide
     <>
       {header}
       {items.length ? (
-        <VideoMaker items={items} initialId={wanted ?? items.find((i) => i.photos.length)?.id ?? items[0]!.id} used={used ?? 0} limit={plan.videoAds} language={language} suggest={suggestAd} begin={startVideoAd} />
+        <VideoMaker items={items} initialId={wanted ?? items.find((i) => i.photos.length)?.id ?? items[0]!.id} used={used ?? 0}
+          limit={plan.videoAds}
+          language={language}
+          suggest={suggestAd}
+          begin={startVideoAd}
+          facebook={{ pages: pages.filter((p) => canPublish(p.tasks)).map((p) => ({ id: p.id, name: p.name })), connected: pages.length > 0, mayPost: can(biz.role, "content.publish"), prepare: prepareVideoPost, post: postVideoAd }}
+        />
       ) : (
         <div className="grid min-h-72 place-items-center rounded-[1.5rem] border-2 border-dashed border-grape-100 p-8 text-center">
           <div>

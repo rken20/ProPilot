@@ -12,6 +12,7 @@ import {
   parseSignedRequest,
   postImageUrls,
   publishPost,
+  publishVideo,
   type MetaConfig,
 } from "./meta";
 
@@ -81,6 +82,27 @@ describe("Graph calls", () => {
     const body = f.mock.calls[0]![1].body as URLSearchParams;
     expect(body.get("message")).toBe("Hello");
     expect(body.get("attached_media[1]")).toBe('{"media_fbid":"p2"}');
+  });
+
+  it("publishes a video from a link Facebook fetches, and reads back its post and link", async () => {
+    const f = vi
+      .fn()
+      .mockImplementationOnce(json({ id: "9001" }))
+      .mockImplementationOnce(json({ post_id: "111_9002", permalink_url: "/page/videos/9001/" }));
+    const r = await publishVideo(f, cfg, "111", "pt", "https://files.example/v.mp4?token=abc", "Caption", "T".repeat(140));
+    expect(r).toEqual({ videoId: "9001", postId: "111_9002", permalink: "https://www.facebook.com/page/videos/9001/" });
+    const [url, init] = f.mock.calls[0]!;
+    expect(url).toBe("https://graph.facebook.com/v25.0/111/videos");
+    const body = init.body as URLSearchParams;
+    expect(body.get("file_url")).toBe("https://files.example/v.mp4?token=abc");
+    expect(body.get("description")).toBe("Caption");
+    expect(body.get("title")).toHaveLength(100);
+    expect(body.get("appsecret_proof")).toBe(appSecretProof("pt", "shh"));
+  });
+
+  it("still counts a video as posted when its link can't be read yet", async () => {
+    const f = vi.fn().mockImplementationOnce(json({ id: "9001" })).mockImplementationOnce(json({ error: { message: "processing", code: 100 } }, 400));
+    expect(await publishVideo(f, cfg, "111", "pt", "https://files.example/v.mp4", "Caption", "Title")).toEqual({ videoId: "9001", postId: undefined, permalink: undefined });
   });
 });
 

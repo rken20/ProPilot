@@ -84,9 +84,9 @@ async function get<T>(f: Fetch, cfg: MetaConfig, path: string, token: string, pa
   return call<T>(f, `${graph(cfg, path)}?${q}`);
 }
 
-async function post<T>(f: Fetch, cfg: MetaConfig, path: string, token: string, params: Record<string, string>): Promise<T> {
+async function post<T>(f: Fetch, cfg: MetaConfig, path: string, token: string, params: Record<string, string>, timeoutMs?: number): Promise<T> {
   const body = new URLSearchParams({ ...params, access_token: token, appsecret_proof: appSecretProof(token, cfg.appSecret) });
-  return call<T>(f, graph(cfg, path), { method: "POST", body });
+  return call<T>(f, graph(cfg, path), { method: "POST", body, ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}) });
 }
 
 // ------------------------------------------------------------------ login
@@ -240,6 +240,39 @@ export async function publishPost(
     /* the post is up; the link is a nicety */
   }
   return { id, permalink: permalink?.startsWith("https://") ? permalink : undefined };
+}
+
+export const MAX_VIDEO_TITLE = 100;
+
+/**
+ * Publish a video to the Page. Facebook fetches the file from `fileUrl` itself,
+ * so the link has to work without signing in and for long enough to be fetched.
+ * The post's own id and link come from a second read and may be missing while
+ * Facebook is still processing the video.
+ */
+export async function publishVideo(
+  f: Fetch,
+  cfg: MetaConfig,
+  pageId: string,
+  pageToken: string,
+  fileUrl: string,
+  description: string,
+  title: string,
+): Promise<{ videoId: string; postId?: string; permalink?: string }> {
+  // Fetching a video takes Facebook longer than a text post does.
+  const { id } = await post<{ id: string }>(f, cfg, `${pageId}/videos`, pageToken, { file_url: fileUrl, description, title: title.slice(0, MAX_VIDEO_TITLE) }, 50_000);
+  let postId: string | undefined;
+  let permalink: string | undefined;
+  try {
+    const more = await get<{ post_id?: string; permalink_url?: string }>(f, cfg, id, pageToken, { fields: "post_id,permalink_url" });
+    if (/^\d+(_\d+)?$/.test(more.post_id ?? "")) postId = more.post_id;
+    // A video's link comes back as a path on facebook.com.
+    const link = more.permalink_url ?? "";
+    permalink = link.startsWith("https://") ? link : /^\/[^/]/.test(link) ? `https://www.facebook.com${link}` : undefined;
+  } catch {
+    /* the video is up; the link is a nicety */
+  }
+  return { videoId: id, postId, permalink };
 }
 
 // ------------------------------------------------------------------ data deletion

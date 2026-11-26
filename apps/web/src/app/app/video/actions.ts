@@ -5,12 +5,17 @@ import Anthropic from "@anthropic-ai/sdk";
 import { revalidatePath } from "next/cache";
 import { can } from "@propilot/shared";
 import { requireBusiness, requireUser } from "@/lib/auth";
+import { pageWithToken, RECONNECT_MESSAGE } from "@/lib/facebook-pages";
 import { DEFAULT_MODEL } from "@/lib/listing-assistant";
+import { GraphError, canPublish, metaConfig, publishVideo } from "@/lib/meta";
 import { businessPlan } from "@/lib/plan";
+import { siteOrigin } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { videoCaption } from "@/lib/video-ad/caption";
 import { AD_COLUMNS, adListing } from "@/lib/video-ad/listing";
 import { planVideoAd, type AdPlan, type PlanAsk } from "@/lib/video-ad/plan";
+import { VIDEO_BUCKET, VIDEO_EXTS, videoUploadPath, type VideoExt } from "@/lib/video-ad/uploads";
 import { MAX_PHOTOS, SHAPE_IDS, TEMPLATE_IDS, cleanText, type AdLanguage, type AdText, type ShapeId, type TemplateId } from "@/lib/video-ad/spec";
 import { mediaUrl } from "@/lib/media";
 import type { Say } from "@/lib/lang";
@@ -64,7 +69,7 @@ export async function suggestAd(propertyId: string, ask?: PlanAsk): Promise<{ pl
  * the file. The video itself never comes here: it is made and kept on the
  * owner's device.
  */
-export async function startVideoAd(propertyId: string, template: TemplateId, shape: ShapeId, text: AdText): Promise<{ ok?: true; left?: number | null; error?: string }> {
+export async function startVideoAd(propertyId: string, template: TemplateId, shape: ShapeId, text: AdText): Promise<{ ok?: true; id?: string; left?: number | null; error?: string }> {
   const say = await appSay();
   const [biz, user] = await Promise.all([requireBusiness(), requireUser()]);
   if (!mayMake(biz.role)) return { error: say("Your role can't make video ads.", "Hindi pwedeng gumawa ng video ads ang role mo.") };
@@ -95,5 +100,85 @@ export async function startVideoAd(propertyId: string, template: TemplateId, sha
     left = Math.max(0, plan.videoAds - (count ?? 0));
   }
   revalidatePath("/app/video");
-  return { ok: true, left };
+  return { ok: true, id: id as string, left };
+}
+
+const cantPost = (say: Say) => say("Your role can't post to Facebook.", "Hindi pwedeng mag-post sa Facebook ang role mo.");
+const notAvailable = (say: Say) => say("Posting to Facebook isn't available right now.", "Hindi available ang pag-post sa Facebook ngayon.");
+
+/** The video ad as it was recorded when it was made, if it is this business's. */
+async function recordedAd(videoAdId: string, businessId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("video_ads").select("id, property_id, ad_text").eq("id", videoAdId).eq("business_id", businessId).maybeSingle();
+  return data as { id: string; property_id: string | null; ad_text: Partial<AdText> | null } | null;
+}
+
+/**
+ * Step one of posting a video ad to a Facebook Page: a one-time link the
+ * browser uploads the finished file through. The file is too large to pass
+ * through this server, and nothing is uploaded unless the owner asks to post.
+ */
+export async function prepareVideoPost(videoAdId: string, ext: string): Promise<{ bucket?: string; path?: string; token?: string; error?: string }> {
+  const say = await appSay();
+  const biz = await requireBusiness();
+  if (!can(biz.role, "content.publish")) return { error: cantPost(say) };
+  if (!UUID.test(videoAdId) || !VIDEO_EXTS.includes(ext as VideoExt)) return { error: notAvailable(say) };
+  const admin = createAdminClient();
+  if (!admin || !(await recordedAd(videoAdId, biz.businessId))) return { error: notAvailable(say) };
+  const { data, error } = await admin.storage.from(VIDEO_BUCKET).createSignedUploadUrl(videoUploadPath(biz.businessId, videoAdId, ext as VideoExt), { upsert: true });
+  if (error || !data) return { error: notAvailable(say) };
+  return { bucket: VIDEO_BUCKET, path: data.path, token: data.token };
+}
+
+/**
+ * Step two: post the uploaded video to one of the business's connected Pages,
+ * with a caption made from the ad's own words and the listing's own facts.
+ * Pressing Post is the owner's approval; the caption they were shown is built
+ * here again from the same record, never taken from the browser.
+ */
+export async function postVideoAd(videoAdId: string, ext: string, pageRowId: string): Promise<{ postedTo?: string; link?: string; error?: string }> {
+  const say = await appSay();
+  const [biz, user] = await Promise.all([requireBusiness(), requireUser()]);
+  if (!can(biz.role, "content.publish")) return { error: cantPost(say) };
+  const cfg = metaConfig();
+  const admin = createAdminClient();
+  if (!cfg || !admin || !UUID.test(videoAdId) || !VIDEO_EXTS.includes(ext as VideoExt)) return { error: notAvailable(say) };
+  const ad = await recordedAd(videoAdId, biz.businessId);
+  if (!ad?.property_id) return { error: notAvailable(say) };
+
+  const page = await pageWithToken(biz.businessId, pageRowId);
+  if (!page) return { error: say("Pick a connected Page.", "Pumili ng naka-connect na Page.") };
+  if (!canPublish(page.tasks)) return { error: say(`You need to be an admin or editor of ${page.name} on Facebook to post there.`, `Kailangan admin o editor ka ng ${page.name} sa Facebook para makapag-post doon.`) };
+
+  // Posting the same video to the same Page twice is almost always a second press.
+  const { data: earlier } = await admin.from("facebook_posts").select("permalink_url").eq("video_ad_id", videoAdId).eq("page_id", page.pageId).eq("status", "published").limit(1).maybeSingle();
+  if (earlier) return { postedTo: page.name, link: (earlier.permalink_url as string | null) ?? undefined };
+
+  const { supabase, listing } = await load(ad.property_id, biz.businessId, biz.businessName);
+  if (!listing) return { error: say("This listing is no longer available or reserved, so its ad can't be posted.", "Hindi na available o reserved ang listing na ito, kaya hindi na ma-post ang ad nito.") };
+  const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "fb_publish", p_limit: 10, p_window_seconds: 3600 });
+  if (allowed !== true) return { error: say("You've posted a lot in the last hour. Please try again later.", "Marami ka nang na-post nitong huling oras. Paki-try ulit mamaya.") };
+
+  const path = videoUploadPath(biz.businessId, videoAdId, ext as VideoExt);
+  // Facebook fetches the file itself, so it gets a link that works for an hour and for this file only.
+  const { data: file } = await admin.storage.from(VIDEO_BUCKET).createSignedUrl(path, 3600);
+  if (!file?.signedUrl) return { error: say("The video didn't finish uploading. Please try again.", "Hindi natapos ang upload ng video. Paki-try ulit.") };
+  const { data: property } = await supabase.from("properties").select("is_public").eq("id", ad.property_id).maybeSingle();
+  const origin = siteOrigin();
+  const link = property?.is_public && origin ? `${origin}/l/${ad.property_id}` : null;
+  const text = cleanText({ hook: String(ad.ad_text?.hook ?? ""), lines: Array.isArray(ad.ad_text?.lines) ? ad.ad_text.lines.map(String) : [], cta: String(ad.ad_text?.cta ?? "") });
+
+  const log = { business_id: biz.businessId, property_id: ad.property_id, page_id: page.pageId, page_name: page.name, created_by: user.id, kind: "video", video_ad_id: videoAdId };
+  try {
+    const res = await publishVideo(fetch, cfg, page.pageId, page.token, file.signedUrl, videoCaption(text, listing, link), listing.name);
+    await admin.from("facebook_posts").insert({ ...log, status: "published", fb_video_id: /^[0-9]{5,30}$/.test(res.videoId) ? res.videoId : null, fb_post_id: res.postId ?? null, permalink_url: res.permalink ?? null });
+    revalidatePath(`/app/properties/${ad.property_id}`);
+    return { postedTo: page.name, link: res.permalink };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    await admin.from("facebook_posts").insert({ ...log, status: "failed", error: message.slice(0, 300) });
+    if (e instanceof GraphError && e.tokenInvalid) return { error: RECONNECT_MESSAGE };
+    console.error("[meta] video post failed:", message);
+    return { error: say("Facebook didn't accept the video. Please try again in a minute.", "Hindi tinanggap ng Facebook ang video. Paki-try ulit pagkalipas ng isang minuto.") };
+  }
 }

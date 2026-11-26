@@ -72,6 +72,28 @@ describe("making a video ad", () => {
   });
 });
 
+describe("posting a video ad to a Facebook Page", () => {
+  it("keeps the uploaded file out of everyone's reach: only the server touches the bucket", async () => {
+    const bucket = await db.query<{ public: boolean; allowed_mime_types: string[] }>(`select public, allowed_mime_types from storage.buckets where id = 'video-ads'`);
+    expect(bucket.rows).toEqual([{ public: false, allowed_mime_types: ["video/mp4", "video/webm"] }]);
+    await db.query(`insert into storage.objects (bucket_id, name) values ('video-ads', $1)`, [`${biz}/a.mp4`]);
+    await expect(as(db, OWNER, () => db.query(`insert into storage.objects (bucket_id, name) values ('video-ads', $1)`, [`${biz}/b.mp4`]))).rejects.toThrow(/row-level security/);
+    expect((await as(db, OWNER, () => db.query(`select name from storage.objects where bucket_id = 'video-ads'`))).rows).toHaveLength(0);
+    await as(db, OWNER, () => db.query(`delete from storage.objects where bucket_id = 'video-ads'`));
+    expect((await db.query(`select name from storage.objects where bucket_id = 'video-ads'`)).rows).toHaveLength(1);
+  });
+
+  it("logs the post with its video ad, for the team to read and only the server to write", async () => {
+    const ad = (await db.query<{ id: string }>(`select id from public.video_ads where business_id = $1 limit 1`, [biz])).rows[0]!.id;
+    const log = `insert into public.facebook_posts (business_id, property_id, page_id, page_name, kind, status, fb_post_id, video_ad_id, fb_video_id) values ($1, $2, '111', 'Page (test)', 'video', 'published', '111_222', $3, $4)`;
+    await expect(as(db, OWNER, () => db.query(log, [biz, listing, ad, "1234567890"]))).rejects.toThrow(/row-level security/);
+    await db.query(log, [biz, listing, ad, "1234567890"]);
+    await expect(db.query(log, [biz, listing, ad, "not-a-video-id"])).rejects.toThrow(/check/);
+    expect((await as(db, MARKETER, () => db.query(`select fb_video_id from public.facebook_posts where video_ad_id = $1`, [ad]))).rows).toEqual([{ fb_video_id: "1234567890" }]);
+    expect((await as(db, RIVAL, () => db.query(`select 1 from public.facebook_posts where video_ad_id = $1`, [ad]))).rows).toHaveLength(0);
+  });
+});
+
 describe("plans", () => {
   it("give 10 video ads a month to Pro and 30 to Agency, none to Free and Basic", async () => {
     const rows = await db.query<{ code: string; limit: number | null }>(
