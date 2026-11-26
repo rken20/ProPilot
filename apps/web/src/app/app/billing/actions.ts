@@ -7,13 +7,11 @@ import { getOrigin, requireBusiness, requireUser } from "@/lib/auth";
 import { emailSuperAdmins } from "@/lib/billing-email";
 import { str } from "@/lib/form";
 import { formatPeso } from "@/lib/money";
-import { cleanGcashReference, PAID_PLANS } from "@/lib/plan-rules";
+import { cleanGcashReference, MAX_MONTHS, PAID_PLANS, validMonths } from "@/lib/plan-rules";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type PayState = { error?: string; sent?: number };
-
-const MONTHS = [1, 3, 6, 12];
 
 /** The owner reports a GCash payment. A super admin checks it in GCash before the plan turns on. */
 export async function submitGcashPayment(_prev: PayState, form: FormData): Promise<PayState> {
@@ -26,7 +24,7 @@ export async function submitGcashPayment(_prev: PayState, form: FormData): Promi
   const planCode = str(form, "plan");
   if (!(PAID_PLANS as readonly string[]).includes(planCode)) return { error: "Pick a plan." };
   const months = Number(str(form, "months"));
-  if (!MONTHS.includes(months)) return { error: say("Pick how many months.", "Piliin kung ilang months.") };
+  if (!validMonths(months)) return { error: say(`Pick how many months, from 1 to ${MAX_MONTHS}.`, `Piliin kung ilang months, mula 1 hanggang ${MAX_MONTHS}.`) };
   const reference = cleanGcashReference(str(form, "reference"));
   if (!reference) return { error: say("The GCash reference number is 13 digits. You'll find it on the receipt in your GCash app.", "13 digits ang GCash reference number. Makikita mo ito sa receipt sa GCash app mo.") };
   const payerName = str(form, "payerName").trim().slice(0, 120);

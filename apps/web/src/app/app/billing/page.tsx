@@ -183,14 +183,15 @@ export default async function BillingPage() {
           </p>
           {!canPay ? (
             <p className="text-sm text-muted">{say("Only the business owner can pay for a plan.", "Business owner lang ang pwedeng magbayad ng plan.")}</p>
-          ) : !gcashNumber || !gcashName ? (
-            <p className="text-sm text-muted">{say("GCash payments aren't set up yet. Please check back soon.", "Hindi pa naka-set up ang GCash payments. Paki-check ulit soon.")}</p>
           ) : pending ? (
             <p className="text-sm text-muted">{say("You can pay again once we've checked your current payment.", "Pwede ka ulit magbayad kapag na-check na namin ang kasalukuyan mong payment.")}</p>
           ) : (
             <GcashPayForm
               plans={paid.map((x) => ({ code: x.code as string, name: x.name as string, priceMinor: x.price_minor as number }))}
-              defaultCode={plan.code === FREE_PLAN ? undefined : plan.code} gcashNumber={gcashNumber} gcashName={gcashName} />
+              defaultCode={plan.code === FREE_PLAN ? undefined : plan.code}
+              current={{ code: plan.code, periodEnd: plan.periodEnd }}
+              gcash={gcashNumber && gcashName ? { number: gcashNumber, name: gcashName } : null}
+            />
           )}
         </Panel>
       ) : null}

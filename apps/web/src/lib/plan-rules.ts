@@ -21,6 +21,33 @@ export function effectivePlanCode(sub: { code: string; current_period_end: strin
   return new Date(sub.current_period_end) > now ? sub.code : FREE_PLAN;
 }
 
+/** A payment covers 1 to 12 months (the database refuses anything else). */
+export const MAX_MONTHS = 12;
+/** The lengths offered as one-tap choices; any whole number up to MAX_MONTHS can be picked. */
+export const QUICK_MONTHS = [1, 3, 6, 12] as const;
+export const validMonths = (n: number) => Number.isInteger(n) && n >= 1 && n <= MAX_MONTHS;
+
+/** `months` later on the calendar. A day the month doesn't have becomes its last day, as the database does. */
+export function addMonths(from: Date, months: number): Date {
+  const d = new Date(from);
+  const day = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  d.setUTCDate(Math.min(day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate()));
+  return d;
+}
+
+/**
+ * What a payment for `months` of `planCode` would buy if it were confirmed at
+ * `now`, by the same rule the database applies: renewing the plan you are on
+ * adds the months to its end; anything else starts when it is confirmed.
+ */
+export function paidUntil(now: Date, current: { code: string; periodEnd: string | null }, planCode: string, months: number): { until: Date; addsOn: boolean } {
+  const end = current.periodEnd ? new Date(current.periodEnd) : null;
+  const addsOn = Boolean(end && current.code === planCode && end > now);
+  return { until: addMonths(addsOn ? end! : now, months), addsOn };
+}
+
 export function daysLeft(periodEnd: string | null, now: Date): number | null {
   if (!periodEnd) return null;
   return Math.max(0, Math.ceil((new Date(periodEnd).getTime() - now.getTime()) / 86_400_000));
