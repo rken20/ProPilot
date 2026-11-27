@@ -40,8 +40,8 @@ export default async function PricingPage({ searchParams }: PageProps<"/app/pric
             <h2 className="text-xl font-extrabold tracking-tight">Part of the Agency plan</h2>
             <p className="mt-1 max-w-xl text-sm text-ink/80">
               {say(
-                "Agency includes 20 price checks a month. Each one finds comparable listings in the same area, works out the price per square meter, and gives you a Sell fast, Market and Premium price with a link to every listing it used.",
-                "May 20 price checks kada buwan ang Agency. Bawat isa, naghahanap ng comparable listings sa parehong area, kino-compute ang presyo per square meter, at nagbibigay ng Sell fast, Market at Premium price na may link sa bawat listing na ginamit.",
+                "Agency includes 20 price checks a month. Each one finds comparable listings in the same area, works out the price per square meter, and gives you the expected selling price and a Sell fast, List and Premium price, with a link to every listing it used.",
+                "May 20 price checks kada buwan ang Agency. Bawat isa, naghahanap ng comparable listings sa parehong area, kino-compute ang presyo per square meter, at nagbibigay ng inaasahang bentahan at Sell fast, List at Premium price, na may link sa bawat listing na ginamit.",
               )}
             </p>
           </div>
@@ -91,7 +91,8 @@ export default async function PricingPage({ searchParams }: PageProps<"/app/pric
                     <span className="text-muted"> in {input.location}</span>
                   </span>
                   <span className="text-muted tabular-nums">
-                    Market price <span className="font-bold text-ink">{formatPeso(report.options?.market)}</span> · {timeAgo(c.created_at as string)}
+                    {report.expectedSale !== undefined ? "Expected to sell for about" : "Market price"}{" "}
+                    <span className="font-bold text-ink">{formatPeso(report.expectedSale ?? report.options?.market)}</span> · {timeAgo(c.created_at as string)}
                   </span>
                 </li>
               );

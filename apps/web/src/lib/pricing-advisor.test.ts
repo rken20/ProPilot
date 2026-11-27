@@ -1,6 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
-import { buildReport, normalizeUrl, pricingInputSchema, pricingPrompt, researchPrice, roundPrice, samePricingInput, type PricingInput } from "./pricing-advisor";
+import { ASKING_TO_SALE, buildReport, FAST_UNDER, listedMonths, NEGOTIATION_ROOM, normalizeUrl, pricingInputSchema, pricingPrompt, researchPrice, roundPrice, samePricingInput, type PricingInput } from "./pricing-advisor";
 
 const condo: PricingInput = pricingInputSchema.parse({ location: "Mandurriao, Iloilo City", type: "condominium", floorArea: "50", bedrooms: "2", bathrooms: "1", condition: "good" });
 const ownUrl = (id: string) => `/l/${id}`;
@@ -27,18 +27,22 @@ describe("the report", () => {
     expect(r.confidence).toBe("good");
     // Quartiles of 100k..150k per sqm, in centavos.
     expect(r.pricePerSqm).toEqual({ low: 11_250_000, median: 12_500_000, high: 13_750_000, count: 6, of: "floor" });
-    // 50 sqm at the median: ₱6,250,000.
-    expect(r.options.market).toBe(625_000_000);
-    expect(r.options.fast).toBe(roundPrice(625_000_000 * 0.95));
-    expect(r.options.premium).toBe(roundPrice(625_000_000 * 1.07));
+    // 50 sqm at the median: a typical asking price of ₱6,250,000, which sells for about 7% less.
+    expect(r.typicalAsking).toBe(625_000_000);
+    const sale = 625_000_000 * (1 - ASKING_TO_SALE);
+    expect(r.expectedSale).toBe(roundPrice(sale));
+    expect(r.options.fast).toBe(roundPrice(sale * (1 - FAST_UNDER)));
+    expect(r.options.market).toBe(roundPrice(sale * (1 + NEGOTIATION_ROOM)));
+    // Good data: the premium is the typical asking price.
+    expect(r.options.premium).toBe(625_000_000);
     expect(r.range).toEqual({ low: roundPrice(11_250_000 * 50), high: roundPrice(13_750_000 * 50) });
-    expect(r.options.fast).toBeLessThan(r.options.market);
-    expect(r.options.premium).toBeGreaterThan(r.options.market);
+    expect(r.options.fast).toBeLessThan(r.expectedSale!);
+    expect(r.options.market).toBeLessThan(r.typicalAsking!);
   });
 
   it("applies the AI's nudge, capped at 15% either way", () => {
     const up = buildReport(condo, { comparables: six, adjustment_percent: 10, adjustment_reason: "Newly renovated." }, urls, [], ownUrl)!;
-    expect(up.options.market).toBe(roundPrice(12_500_000 * 50 * 1.1));
+    expect(up.typicalAsking).toBe(roundPrice(12_500_000 * 50 * 1.1));
     const wild = buildReport(condo, { comparables: six, adjustment_percent: 80, adjustment_reason: "x" }, urls, [], ownUrl)!;
     expect(wild.adjustment.percent).toBe(15);
   });
@@ -68,7 +72,9 @@ describe("the report", () => {
     expect(r.confidence).toBe("low");
     expect(r.pricePerSqm).toBeNull();
     expect(r.range).toEqual({ low: 500_000_000, high: 600_000_000 });
-    expect(r.options.market).toBe(550_000_000);
+    expect(r.typicalAsking).toBe(550_000_000);
+    // Little data and not a new property: no premium.
+    expect(r.options.premium).toBeNull();
   });
 
   it("says nothing when there is nothing to go on, or the rough range makes no sense", () => {
@@ -82,7 +88,7 @@ describe("the report", () => {
     const lots = [8, 10, 12].map((k, i) => ({ title: `Lot ${i}`, url: site(20 + i), price_php: k * 1000 * 300, lot_area_sqm: 300, floor_area_sqm: 1, location: "Pavia" }));
     const r = buildReport(lot, { comparables: lots, adjustment_percent: 0, adjustment_reason: "" }, lots.map((l) => l.url), [{ id: "abc", name: "Corner lot", location: "Pavia", priceMinor: 180_000_000 }], ownUrl)!;
     expect(r.pricePerSqm!.median).toBe(1_000_000);
-    expect(r.options.market).toBe(200_000_000);
+    expect(r.typicalAsking).toBe(200_000_000);
     expect(r.confidence).toBe("fair");
     expect(r.comparables.at(-1)).toMatchObject({ source: "myhomeseller", url: "/l/abc", priceMinor: 180_000_000 });
   });
@@ -106,7 +112,7 @@ describe("towns and rural areas", () => {
     const r = buildReport(house, { comparables: lotOnly, adjustment_percent: 0, adjustment_reason: "" }, lotOnly.map((c) => c.url), [], ownUrl)!;
     expect(r.basis).toBe("comparables");
     expect(r.pricePerSqm).toMatchObject({ median: 1_000_000, of: "lot", count: 3 });
-    expect(r.options.market).toBe(200_000_000);
+    expect(r.typicalAsking).toBe(200_000_000);
   });
 
   it("uses the typical asking price when listings show a price but no area", () => {
@@ -114,7 +120,7 @@ describe("towns and rural areas", () => {
     const r = buildReport(house, { comparables: noArea, adjustment_percent: 0, adjustment_reason: "", estimate_low_php: 9_000_000, estimate_high_php: 10_000_000 }, noArea.map((c) => c.url), [], ownUrl)!;
     expect(r.basis).toBe("prices");
     expect(r.pricePerSqm).toBeNull();
-    expect(r.options.market).toBe(220_000_000);
+    expect(r.typicalAsking).toBe(220_000_000);
     expect(r.range).toEqual({ low: 200_000_000, high: 240_000_000 });
     expect(r.confidence).toBe("fair");
   });
@@ -182,5 +188,53 @@ describe("reusing a price check", () => {
     expect(samePricingInput(base, { ...base, bedrooms: 1 })).toBe(false);
     expect(samePricingInput(base, { ...base, condition: "new" as const })).toBe(false);
     expect(samePricingInput(base, { ...base, location: "Jaro, Iloilo City" })).toBe(false);
+  });
+});
+
+describe("realistic prices", () => {
+  const mk = (n: number, k: number, extra: Record<string, unknown> = {}) => ({ title: `Unit ${n}`, url: site(100 + n), price_php: k * 1000 * 40, floor_area_sqm: 40, location: "Mandurriao", ...extra });
+
+  it("leaves new units from developers out of a resale owner's prices when there is enough resale", () => {
+    const comps = [mk(1, 100), mk(2, 110), mk(3, 120), mk(4, 200, { kind: "developer" }), mk(5, 210, { kind: "developer" })];
+    const r = buildReport(condo, { comparables: comps, adjustment_percent: 0, adjustment_reason: "" }, comps.map((c) => c.url), [], ownUrl)!;
+    expect(r.pricePerSqm).toMatchObject({ median: 11_000_000, count: 3 });
+    expect(r.comparables.filter((c) => c.notCounted)).toHaveLength(2);
+    // A new property is compared with new units too.
+    const fresh = buildReport({ ...condo, condition: "new" }, { comparables: comps, adjustment_percent: 0, adjustment_reason: "" }, comps.map((c) => c.url), [], ownUrl)!;
+    expect(fresh.pricePerSqm!.count).toBe(5);
+    expect(fresh.options.premium).toBe(fresh.typicalAsking);
+  });
+
+  it("counts developer units when resale is too thin, says so, and doesn't call it good data", () => {
+    const comps = [mk(1, 100), mk(2, 110), mk(3, 200, { kind: "developer" }), mk(4, 210, { kind: "developer" }), mk(5, 220, { kind: "developer" }), mk(6, 230, { kind: "developer" })];
+    const r = buildReport(condo, { comparables: comps, adjustment_percent: 0, adjustment_reason: "" }, comps.map((c) => c.url), [], ownUrl)!;
+    expect(r.pricePerSqm!.count).toBe(6);
+    expect(r.confidence).toBe("fair");
+    expect(r.caveats[0]).toContain("new units from developers were counted too");
+    expect(r.options.premium).toBeNull();
+  });
+
+  it("counts the same unit posted on two sites once", () => {
+    const comps = [mk(1, 100), mk(2, 110), mk(3, 120), { ...mk(1, 100), url: site(199), title: "Same unit, other broker" }];
+    const r = buildReport(condo, { comparables: comps, adjustment_percent: 0, adjustment_reason: "" }, comps.map((c) => c.url), [], ownUrl)!;
+    expect(r.comparables).toHaveLength(3);
+  });
+
+  it("gives listings up for more than 6 months half the weight", () => {
+    const fresh = [mk(1, 99), mk(2, 100), mk(3, 101)];
+    const old = [mk(4, 199, { listed: "9 months" }), mk(5, 200, { listed: "1 year" }), mk(6, 201, { listed: "8 months" })];
+    const r = buildReport(condo, { comparables: [...fresh, ...old], adjustment_percent: 0, adjustment_reason: "" }, [...fresh, ...old].map((c) => c.url), [], ownUrl)!;
+    // Equal numbers, but the fresh ones weigh double, so the middle sits with the fresh prices (unweighted it would be ₱150k).
+    expect(r.pricePerSqm!.median).toBe(10_100_000);
+    expect(r.pricePerSqm!.count).toBe(6);
+  });
+
+  it("reads how long a listing has been up", () => {
+    expect(listedMonths("3 months")).toBe(3);
+    expect(listedMonths("1 year")).toBe(12);
+    expect(listedMonths("45 days")).toBe(1.5);
+    expect(listedMonths("2 buwan")).toBe(2);
+    expect(listedMonths("recently")).toBeNull();
+    expect(listedMonths(null)).toBeNull();
   });
 });

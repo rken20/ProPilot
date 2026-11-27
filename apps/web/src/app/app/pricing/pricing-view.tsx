@@ -8,12 +8,20 @@ import { Alert, Field, IconTile, IconTitle, Input, Select, buttonClass, cx } fro
 import { Icon3d, type Icon3dName } from "@/components/icon-3d";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPeso } from "@/lib/money";
-import { CONDITIONS, CONDITION_LABEL, PRICING_DISCLAIMER, PRICING_TYPES, PRICING_TYPE_LABEL, type PricingReport } from "@/lib/pricing-advisor";
+import { ASKING_TO_SALE, CONDITIONS, CONDITION_LABEL, PRICING_DISCLAIMER, PRICING_TYPES, PRICING_TYPE_LABEL, type PricingReport } from "@/lib/pricing-advisor";
 import { checkPrice, setAskingPrice, type PriceState } from "./actions";
 
 type Property = { id: string; name: string; priceMinor: number };
 
-const OPTIONS: Array<{ key: keyof PricingReport["options"]; name: string; note: [english: string, taglish: string]; icon: Icon3dName; tile: string }> = [
+type Option = { key: keyof PricingReport["options"]; name: string; note: [english: string, taglish: string]; icon: Icon3dName; tile: string };
+/** Reports since 27 Nov 2026: the options start from the expected selling price, not the asking price. */
+const OPTIONS: Option[] = [
+  { key: "fast", name: "Sell fast", note: ["Just under what similar homes actually sell for. Draws offers quickly.", "Bahagyang mas mababa sa talagang bentahan ng mga katulad na bahay. Mabilis makakuha ng offers."], icon: "rocket", tile: "bg-tile-mint" },
+  { key: "market", name: "List price", note: ["What similar homes sell for, plus about 5% room to negotiate.", "Ang karaniwang bentahan, may dagdag na mga 5% para sa tawaran."], icon: "target", tile: "bg-tile-lavender" },
+  { key: "premium", name: "Premium price", note: ["The typical asking price nearby. For new or renovated homes; it may take longer to sell.", "Ang karaniwang asking price sa malapit. Para sa bago o renovated; baka mas matagal bago mabenta."], icon: "trophy", tile: "bg-tile-peach" },
+];
+/** Older saved reports (shown again for 30 days) were built around the asking price. */
+const OLD_OPTIONS: Option[] = [
   { key: "fast", name: "Sell fast", note: ["A competitive price to attract buyers quickly.", "Competitive na presyo para mabilis makaakit ng buyers."], icon: "rocket", tile: "bg-tile-mint" },
   { key: "market", name: "Market price", note: ["Balanced, in line with similar listings.", "Balanse, kapantay ng mga katulad na listing."], icon: "target", tile: "bg-tile-lavender" },
   { key: "premium", name: "Premium price", note: ["A higher asking price. It may take longer to sell.", "Mas mataas na asking price. Baka mas matagal bago mabenta."], icon: "trophy", tile: "bg-tile-peach" },
@@ -128,7 +136,7 @@ export function PricingAdvisor({
               <IconTile name="money" tone="lemon" size={72} className="mx-auto" />
               <p className="mt-3 text-lg font-bold">{say("Your price report shows up here", "Dito lalabas ang price report mo")}</p>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted">
-                {say("A price range, the price per square meter, three asking prices to choose from, and a link to every comparable listing the AI used.", "Price range, presyo per square meter, tatlong asking price na mapagpipilian, at link sa bawat comparable listing na ginamit ng AI.")}
+                {say("The expected selling price, asking prices nearby, the price per square meter, prices to choose from, and a link to every comparable listing the AI used.", "Inaasahang bentahan, mga asking price sa malapit, presyo per square meter, mga presyong mapagpipilian, at link sa bawat comparable listing na ginamit ng AI.")}
               </p>
             </div>
           </div>
@@ -143,6 +151,11 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
   const say = useSay();
   const c = CONFIDENCE[report.confidence];
   const web = report.comparables.filter((x) => x.source === "web").length;
+  const current = report.expectedSale !== undefined;
+  const options = (current ? OPTIONS : OLD_OPTIONS).flatMap((o) => {
+    const price = report.options[o.key];
+    return price === null ? [] : [{ ...o, price }];
+  });
   return (
     <div className="pp-enter space-y-5">
       <section aria-labelledby="options-title">
@@ -152,19 +165,19 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
           </IconTitle>
           <span className={cx("rounded-full px-2.5 py-1 text-xs font-bold", c.tone)}>{c.label}</span>
         </div>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {OPTIONS.map((o) => (
+        <div className={cx("mt-3 grid grid-cols-1 gap-3", options.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+          {options.map((o) => (
             <div key={o.key} className={cx("flex flex-col rounded-[var(--radius-tile)] p-5", o.tile)}>
               <Icon3d name={o.icon} size={40} />
               <p className="mt-3 text-sm font-bold text-ink/80">{o.name}</p>
-              <p className="mt-0.5 text-[1.6rem] leading-tight font-extrabold tracking-tight">{formatPeso(report.options[o.key])}</p>
+              <p className="mt-0.5 text-[1.6rem] leading-tight font-extrabold tracking-tight">{formatPeso(o.price)}</p>
               <p className="mt-1 flex-1 text-xs text-ink/70">{say(...o.note)}</p>
               {onPick ? (
-                <button type="button" onClick={() => onPick(report.options[o.key])} className={cx(buttonClass("secondary"), "mt-4 w-full")}>
+                <button type="button" onClick={() => onPick(o.price)} className={cx(buttonClass("secondary"), "mt-4 w-full")}>
                   Use this price
                 </button>
               ) : property ? (
-                <form action={setAskingPrice.bind(null, property.id, report.options[o.key])} className="mt-4">
+                <form action={setAskingPrice.bind(null, property.id, o.price)} className="mt-4">
                   <SubmitButton variant="secondary" className="w-full" pendingText="Saving…">
                     Set as asking price
                   </SubmitButton>
@@ -173,6 +186,14 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
             </div>
           ))}
         </div>
+        {current && report.options.premium === null ? (
+          <p className="mt-3 text-sm text-muted">
+            {say(
+              "No premium price this time: there are too few listings to support one, or the property isn't new. Asking above the list price here would likely just sit.",
+              "Walang premium price ngayon: kulang ang listings para suportahan ito, o hindi bago ang property. Malamang matatagalan lang kung mas mataas pa sa list price.",
+            )}
+          </p>
+        ) : null}
         {property || onPick ? null : (
           <p className="mt-3 text-sm text-muted">
             {say("To set one of these on a listing, open the listing and choose", "Para i-set ang isa sa mga ito sa listing, buksan ang listing at piliin ang")}{" "}
@@ -188,8 +209,20 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
 
       <section className="rounded-[1.5rem] border border-line bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
         <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+          {current ? (
+            <div>
+              <dt className="text-sm text-muted">{say("Expected selling price", "Inaasahang bentahan")}</dt>
+              <dd className="mt-1 text-xl font-extrabold tracking-tight">{say("About", "Mga")} {formatPeso(report.expectedSale!)}</dd>
+              <dd className="mt-0.5 text-xs text-muted">
+                {say(
+                  `Asking prices here usually close about ${Math.round(ASKING_TO_SALE * 100)}% lower. Typical asking price nearby: ${formatPeso(report.typicalAsking!)}.`,
+                  `Kadalasang nagsasara ang bentahan nang mga ${Math.round(ASKING_TO_SALE * 100)}% na mas mababa sa asking price. Karaniwang asking price sa malapit: ${formatPeso(report.typicalAsking!)}.`,
+                )}
+              </dd>
+            </div>
+          ) : null}
           <div>
-            <dt className="text-sm text-muted">Estimated price range</dt>
+            <dt className="text-sm text-muted">{current ? say("Asking prices nearby", "Mga asking price sa malapit") : "Estimated price range"}</dt>
             <dd className="mt-1 text-xl font-extrabold tracking-tight">
               {formatPeso(report.range.low)} to {formatPeso(report.range.high)}
             </dd>
@@ -269,7 +302,14 @@ export function PriceReport({ report, property, onPick }: { report: PricingRepor
                     <ExternalLink className="size-3.5 shrink-0 text-muted" aria-hidden />
                   </span>
                   <span className="block truncate text-xs text-muted">
-                    {[x.location, x.areaSqm ? `${x.areaSqm.toLocaleString("en-PH")} sqm` : null, x.listed ? `listed ${x.listed}` : null, x.source === "myhomeseller" ? "on MyHomeSeller" : null]
+                    {[
+                      x.location,
+                      x.areaSqm ? `${x.areaSqm.toLocaleString("en-PH")} sqm` : null,
+                      x.listed ? `listed ${x.listed}` : null,
+                      x.kind === "developer" ? "new from a developer" : null,
+                      x.notCounted ? "not counted in the prices" : null,
+                      x.source === "myhomeseller" ? "on MyHomeSeller" : null,
+                    ]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>

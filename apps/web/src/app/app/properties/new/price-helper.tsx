@@ -147,8 +147,8 @@ export function PriceHelper({ plan }: { plan: PriceHelperPlan }) {
         <div className="pp-fade border-t border-grape-100 p-4 text-sm">
           <p className="text-ink/85">
             {say(
-              "Agency includes 20 price checks a month. Each one finds similar listings in the same area, or in nearby towns when there are few, and gives you a Sell fast, Market and Premium price with a link to every listing it used.",
-              "May 20 price checks kada buwan ang Agency. Bawat isa, naghahanap ng mga katulad na listing sa parehong area, o sa mga kalapit na bayan kapag kaunti lang, at nagbibigay ng Sell fast, Market at Premium price na may link sa bawat listing na ginamit.",
+              "Agency includes 20 price checks a month. Each one finds similar listings in the same area, or in nearby towns when there are few, and gives you the expected selling price and a Sell fast, List and Premium price with a link to every listing it used.",
+              "May 20 price checks kada buwan ang Agency. Bawat isa, naghahanap ng mga katulad na listing sa parehong area, o sa mga kalapit na bayan kapag kaunti lang, at nagbibigay ng inaasahang bentahan at Sell fast, List at Premium price na may link sa bawat listing na ginamit.",
             )}
           </p>
           {plan.canSeeBilling ? (
