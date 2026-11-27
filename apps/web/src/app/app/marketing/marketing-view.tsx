@@ -23,6 +23,9 @@ export type MarketingData = {
   };
   /** May open the Analyst: people who see reports, and people who post. */
   canSeeAnalyst: boolean;
+  /** Boosting (Pro and Agency): boosts running, and where the tile leads. Null when the plan doesn't include it. */
+  boost: { running: number; href: string | null } | null;
+  canSeeBilling: boolean;
   /** The listing that drew the most views in the last 30 days, if any had views. */
   top: { id: string; name: string; views: number; isPublic: boolean } | null;
   hasListings: boolean;
@@ -37,7 +40,7 @@ export type MarketingData = {
 
 /**
  * The Marketing Agent: one place for everything that gets a listing seen.
- * Every number here is real. Boost isn't built yet and says so.
+ * Every number here is real.
  */
 export function MarketingView({
   data,
@@ -94,10 +97,28 @@ export function MarketingView({
       icon: "rocket",
       tone: "lemon",
       title: "Boost",
-      note: say(
-        "Coming soon: boost a post, with your OK on every spend",
-        "Coming soon: i-boost ang post, may OK mo sa bawat gastos",
-      ),
+      ...(!data.boost
+        ? {
+            note: say("Boost your video ads. Pro and Agency", "I-boost ang video ads mo. Pro at Agency"),
+            href: data.canSeeBilling ? "/app/billing" : undefined,
+          }
+        : data.boost.running
+          ? {
+              note:
+                data.boost.running === 1
+                  ? say("1 boost running", "1 boost ang tumatakbo")
+                  : say(`${data.boost.running} boosts running`, `${data.boost.running} boosts ang tumatakbo`),
+              href: data.boost.href ?? undefined,
+            }
+          : data.boost.href
+            ? {
+                note: say("Boost a video ad, with your OK on every spend", "I-boost ang video ad, may OK mo sa bawat gastos"),
+                href: data.boost.href,
+              }
+            : {
+                note: say("Post a video ad to your Page first, then boost it", "Mag-post muna ng video ad sa Page mo, tapos i-boost"),
+                href: "/app/video",
+              }),
     },
     {
       icon: "target",

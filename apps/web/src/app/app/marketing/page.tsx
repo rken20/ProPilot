@@ -9,6 +9,7 @@ import { businessPlan } from "@/lib/plan";
 import { createClient } from "@/lib/supabase/server";
 import { daysAgoIso } from "@/lib/time";
 import { businessUsage } from "@/lib/usage";
+import { boostsIncluded } from "@/lib/boost-rules";
 import { MarketingView, type MarketingData } from "./marketing-view";
 
 export const metadata = { title: "Marketing Agent" };
@@ -21,7 +22,7 @@ export default async function MarketingPage() {
   const canSeeLeads =
     can(biz.role, "lead.viewAll") || can(biz.role, "lead.viewAssigned");
 
-  const [plan, connected, listingsRes, viewsRes, postsRes, leadsRes] =
+  const [plan, connected, listingsRes, viewsRes, postsRes, leadsRes, videoRes, runningRes] =
     await Promise.all([
       businessPlan(biz.businessId),
       metaConfig()
@@ -56,6 +57,24 @@ export default async function MarketingPage() {
             .order("last_activity_at", { ascending: false })
             .limit(500)
         : Promise.resolve({ data: null }),
+      // For the Boost tile: the newest video posted from the app, and boosts running now.
+      supabase
+        .from("facebook_posts")
+        .select("id")
+        .eq("business_id", biz.businessId)
+        .eq("kind", "video")
+        .eq("status", "published")
+        .not("fb_video_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("ad_boosts")
+        .select("facebook_post_id")
+        .eq("business_id", biz.businessId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(20),
     ]);
   const listings = listingsRes.data ?? [];
   const forSale = listings.filter((l) => l.status === "available");
@@ -127,6 +146,17 @@ export default async function MarketingPage() {
     },
     canSeeAnalyst:
       can(biz.role, "analytics.view") || can(biz.role, "content.publish"),
+    boost: boostsIncluded(plan.code)
+      ? {
+          running: runningRes.data?.length ?? 0,
+          href: runningRes.data?.[0]
+            ? `/app/marketing/boost/${runningRes.data[0].facebook_post_id}`
+            : videoRes.data
+              ? `/app/marketing/boost/${videoRes.data.id}`
+              : null,
+        }
+      : null,
+    canSeeBilling: can(biz.role, "billing.view"),
     top: top ?? null,
     hasListings: listings.length > 0,
     buyers,
