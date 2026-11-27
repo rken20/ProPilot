@@ -129,7 +129,7 @@ export function LowestPrice({ propertyId, askingMinor, currentPesos, acceptPesos
   const say = useSay();
   const [state, action] = useActionState<FloorState, FormData>(saveLowestPrice.bind(null, propertyId), {});
   return (
-    <Panel icon3d="robot" title="AI negotiation" className="mt-6">
+    <Panel icon3d="robot" title="AI negotiation" className="mt-6 scroll-mt-24">
       <p className="mt-1 max-w-2xl text-sm text-muted">
         {say(
           "When a buyer names a price in the chat, the AI negotiates like an agent: it offers counteroffers that come down in smaller and smaller steps, never under your lowest price. Only you and your admins can see these numbers, and the AI is never told them.",
@@ -138,8 +138,12 @@ export function LowestPrice({ propertyId, askingMinor, currentPesos, acceptPesos
       </p>
       <form action={action} className="mt-4">
         <div className="grid max-w-2xl gap-x-4 sm:grid-cols-2">
-          <Field label="Lowest price you'd accept (₱)" htmlFor="lowestPrice" hint={say(`Asking price: ${formatPeso(askingMinor)}. Leave empty to have a person handle every offer.`, `Asking price: ${formatPeso(askingMinor)}. Iwanang blangko kung tao ang hahawak sa bawat offer.`)}>
-            <Input id="lowestPrice" name="lowestPrice" inputMode="decimal" defaultValue={currentPesos} placeholder="4500000" />
+          <Field
+            label="Lowest price you'd accept (₱)"
+            htmlFor="lowestPrice"
+            hint={say(`Required. Asking price: ${formatPeso(askingMinor)}. Set it at the asking price if you don't want the AI to come down at all.`, `Required. Asking price: ${formatPeso(askingMinor)}. I-set ito sa asking price kung ayaw mong magbaba ang AI.`)}
+          >
+            <Input id="lowestPrice" name="lowestPrice" inputMode="decimal" defaultValue={currentPesos} placeholder="4500000" required />
           </Field>
           <Field
             label="Accept right away at or above (₱)"

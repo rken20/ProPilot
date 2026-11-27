@@ -13,6 +13,7 @@ import { DashboardView, type Activity, type AiItem, type SetupStep } from "./das
 import { agentName } from "@/lib/agent-info";
 import { aiEnabled, businessPlan } from "@/lib/plan";
 import { businessUsage } from "@/lib/usage";
+import { listingsNeedingFloor } from "@/lib/floors";
 import { buyerFinderUsed } from "@/lib/buyer-finder";
 import { performanceSeries, viewingsByMonth } from "@/lib/dashboard-stats";
 import { loadReportData } from "@/lib/report-data";
@@ -175,6 +176,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
         .filter((l) => l.views + l.inquiries > 0)
         .sort((a, b) => b.inquiries - a.inquiries || b.views - a.views)[0]
     : undefined;
+  // AI negotiation (Pro, Agency): for-sale listings still waiting for their lowest price.
+  // Owners and admins only, since nobody else can see or set it.
+  const needsFloor = plan.negotiation && (biz.role === "owner" || biz.role === "admin") ? await listingsNeedingFloor(supabase, biz.businessId) : new Map();
+  const floorIds = [...needsFloor.keys()];
   // AI allowances this month, for the notice when one is low or used up.
   const usage = canSeeLeads ? await businessUsage(supabase, biz.businessId, plan) : [];
   const { data: planRow } = await supabase.from("plans").select("price_minor").eq("code", plan.code).maybeSingle();
@@ -272,6 +277,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       videoAds={plan.videoAds !== 0}
       usage={usage}
       canSeeBilling={can(biz.role, "billing.view")}
+      floorsNeeded={floorIds.length ? { count: floorIds.length, href: floorIds.length === 1 ? `/app/properties/${floorIds[0]}#ai-negotiation` : "/app/properties" } : null}
       recent={recent}
     />
   );

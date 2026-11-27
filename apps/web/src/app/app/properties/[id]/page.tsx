@@ -21,6 +21,7 @@ import { businessPages } from "@/lib/facebook-pages";
 import { defaultCaption, type CaptionListing } from "@/lib/listing-caption";
 import { canPublish, metaConfig } from "@/lib/meta";
 import { aiEnabled, businessPlan } from "@/lib/plan";
+import { floorProblem } from "@/lib/floor-rules";
 import { buyerFinder, type ListingForMatch } from "@/lib/buyer-finder";
 import { BuyerFinder, BuyerFinderUpgrade } from "./buyer-finder";
 import { ShareListing } from "./share-listing";
@@ -90,6 +91,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
     manager ? supabase.from("listing_floors").select("min_price_minor, accept_price_minor").eq("property_id", p.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const lowestMinor = floorRow ? Number(floorRow.min_price_minor) : null;
+  const floorIssue = manager && plan.negotiation ? floorProblem(p.status, lowestMinor, Number(p.price_minor)) : null;
   const acceptMinor = floorRow?.accept_price_minor == null ? null : Number(floorRow.accept_price_minor);
 
   // The public page: its link, and how it's doing over the last 30 days.
@@ -157,7 +159,34 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
           ) : null
         }
       />
-      {sp.notice === "created" ? (
+      {floorIssue ? (
+        <div className="mb-4">
+          <Alert>
+            {floorIssue === "missing"
+              ? say(
+                  "Set the lowest price you'd accept for this listing. Until you do, the AI can't negotiate and passes every price offer to your team.",
+                  "I-set ang lowest price na tatanggapin mo para sa listing na ito. Hangga't wala pa, hindi makakapag-negotiate ang AI at ipapasa nito sa team mo ang bawat price offer.",
+                )
+              : say(
+                  "Your lowest price is above the new asking price. The AI is holding at the asking price until you set a new lowest price.",
+                  "Mas mataas ang lowest price mo sa bagong asking price. Sa asking price muna hihinto ang AI hanggang mag-set ka ng bagong lowest price.",
+                )}{" "}
+            <a href="#ai-negotiation" className="font-semibold underline underline-offset-2">
+              {say("Set it now", "I-set na ngayon")}
+            </a>
+          </Alert>
+        </div>
+      ) : null}
+      {sp.notice === "created-no-floor" ? (
+        <div className="mb-4">
+          <Alert>
+            {say(
+              "Property saved, but the lowest price for the AI wasn't. Please set it again below.",
+              "Na-save ang property, pero hindi na-save ang lowest price para sa AI. Paki-set ulit sa baba.",
+            )}
+          </Alert>
+        </div>
+      ) : sp.notice === "created" ? (
         <div className="mb-4">
           <Alert tone="success">{say("Property saved. Add photos so buyers can see it.", "Na-save na ang property. Mag-add ng photos para makita ito ng mga buyer.")}</Alert>
         </div>
@@ -205,7 +234,9 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       ) : null}
 
       {manager && plan.negotiation && p.status === "available" ? (
-        <LowestPrice propertyId={p.id} askingMinor={Number(p.price_minor)} currentPesos={centavosToPesosInput(lowestMinor)} acceptPesos={centavosToPesosInput(acceptMinor)} />
+        <div id="ai-negotiation" className="scroll-mt-24">
+          <LowestPrice propertyId={p.id} askingMinor={Number(p.price_minor)} currentPesos={centavosToPesosInput(lowestMinor)} acceptPesos={centavosToPesosInput(acceptMinor)} />
+        </div>
       ) : manager && aiOn && !plan.negotiation && p.status === "available" ? (
         <Panel icon3d="robot" title="AI negotiation" className="mt-6">
           <p className="mt-1 max-w-2xl text-sm text-muted">

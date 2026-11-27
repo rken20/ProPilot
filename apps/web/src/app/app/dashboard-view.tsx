@@ -82,6 +82,8 @@ export type DashboardData = {
   /** This month's AI allowances; a notice shows when one is low or used up. */
   usage: UsageItem[];
   canSeeBilling: boolean;
+  /** On plans with AI negotiation: for-sale listings whose lowest price the owner still has to set. */
+  floorsNeeded?: { count: number; href: string } | null;
   now?: Date;
 };
 
@@ -126,6 +128,7 @@ export function DashboardView({
   videoAds,
   usage,
   canSeeBilling,
+  floorsNeeded,
   now,
   lang,
 }: DashboardData) {
@@ -146,6 +149,22 @@ export function DashboardView({
     <div className="pp-stagger space-y-5">
       {notice ? <Alert tone="success">{notice}</Alert> : null}
       <UsageNotice items={usage} planCode={plan.code} canSeeBilling={canSeeBilling} say={say} />
+      {floorsNeeded ? (
+        <div role="status" className="pp-fade flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-amber-200 bg-tile-lemon px-4 py-3 text-sm text-ink">
+          <Icon3d name="robot" size={28} className="shrink-0" />
+          <p className="min-w-0 flex-1">
+            <span className="font-semibold">
+              {floorsNeeded.count === 1
+                ? say("1 listing needs its lowest price for AI negotiation.", "May 1 listing na kailangan ng lowest price para sa AI negotiation.")
+                : say(`${floorsNeeded.count} listings need their lowest price for AI negotiation.`, `May ${floorsNeeded.count} listings na kailangan ng lowest price para sa AI negotiation.`)}
+            </span>{" "}
+            {say("Until it's set, the AI passes price offers to your team.", "Hangga't wala pa, ipapasa ng AI sa team mo ang mga price offer.")}
+          </p>
+          <Link href={floorsNeeded.href} className="font-semibold text-grape-700 underline underline-offset-2">
+            {floorsNeeded.count === 1 ? say("Set it now", "I-set na ngayon") : say("See the listings", "Tingnan ang listings")}
+          </Link>
+        </div>
+      ) : null}
       <InstallBanner />
 
       {/* Greeting */}

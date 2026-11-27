@@ -15,6 +15,8 @@ export type PropertyRow = {
   is_public: boolean;
   /** Cover photo address, if the listing has photos. */
   coverUrl: string | null;
+  /** On plans with AI negotiation: the owner still has to set (or fix) the AI's lowest price. */
+  needsFloor?: boolean;
 };
 
 function Thumb({ url, className }: { url: string | null; className: string }) {
@@ -28,8 +30,13 @@ function Thumb({ url, className }: { url: string | null; className: string }) {
   );
 }
 
-function Status({ status }: { status: string }) {
-  return <Badge tone={status === "available" ? "brand" : "neutral"}>{STATUS_LABEL[status as keyof typeof STATUS_LABEL]}</Badge>;
+function Status({ status, needsFloor }: { status: string; needsFloor?: boolean }) {
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1.5">
+      <Badge tone={status === "available" ? "brand" : "neutral"}>{STATUS_LABEL[status as keyof typeof STATUS_LABEL]}</Badge>
+      {needsFloor ? <Badge tone="hot">Set lowest price</Badge> : null}
+    </span>
+  );
 }
 
 /** The properties list: tappable cards on phones, a table from tablet size up. */
@@ -49,7 +56,7 @@ export function PropertiesList({ rows }: { rows: PropertyRow[] }) {
                 <p className="mt-0.5 truncate text-xs text-muted">{p.location}</p>
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                   <p className="text-base font-extrabold tabular-nums text-ink">{formatPeso(p.price_minor, p.currency)}</p>
-                  <Status status={p.status} />
+                  <Status status={p.status} needsFloor={p.needsFloor} />
                 </div>
                 <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
                   <span>{TYPE_LABEL[p.type as keyof typeof TYPE_LABEL]}</span>
@@ -93,7 +100,7 @@ export function PropertiesList({ rows }: { rows: PropertyRow[] }) {
                 <td className="hidden px-4 py-3 text-zinc-600 md:table-cell">{TYPE_LABEL[p.type as keyof typeof TYPE_LABEL]}</td>
                 <td className="px-4 py-3 text-right whitespace-nowrap tabular-nums">{formatPeso(p.price_minor, p.currency)}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <Status status={p.status} />
+                  <Status status={p.status} needsFloor={p.needsFloor} />
                 </td>
               </tr>
             ))}

@@ -4,7 +4,7 @@ import { appSay } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
 import { requireBusiness, requireUser } from "@/lib/auth";
 import { str } from "@/lib/form";
-import { formatPeso, pesosToCentavos } from "@/lib/money";
+import { checkFloor } from "@/lib/floor-rules";
 import { decisionMessage } from "@/lib/negotiation";
 import { businessPlan } from "@/lib/plan";
 import { sendAsTeam, type TeamConversation } from "@/lib/team-send";
@@ -16,7 +16,7 @@ const isManager = (role: string) => role === "owner" || role === "admin";
 
 export type FloorState = { error?: string; saved?: number };
 
-/** Save, change or clear the lowest price the owner would accept for a listing. Owners and admins only (the database enforces it too). */
+/** Save or change the lowest price the owner would accept for a listing. Owners and admins only (the database enforces it too). */
 export async function saveLowestPrice(propertyId: string, _prev: FloorState, form: FormData): Promise<FloorState> {
   const say = await appSay();
   const biz = await requireBusiness();
@@ -28,26 +28,14 @@ export async function saveLowestPrice(propertyId: string, _prev: FloorState, for
   const { data: listing } = await supabase.from("properties").select("id, price_minor").eq("id", propertyId).eq("business_id", biz.businessId).maybeSingle();
   if (!listing) return { error: "Listing not found." };
 
-  const minor = pesosToCentavos(str(form, "lowestPrice"));
-  const accept = pesosToCentavos(str(form, "acceptPrice"));
-  const asking = Number(listing.price_minor);
-  if (accept !== null) {
-    if (Number.isNaN(accept) || accept <= 0) return { error: say("Enter the accept-right-away price in pesos, like 4800000.", "Ilagay ang accept-right-away price sa pesos, gaya ng 4800000.") };
-    if (minor === null) return { error: say("Set your lowest price first. The accept-right-away price has to be at or above it.", "I-set muna ang lowest price mo. Dapat kapantay o mas mataas doon ang accept-right-away price.") };
-    if (!Number.isNaN(minor) && accept < minor) return { error: say("The accept-right-away price can't be under your lowest price.", "Hindi pwedeng mas mababa sa lowest price mo ang accept-right-away price.") };
-    if (accept > asking) return { error: say(`The accept-right-away price can't be above the asking price (${formatPeso(asking)}).`, `Hindi pwedeng mas mataas sa asking price (${formatPeso(asking)}) ang accept-right-away price.`) };
-  }
-  if (minor === null) {
-    const { error } = await supabase.from("listing_floors").delete().eq("property_id", propertyId);
-    if (error) return { error: say("Couldn't clear it. Please try again.", "Hindi na-clear. Paki-try ulit.") };
-  } else {
-    if (Number.isNaN(minor) || minor <= 0) return { error: say("Enter an amount in pesos, like 4500000.", "Maglagay ng amount sa pesos, gaya ng 4500000.") };
-    if (minor > Number(listing.price_minor)) return { error: say(`It can't be above the asking price (${formatPeso(Number(listing.price_minor))}).`, `Hindi pwedeng mas mataas sa asking price (${formatPeso(Number(listing.price_minor))}).`) };
-    const { error } = await supabase
-      .from("listing_floors")
-      .upsert({ property_id: propertyId, business_id: biz.businessId, min_price_minor: minor, accept_price_minor: accept }, { onConflict: "property_id" });
-    if (error) return { error: say("Couldn't save it. Please try again.", "Hindi na-save. Paki-try ulit.") };
-  }
+  // Required on plans with AI negotiation, so it can be changed but not cleared.
+  const check = checkFloor(str(form, "lowestPrice"), str(form, "acceptPrice"), Number(listing.price_minor), true);
+  if (!check.ok) return { error: say(...check.message) };
+  const { minMinor, acceptMinor } = check.floor!;
+  const { error } = await supabase
+    .from("listing_floors")
+    .upsert({ property_id: propertyId, business_id: biz.businessId, min_price_minor: minMinor, accept_price_minor: acceptMinor }, { onConflict: "property_id" });
+  if (error) return { error: say("Couldn't save it. Please try again.", "Hindi na-save. Paki-try ulit.") };
   revalidatePath(`/app/properties/${propertyId}`);
   return { saved: Date.now() };
 }

@@ -35,6 +35,7 @@ export default async function NewPropertyPage() {
         canPaste={await aiEnabled(biz.businessId)}
         pages={metaConfig() ? (await businessPages(biz.businessId)).map((p) => ({ id: p.id, name: p.name })) : []}
         pricing={pricing}
+        negotiation={plan.negotiation ? (biz.role === "owner" || biz.role === "admin" ? "set" : "later") : undefined}
       />
     </>
   );

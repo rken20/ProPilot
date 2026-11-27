@@ -1,4 +1,6 @@
 import { appSay } from "@/lib/lang-server";
+import { listingsNeedingFloor } from "@/lib/floors";
+import { businessPlan } from "@/lib/plan";
 import Link from "next/link";
 import { can } from "@propilot/shared";
 import { Alert, EmptyState, PageHeader, buttonClass } from "@/components/ui";
@@ -22,7 +24,10 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
     .order("updated_at", { ascending: false });
   query = showArchived ? query.eq("status", "archived") : query.neq("status", "archived");
   const { data: rows, error } = await query;
-  const covers = await getCoverThumbs((rows ?? []).map((r) => r.id));
+  const manager = biz.role === "owner" || biz.role === "admin";
+  const [covers, plan] = await Promise.all([getCoverThumbs((rows ?? []).map((r) => r.id)), businessPlan(biz.businessId)]);
+  // On plans where the AI negotiates, flag listings still waiting for their lowest price.
+  const needsFloor = manager && plan.negotiation ? await listingsNeedingFloor(supabase, biz.businessId) : new Map();
 
   return (
     <>
@@ -73,7 +78,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/app/p
           {!showArchived ? say("Add a listing with its price, location and financing.", "Mag-add ng listing kasama ang presyo, location at financing nito.") : null}
         </EmptyState>
       ) : (
-        <PropertiesList rows={(rows ?? []).map((r) => ({ ...r, coverUrl: mediaUrl(covers.get(r.id)) ?? null }))} />
+        <PropertiesList rows={(rows ?? []).map((r) => ({ ...r, coverUrl: mediaUrl(covers.get(r.id)) ?? null, needsFloor: needsFloor.has(r.id) }))} />
       )}
     </>
   );

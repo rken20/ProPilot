@@ -13,7 +13,18 @@ import { PriceHelper, type PriceHelperPlan } from "./price-helper";
 type Page = { id: string; name: string };
 
 /** Add property, with an optional "start from a Facebook post" step above the form. */
-export function NewProperty({ canPaste, pages, pricing }: { canPaste: boolean; pages: Page[]; pricing: PriceHelperPlan | null }) {
+export function NewProperty({
+  canPaste,
+  pages,
+  pricing,
+  negotiation,
+}: {
+  canPaste: boolean;
+  pages: Page[];
+  pricing: PriceHelperPlan | null;
+  /** AI negotiation on Pro and Agency: owners and admins set the lowest price here; agents are told it's set later. */
+  negotiation?: "set" | "later";
+}) {
   // Writing a description and filling from a post both need AI on the plan.
   const aiWrite = canPaste;
   const [state, action, pending] = useActionState<ImportState, FormData>(importListing, {});
@@ -143,6 +154,7 @@ export function NewProperty({ canPaste, pages, pricing }: { canPaste: boolean; p
           aiWrite={aiWrite}
           hidden={state.importRef ? { importPost: state.importRef } : undefined}
           priceHelp={pricing ? <PriceHelper plan={pricing} /> : null}
+          negotiation={negotiation}
         />
       </Card>
     </>

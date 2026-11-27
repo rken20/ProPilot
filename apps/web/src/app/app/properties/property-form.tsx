@@ -3,7 +3,8 @@
 import { useSay } from "@/components/lang";
 import { useActionState, type ReactNode } from "react";
 import { PROPERTY_STATUSES, PROPERTY_TYPES } from "@propilot/shared";
-import { Alert, Field, Input, Label, Select, Textarea } from "@/components/ui";
+import { Icon3d } from "@/components/icon-3d";
+import { Alert, Field, IconTitle, Input, Label, Select, Textarea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/lib/form";
 import { STATUS_LABEL, TYPE_LABEL } from "@/lib/property-labels";
@@ -19,6 +20,7 @@ export function PropertyForm({
   hidden,
   aiWrite = false,
   priceHelp,
+  negotiation,
 }: {
   action: (prev: FormState, form: FormData) => Promise<FormState>;
   initial: PropertyFormValues;
@@ -30,6 +32,12 @@ export function PropertyForm({
   aiWrite?: boolean;
   /** Shown under the price fields, e.g. the Pricing Advisor on Add a Property. */
   priceHelp?: ReactNode;
+  /**
+   * AI negotiation on Add a Property (Pro, Agency): "set" asks the owner or an
+   * admin for the lowest price (required); "later" tells an agent that the owner
+   * or an admin sets it.
+   */
+  negotiation?: "set" | "later";
 }) {
   const say = useSay();
   const [state, formAction] = useActionState(action, { data: initial });
@@ -83,6 +91,46 @@ export function PropertyForm({
           </Field>
         </section>
         {priceHelp && !readOnly ? priceHelp : null}
+
+        {negotiation === "set" && !readOnly ? (
+          <section className="rounded-2xl border border-brand-100 bg-tile-sky/60 p-4 sm:p-5">
+            <IconTitle icon="robot" className="text-sm font-semibold">
+              AI negotiation
+            </IconTitle>
+            <p className="mt-1 text-sm text-muted">
+              {say(
+                "Private: only you and your admins see these, and the AI is never told the numbers. When a buyer names a price, the AI counters in smaller and smaller steps and never goes under your lowest price.",
+                "Private: ikaw at ang admins mo lang ang nakakakita nito, at hindi sinasabi sa AI ang mga numero. Kapag may buyer na nagsabi ng presyo, unti-unting magbababa ang counteroffer ng AI at hindi ito bababa sa lowest price mo.",
+              )}
+            </p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <Field
+                label="Lowest price you'd accept (₱)"
+                htmlFor="lowestPrice"
+                error={e.lowestPrice}
+                hint={say("Required. At or under the selling price. Use the selling price if the AI shouldn't come down at all.", "Required. Kapantay o mas mababa sa selling price. Ilagay ang selling price kung ayaw mong magbaba ang AI.")}
+              >
+                <Input id="lowestPrice" name="lowestPrice" inputMode="decimal" defaultValue={v.lowestPrice} placeholder="4,200,000" required />
+              </Field>
+              <Field
+                label="Accept right away at or above (₱)"
+                htmlFor="acceptPrice"
+                error={e.acceptPrice}
+                hint={say("Optional. The AI closes the deal by itself at this price or more; offers between the two come to you to confirm.", "Optional. Kusang iko-close ng AI ang deal sa presyong ito o mas mataas; ang offers sa pagitan ng dalawa ay ipapa-confirm sa'yo.")}
+              >
+                <Input id="acceptPrice" name="acceptPrice" inputMode="decimal" defaultValue={v.acceptPrice} placeholder="4,400,000" />
+              </Field>
+            </div>
+          </section>
+        ) : negotiation === "later" && !readOnly ? (
+          <p className="flex items-start gap-2 rounded-2xl bg-tile-sky/60 p-4 text-sm text-ink/80">
+            <Icon3d name="robot" size={22} className="shrink-0" />
+            {say(
+              "The owner or an admin sets the AI's lowest price for this listing after you save. Until then, the AI passes price offers to the team.",
+              "Ang owner o isang admin ang magse-set ng lowest price ng AI para sa listing na ito pagka-save mo. Hanggang doon, ipapasa ng AI sa team ang mga price offer.",
+            )}
+          </p>
+        ) : null}
 
         <section className="space-y-3">
           <p className="text-sm font-medium text-zinc-800">Financing options</p>

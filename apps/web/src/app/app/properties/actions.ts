@@ -14,12 +14,14 @@ import { copyPostPhotos } from "@/lib/post-photos";
 import { MEDIA_BUCKET } from "@/lib/media";
 import { publicListingPath } from "@/lib/public-listing";
 import { isSuperAdmin } from "@/lib/superadmin";
+import { checkFloor } from "@/lib/floor-rules";
+import { businessPlan } from "@/lib/plan";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const FORM_KEYS = [
   "name", "type", "location", "price", "reservationFee", "status", "description",
-  "downpaymentPercent", "financingNotes",
+  "downpaymentPercent", "financingNotes", "lowestPrice", "acceptPrice",
 ] as const;
 
 function readForm(form: FormData) {
@@ -82,6 +84,17 @@ export async function createProperty(_prev: FormState, form: FormData): Promise<
   const result = validate(form, say);
   if (!result.ok) return result.state;
 
+  // On plans where the AI negotiates, the owner or an admin sets its lowest price
+  // with the listing (owner's decision, 27 Nov 2026). Agents can't see or set it;
+  // the listing then waits for an owner or admin, flagged on the dashboard.
+  const plan = await businessPlan(biz.businessId);
+  const setsFloor = plan.negotiation && (biz.role === "owner" || biz.role === "admin");
+  const floorCheck = setsFloor ? checkFloor(str(form, "lowestPrice"), str(form, "acceptPrice"), result.value.price.amountMinor, true) : null;
+  if (floorCheck && !floorCheck.ok) {
+    const { data, checks } = readForm(form);
+    return { fieldErrors: { [floorCheck.field]: say(...floorCheck.message) }, data: { ...data, ...flagData(checks), isPublic: result.isPublic ? "on" : "" } };
+  }
+
   const supabase = await createClient();
   // business_id comes from the server-side session, never from the form.
   const { data, error } = await supabase
@@ -90,6 +103,17 @@ export async function createProperty(_prev: FormState, form: FormData): Promise<
     .select("id")
     .single();
   if (error) return { error: say("Couldn't save the property. Please try again.", "Hindi na-save ang property. Paki-try ulit."), data: readForm(form).data };
+
+  let floorSaved = true;
+  if (floorCheck?.ok && floorCheck.floor) {
+    const { error: floorError } = await supabase
+      .from("listing_floors")
+      .insert({ property_id: data.id, business_id: biz.businessId, min_price_minor: floorCheck.floor.minMinor, accept_price_minor: floorCheck.floor.acceptMinor });
+    if (floorError) {
+      console.error("[properties] lowest price not saved:", floorError.message);
+      floorSaved = false;
+    }
+  }
 
   // Started from a connected Page's post: copy its photos once the page has responded.
   const ref = /^([0-9a-f-]{36}):(\d+_\d+)$/i.exec(str(form, "importPost"));
@@ -103,7 +127,7 @@ export async function createProperty(_prev: FormState, form: FormData): Promise<
   }
 
   revalidatePath("/app/properties");
-  redirect(`/app/properties/${data.id}?notice=${ref ? "created-importing" : "created"}`);
+  redirect(`/app/properties/${data.id}?notice=${!floorSaved ? "created-no-floor" : ref ? "created-importing" : "created"}`);
 }
 
 export async function updateProperty(id: string, _prev: FormState, form: FormData): Promise<FormState> {
