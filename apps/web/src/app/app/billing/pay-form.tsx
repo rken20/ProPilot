@@ -2,12 +2,21 @@
 
 import { useSay } from "@/components/lang";
 import { Minus, Plus } from "lucide-react";
+import Image from "next/image";
 import { useActionState, useState } from "react";
 import { Alert, Field, Input, cx } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPeso } from "@/lib/money";
 import { MAX_MONTHS, QUICK_MONTHS, paidUntil } from "@/lib/plan-rules";
 import { submitGcashPayment, type PayState } from "./actions";
+
+/**
+ * The owner's GCash QR code (InstaPay), in public/gcash-qr.png. It pays one number
+ * only, so it shows only while GCASH_NUMBER is that number: if the number changes,
+ * replace the image and this number together.
+ */
+const GCASH_QR = { src: "/gcash-qr.png", number: "09175710713" };
+const qrMatches = (n: string) => n.replace(/\D/g, "").replace(/^63/, "0") === GCASH_QR.number;
 
 const day = new Intl.DateTimeFormat("en-PH", { dateStyle: "medium", timeZone: "Asia/Manila" });
 
@@ -176,6 +185,17 @@ export function GcashSteps({
                 <dd className="font-semibold tabular-nums">{formatPeso(total)}</dd>
               </dl>
               <p className="mt-2 text-muted">{say("In GCash, choose Send Money, then Express Send.", "Sa GCash, piliin ang Send Money, tapos Express Send.")}</p>
+              {qrMatches(gcash.number) ? (
+                <figure className="mt-4 flex flex-wrap items-center gap-4 border-t border-line pt-4">
+                  <Image src={GCASH_QR.src} alt={say(`GCash QR code for ${gcash.number}`, `GCash QR code para sa ${gcash.number}`)} width={160} height={160} className="rounded-lg bg-white p-1.5" />
+                  <figcaption className="min-w-0 flex-1 basis-48 text-muted">
+                    {say(
+                      `Or scan it: in GCash, tap QR, scan this code, then enter ${formatPeso(total)}. Use the GCash app, so you get a 13-digit GCash reference number.`,
+                      `O i-scan: sa GCash, i-tap ang QR, i-scan ang code na ito, tapos ilagay ang ${formatPeso(total)}. Gamitin ang GCash app para may 13-digit GCash reference number ka.`,
+                    )}
+                  </figcaption>
+                </figure>
+              ) : null}
             </li>
             <li className="rounded-xl bg-surface p-4">
               <p className="font-semibold">2. Tell us the payment details</p>
