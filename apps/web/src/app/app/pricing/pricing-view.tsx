@@ -108,7 +108,20 @@ export function PricingAdvisor({
 
       <div ref={reportRef} className="min-w-0 scroll-mt-24">
         {state.report ? (
-          <PriceReport report={state.report} property={property} />
+          <>
+            {state.reusedAt ? (
+              <p
+                role="status"
+                className="mb-3 rounded-xl bg-tile-sky px-4 py-3 text-sm text-ink/85"
+              >
+                {say(
+                  `This is your price check from ${new Date(state.reusedAt).toLocaleDateString("en-PH", { dateStyle: "medium", timeZone: "Asia/Manila" })} for the same details, so it wasn't counted again. A check for the same details is reused for 30 days.`,
+                  `Ito ang price check mo noong ${new Date(state.reusedAt).toLocaleDateString("en-PH", { dateStyle: "medium", timeZone: "Asia/Manila" })} para sa parehong details, kaya hindi na ulit binilang. Ginagamit ulit ang check para sa parehong details sa loob ng 30 araw.`,
+                )}
+              </p>
+            ) : null}
+            <PriceReport report={state.report} property={property} />
+          </>
         ) : (
           <div className="grid h-full min-h-72 place-items-center rounded-[1.5rem] border-2 border-dashed border-grape-100 p-8 text-center">
             <div>

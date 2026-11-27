@@ -8,6 +8,7 @@ import { emailOwners } from "@/lib/billing-email";
 import { str } from "@/lib/form";
 import { GRANT_MONTHS, MAX_GRANT_EMAILS, parseEmails, type GrantResult } from "@/lib/plan-grants";
 import { requireSuperAdmin } from "@/lib/superadmin";
+import { creditsLabel } from "@/lib/credit-rules";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 const dateFmt = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "long", day: "numeric", year: "numeric" });
@@ -21,21 +22,55 @@ function refresh() {
 export async function confirmPayment(id: string) {
   const { user, admin } = await requireSuperAdmin();
   if (!UUID.test(id)) return;
-  const { data: pay } = await admin.from("payments").select("business_id, plans(name)").eq("id", id).eq("status", "pending").maybeSingle();
+  const { data: pay } = await admin
+    .from("payments")
+    .select("business_id, plans(name), credit_packs(credits)")
+    .eq("id", id)
+    .eq("status", "pending")
+    .maybeSingle();
   if (!pay) return refresh();
   const { data, error } = await admin.rpc("apply_payment", { p_payment: id, p_reviewer: user.id });
   if (error) {
     console.error("[billing] confirm failed:", error.message);
     return refresh();
   }
-  const end = (Array.isArray(data) ? data[0] : data)?.period_end as string | undefined;
-  const planName = (pay.plans as unknown as { name: string } | null)?.name ?? "Your plan";
+  const end = (Array.isArray(data) ? data[0] : data)?.period_end as
+    string | undefined;
+  const origin = await getOrigin();
+  const pack = pay.credit_packs as unknown as { credits: number } | null;
+  if (pack) {
+    const lines: Array<[string, string]> = [
+      ["AI credits", pack.credits.toLocaleString("en-PH")],
+      ["Use them by", end ? dateFmt.format(new Date(end)) : "—"],
+      [
+        "How they work",
+        "Once this month's AI replies or Ask MyHomeSeller questions are used up, each AI reply takes 1 credit and each question takes 2.",
+      ],
+    ];
+    if (pay.business_id)
+      await emailOwners(
+        admin,
+        pay.business_id as string,
+        `${creditsLabel(pack.credits)} added`,
+        lines,
+        { label: "Open Billing", url: `${origin}/app/billing` },
+      );
+    return refresh();
+  }
+  const planName =
+    (pay.plans as unknown as { name: string } | null)?.name ?? "Your plan";
   const lines: Array<[string, string]> = [
     ["Plan", planName],
     ["Paid until", end ? dateFmt.format(new Date(end)) : "—"],
   ];
-  const origin = await getOrigin();
-  if (pay.business_id) await emailOwners(admin, pay.business_id as string, `${planName} is on`, lines, { label: "Open MyHomeSeller", url: `${origin}/app/billing` });
+  if (pay.business_id)
+    await emailOwners(
+      admin,
+      pay.business_id as string,
+      `${planName} is on`,
+      lines,
+      { label: "Open MyHomeSeller", url: `${origin}/app/billing` },
+    );
   refresh();
 }
 

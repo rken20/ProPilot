@@ -3,6 +3,7 @@
  * start from. A person reads, edits and sends every message themselves.
  */
 import type Anthropic from "@anthropic-ai/sdk";
+import { noThinking } from "./listing-assistant";
 import type { Lang } from "./lang";
 import { OPEN_STAGES, daysSince } from "./pipeline";
 
@@ -126,6 +127,7 @@ export async function draftFollowUp(
   const { system, user } = followUpPrompt(ctx);
   const res = await client.messages.create({
     model,
+    ...noThinking(model),
     max_tokens: 400,
     system,
     messages: [{ role: "user", content: user }],

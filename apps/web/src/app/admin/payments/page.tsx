@@ -5,6 +5,7 @@ import { Card, IconTitle, PageHeader, Panel } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { formatPeso } from "@/lib/money";
 import { requireSuperAdmin } from "@/lib/superadmin";
+import { paymentItem } from "@/lib/credit-rules";
 import { AdminTabs } from "../admin-tabs";
 import { cancelGrant, confirmPayment, grantByEmail, grantPlan, rejectPayment } from "./actions";
 import { GrantByEmail } from "./grant-by-email";
@@ -28,6 +29,7 @@ type Row = {
   period_end: string | null;
   created_at: string;
   plans: { name: string } | null;
+  credit_packs: { credits: number } | null;
   businesses: { name: string } | null;
 };
 
@@ -37,11 +39,34 @@ export default async function AdminPaymentsPage() {
   const say = sayIn(lang);
   const { admin } = await requireSuperAdmin();
   // A tester may have signed up since the plan was given: turn on any that can be now.
-  await admin.rpc("claim_plan_grants").then(({ error }) => error && console.error("[billing] claim grants failed:", error.message));
-  const cols = "id, business_id, months, amount_minor, method, reference, payer_name, status, reject_reason, period_end, created_at, plans(name), businesses(name)";
-  const [{ data: pending }, { data: recent }, { data: businesses }, { data: plans }, { data: subs }, { data: grantRows }] = await Promise.all([
-    admin.from("payments").select(cols).eq("status", "pending").order("created_at").limit(100),
-    admin.from("payments").select(cols).neq("status", "pending").order("created_at", { ascending: false }).limit(30),
+  await admin
+    .rpc("claim_plan_grants")
+    .then(
+      ({ error }) =>
+        error && console.error("[billing] claim grants failed:", error.message),
+    );
+  const cols =
+    "id, business_id, months, amount_minor, method, reference, payer_name, status, reject_reason, period_end, created_at, plans(name), credit_packs(credits), businesses(name)";
+  const [
+    { data: pending },
+    { data: recent },
+    { data: businesses },
+    { data: plans },
+    { data: subs },
+    { data: grantRows },
+  ] = await Promise.all([
+    admin
+      .from("payments")
+      .select(cols)
+      .eq("status", "pending")
+      .order("created_at")
+      .limit(100),
+    admin
+      .from("payments")
+      .select(cols)
+      .neq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(30),
     admin.from("businesses").select("id, name").order("name").limit(1000),
     admin.from("plans").select("code, name, price_minor").eq("is_active", true).neq("price_minor", 0).order("sort_order"),
     admin.from("subscriptions").select("business_id, current_period_end, plans(name)"),
@@ -61,7 +86,10 @@ export default async function AdminPaymentsPage() {
       <AdminTabs current="/admin/payments" />
       <PageHeader icon3d="money" tone="lemon"
         title="Payments to check"
-        description={say("Find each payment in your GCash transaction history by its reference number and amount, then confirm it. Confirming turns the plan on right away.", "Hanapin ang bawat payment sa GCash transaction history mo gamit ang reference number at amount nito, tapos i-confirm. Kapag kinonfirm, agad na mao-on ang plan.")}
+        description={say(
+          "Find each payment in your GCash transaction history by its reference number and amount, then confirm it. Confirming turns the plan on, or adds the AI credits, right away.",
+          "Hanapin ang bawat payment sa GCash transaction history mo gamit ang reference number at amount nito, tapos i-confirm. Kapag kinonfirm, agad na mao-on ang plan o madadagdag ang AI credits.",
+        )}
       />
 
       {rows.length ? (
@@ -73,7 +101,8 @@ export default async function AdminPaymentsPage() {
                   <div>
                     <p className="text-lg font-bold tracking-tight">{payer(p)}</p>
                     <p className="text-sm text-muted">
-                      {p.plans?.name}, {p.months} month{p.months === 1 ? "" : "s"} · sent {when.format(new Date(p.created_at))}
+                      {paymentItem(p)} · sent{" "}
+                      {when.format(new Date(p.created_at))}
                     </p>
                   </div>
                   <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
@@ -182,7 +211,7 @@ export default async function AdminPaymentsPage() {
               <thead className="text-xs text-muted">
                 <tr className="border-b border-line">
                   <th className="px-4 py-3 font-medium">Business</th>
-                  <th className="px-4 py-3 font-medium">Plan</th>
+                  <th className="px-4 py-3 font-medium">For</th>
                   <th className="px-4 py-3 font-medium">Amount</th>
                   <th className="px-4 py-3 font-medium">Reference</th>
                   <th className="px-4 py-3 font-medium">Result</th>
@@ -192,11 +221,15 @@ export default async function AdminPaymentsPage() {
                 {(recent as unknown as Row[]).map((p) => (
                   <tr key={p.id} className="border-b border-line last:border-0">
                     <td className="px-4 py-3">{payer(p)}</td>
-                    <td className="px-4 py-3">
-                      {p.plans?.name}, {p.months} mo
+                    <td className="px-4 py-3">{paymentItem(p, true)}</td>
+                    <td className="px-4 py-3 tabular-nums">
+                      {p.method === "complimentary"
+                        ? "Free (given)"
+                        : formatPeso(p.amount_minor)}
                     </td>
-                    <td className="px-4 py-3 tabular-nums">{p.method === "complimentary" ? "Free (given)" : formatPeso(p.amount_minor)}</td>
-                    <td className="px-4 py-3 tabular-nums">{p.reference ?? "—"}</td>
+                    <td className="px-4 py-3 tabular-nums">
+                      {p.reference ?? "—"}
+                    </td>
                     <td className="px-4 py-3">
                       {p.status === "confirmed" ? `Confirmed, until ${p.period_end ? day.format(new Date(p.period_end)) : "—"}` : `Not found${p.reject_reason ? `: ${p.reject_reason}` : ""}`}
                     </td>

@@ -9,6 +9,7 @@
  * doesn't back up.
  */
 import type Anthropic from "@anthropic-ai/sdk";
+import { noThinking } from "../listing-assistant";
 import { MUSIC, MUSIC_IDS, musicChoice, type MusicId } from "./sound";
 import { LIMITS, MAX_LINES, MAX_PHOTOS, TEMPLATES, TEMPLATE_IDS, cleanPlan, type AdLanguage, type AdListing, type CleanPlan, type TemplateId } from "./spec";
 
@@ -148,6 +149,7 @@ export async function planVideoAd(client: Client | null, model: string, l: AdLis
     }
     const res = await client.messages.create({
       model,
+      ...noThinking(model),
       max_tokens: 900,
       system,
       tools: [PLAN_TOOL],

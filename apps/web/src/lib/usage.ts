@@ -5,10 +5,23 @@ import { esc, sendEmail } from "./email";
 import { manilaMonthStart } from "./matching";
 import { businessPlan, type PlanInfo } from "./plan";
 import { manilaDayStart } from "./reports";
-import { crossed, nextPlan, usageItems, usageSentence, type UsageItem, type UsageKey } from "./usage-rules";
+import { creditBalance } from "./ai-credits";
+import {
+  CREDIT_KEYS,
+  crossed,
+  nextPlan,
+  usageItems,
+  usageSentence,
+  type UsageItem,
+  type UsageKey,
+} from "./usage-rules";
 
-const SOURCES: Record<UsageKey, { table: string; ai?: boolean }> = {
+const SOURCES: Record<
+  UsageKey,
+  { table: string; ai?: boolean; feature?: string }
+> = {
   replies: { table: "messenger_messages", ai: true },
+  ask: { table: "ai_uses", feature: "ask" },
   finder: { table: "listing_matches" },
   priceChecks: { table: "price_checks" },
   videoAds: { table: "video_ads" },
@@ -17,6 +30,7 @@ const SOURCES: Record<UsageKey, { table: string; ai?: boolean }> = {
 async function countUsed(db: SupabaseClient, businessId: string, key: UsageKey, from: string, before?: string): Promise<number> {
   let q = db.from(SOURCES[key].table).select("id", { count: "exact", head: true }).eq("business_id", businessId).gte("created_at", from);
   if (SOURCES[key].ai) q = q.eq("sender", "ai");
+  if (SOURCES[key].feature) q = q.eq("feature", SOURCES[key].feature);
   if (before) q = q.lt("created_at", before);
   return (await q).count ?? 0;
 }
@@ -24,9 +38,24 @@ async function countUsed(db: SupabaseClient, businessId: string, key: UsageKey, 
 /** This month's use of each AI allowance on the business's plan (Manila calendar month). */
 export async function businessUsage(db: SupabaseClient, businessId: string, plan: PlanInfo, before?: string): Promise<UsageItem[]> {
   const from = manilaMonthStart();
-  const keys = usageItems(plan, { replies: 0, finder: 0, priceChecks: 0, videoAds: 0 }).map((i) => i.key);
-  const counts = await Promise.all(keys.map((k) => countUsed(db, businessId, k, from, before)));
-  const used = { replies: 0, finder: 0, priceChecks: 0, videoAds: 0, ...Object.fromEntries(keys.map((k, i) => [k, counts[i]!])) };
+  const keys = usageItems(plan, {
+    replies: 0,
+    ask: 0,
+    finder: 0,
+    priceChecks: 0,
+    videoAds: 0,
+  }).map((i) => i.key);
+  const counts = await Promise.all(
+    keys.map((k) => countUsed(db, businessId, k, from, before)),
+  );
+  const used = {
+    replies: 0,
+    ask: 0,
+    finder: 0,
+    priceChecks: 0,
+    videoAds: 0,
+    ...Object.fromEntries(keys.map((k, i) => [k, counts[i]!])),
+  };
   return usageItems(plan, used);
 }
 
@@ -62,10 +91,27 @@ export async function sendUsageEmails(admin: SupabaseClient, appOrigin: string, 
       const up = nextPlan(plan.code);
       const { data: settings } = await admin.from("agent_settings").select("chat_language").eq("business_id", businessId).maybeSingle();
       const say = sayIn(toLang(settings?.chat_language));
+      const credits = news.some((i) => CREDIT_KEYS.includes(i.key))
+        ? await creditBalance(admin, businessId)
+        : 0;
       const advice =
-        say("Allowances renew on the 1st.", "Nagre-renew ang allowances tuwing a-uno.") +
-        (up ? say(` For more this month, upgrade to ${up.name} in Billing.`, ` Kung kailangan mo pa ngayong buwan, mag-upgrade sa ${up.name} sa Billing.`) : "");
-      const lines = news.map((item) => usageSentence(item, say));
+        say(
+          "Allowances renew on the 1st.",
+          "Nagre-renew ang allowances tuwing a-uno.",
+        ) +
+        (news.some((i) => CREDIT_KEYS.includes(i.key))
+          ? say(
+              " AI credits in Billing keep AI replies and Ask MyHomeSeller going this month.",
+              " Sa Billing, may AI credits para tuloy ang AI replies at Ask MyHomeSeller ngayong buwan.",
+            )
+          : "") +
+        (up
+          ? say(
+              ` For more every month, upgrade to ${up.name} in Billing.`,
+              ` Para mas marami kada buwan, mag-upgrade sa ${up.name} sa Billing.`,
+            )
+          : "");
+      const lines = news.map((item) => usageSentence(item, say, credits));
       const url = `${appOrigin}/app/billing`;
       const subject = out
         ? say(`Your ${plan.name} plan: an AI allowance is used up`, `${plan.name} plan mo: ubos na ang isang AI allowance`)

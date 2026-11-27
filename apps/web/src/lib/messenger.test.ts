@@ -270,6 +270,32 @@ describe("messengerReply", () => {
       today: "2026-11-11",
     });
     expect(r).toEqual({ reply: "I've passed this to an agent.", handover: "Asked for a discount" });
-    expect(create.mock.calls[0]![0].system).toContain("automated assistant");
+    const params = create.mock.calls[0]![0];
+    // The rules and listings are cached; what's only about this chat comes after them.
+    expect(params.system[0].cache_control).toEqual({ type: "ephemeral" });
+    expect(params.system[0].text).toContain("<listings");
+    expect(params.system[0].text).not.toContain("automated assistant");
+    expect(params.system[1].text).toContain("automated assistant");
+    expect(params.cache_control).toEqual({ type: "ephemeral" });
+  });
+
+  it("keeps the cached part the same from one chat to the next, and stops after 3 rounds", async () => {
+    const toolCall = { stop_reason: "tool_use", content: [{ type: "tool_use", id: "t", name: "get_listing_details", input: { listing_id: listing.id } }] };
+    const create = vi.fn().mockResolvedValue(toolCall);
+    const ctx = { pageName: "Kira's Lifestyle", listings: [listing], today: "2026-11-11" };
+    await messengerReply({ messages: { create } } as unknown as Anthropic, "claude-haiku-5-5", { ...ctx, history: [{ from: "buyer", text: "Hi" }] });
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(create.mock.calls[0]![0].thinking).toEqual({ type: "disabled" });
+    await messengerReply({ messages: { create } } as unknown as Anthropic, "claude-haiku-5-5", {
+      ...ctx,
+      history: [
+        { from: "buyer", text: "Hi" },
+        { from: "ai", text: "Hello!" },
+        { from: "buyer", text: "Price?" },
+      ],
+      focusListingId: listing.id,
+    });
+    expect(create.mock.calls[3]![0].system[0].text).toBe(create.mock.calls[0]![0].system[0].text);
+    expect(create.mock.calls[3]![0].system[1].text).toContain("They started this chat from the listing");
   });
 });

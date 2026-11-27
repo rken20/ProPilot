@@ -24,6 +24,9 @@ import { businessUsage } from "@/lib/usage";
 import { SubmitButton } from "@/components/submit-button";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { switchTestPlan } from "./test-plan-actions";
+import { CreditPackForm } from "./credit-form";
+import { creditPacks, creditSummary } from "@/lib/ai-credits";
+import { CREDIT_COST, paymentItem } from "@/lib/credit-rules";
 
 const dateFmt = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric" });
 const date = (iso: string) => dateFmt.format(new Date(iso));
@@ -45,23 +48,34 @@ export default async function BillingPage() {
     supabase.from("plans").select("id, code, name, price_minor").eq("is_active", true).order("sort_order"),
     supabase
       .from("payments")
-      .select("id, plan_id, months, amount_minor, method, reference, status, reject_reason, period_end, created_at")
+      .select(
+        "id, plan_id, pack_code, months, amount_minor, method, reference, status, reject_reason, period_end, created_at, plans(name), credit_packs(credits)",
+      )
       .eq("business_id", biz.businessId)
       .order("created_at", { ascending: false })
       .limit(24),
   ]);
 
-  const usage = await businessUsage(supabase, biz.businessId, plan);
+  const [usage, packs, credits] = await Promise.all([
+    businessUsage(supabase, biz.businessId, plan),
+    creditPacks(supabase),
+    creditSummary(supabase, biz.businessId),
+  ]);
   const me = await getUser();
   const superAdmin = me ? await isSuperAdmin(me.id) : false;
   const now = new Date();
   const left = daysLeft(plan.periodEnd, now);
-  const pending = (payments ?? []).find((p) => p.status === "pending");
-  const lastRejected = (payments ?? [])[0]?.status === "rejected" ? payments![0] : null;
+  const pending = (payments ?? []).find(
+    (p) => p.status === "pending" && !p.pack_code,
+  );
+  const pendingPack = (payments ?? []).find(
+    (p) => p.status === "pending" && p.pack_code,
+  );
+  const lastRejected =
+    (payments ?? [])[0]?.status === "rejected" ? payments![0] : null;
   const canPay = can(biz.role, "billing.manage");
   const gcashNumber = process.env.GCASH_NUMBER ?? "";
   const gcashName = process.env.GCASH_NAME ?? "";
-  const planName = new Map((plans ?? []).map((p) => [p.id, p.name as string]));
   const paid = (plans ?? []).filter((p) => p.code !== FREE_PLAN);
 
   return (
@@ -105,7 +119,15 @@ export default async function BillingPage() {
         </Panel>
       ) : null}
 
-      <UsageNotice items={usage} planCode={plan.code} canSeeBilling onBilling className="mb-6" say={say} />
+      <UsageNotice
+        items={usage}
+        planCode={plan.code}
+        canSeeBilling
+        onBilling
+        className="mb-6"
+        say={say}
+        credits={credits.left}
+      />
       {usage.length ? (
         <Panel icon3d="chart" title="AI allowances this month" className="mb-6">
           <p className="mt-0.5 mb-4 text-sm text-muted">{say("They renew on the 1st of each month.", "Nagre-renew ang mga ito tuwing a-uno ng buwan.")}</p>
@@ -196,6 +218,61 @@ export default async function BillingPage() {
         </Panel>
       ) : null}
 
+      {plan.ai && packs.length ? (
+        <div id="credits" className="mt-6 scroll-mt-24">
+          <Panel icon3d="sparkles" title="AI credits">
+            <div className="mt-1 mb-5 flex flex-wrap items-end justify-between gap-4">
+              <p className="max-w-2xl text-sm text-muted">
+                {say(
+                  `For busy months: once this month's AI replies or Ask MyHomeSeller questions are used up, the AI keeps going on credits. An AI reply takes ${CREDIT_COST.reply} credit, a question takes ${CREDIT_COST.ask}. Credits are used only after the plan's allowance, the ones that expire soonest first.`,
+                  `Para sa mga busy na buwan: kapag naubos na ang AI replies o tanong sa Ask MyHomeSeller ngayong buwan, tuloy ang AI gamit ang credits. ${CREDIT_COST.reply} credit ang bawat AI reply, ${CREDIT_COST.ask} ang bawat tanong. Gagamitin lang ang credits pagkatapos ng allowance ng plan, inuuna ang pinakamaagang mag-e-expire.`,
+                )}
+              </p>
+              <div className="text-right">
+                <p className="text-sm text-muted">
+                  {say("Credits left", "Natitirang credits")}
+                </p>
+                <p className="text-3xl font-extrabold tabular-nums">
+                  {credits.left.toLocaleString("en-PH")}
+                </p>
+                {credits.nextExpiry ? (
+                  <p className="text-xs text-muted tabular-nums">
+                    {say(
+                      `${credits.nextExpiry.credits.toLocaleString("en-PH")} expire on ${date(credits.nextExpiry.at)}`,
+                      `${credits.nextExpiry.credits.toLocaleString("en-PH")} ang mag-e-expire sa ${date(credits.nextExpiry.at)}`,
+                    )}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            {!canPay ? (
+              <p className="text-sm text-muted">
+                {say(
+                  "Only the business owner can buy AI credits.",
+                  "Business owner lang ang pwedeng bumili ng AI credits.",
+                )}
+              </p>
+            ) : pendingPack ? (
+              <Alert tone="success">
+                {say(
+                  `We're checking your GCash payment for ${paymentItem(pendingPack as unknown as Parameters<typeof paymentItem>[0])} (reference ${pendingPack.reference}). We'll email you when the credits are added.`,
+                  `Chine-check namin ang GCash payment mo para sa ${paymentItem(pendingPack as unknown as Parameters<typeof paymentItem>[0])} (reference ${pendingPack.reference}). Ie-email ka namin kapag naidagdag na ang credits.`,
+                )}
+              </Alert>
+            ) : (
+              <CreditPackForm
+                packs={packs}
+                gcash={
+                  gcashNumber && gcashName
+                    ? { number: gcashNumber, name: gcashName }
+                    : null
+                }
+              />
+            )}
+          </Panel>
+        </div>
+      ) : null}
+
       {payments?.length ? (
         <section className="mt-8" aria-labelledby="history">
           <IconTitle id="history" icon="money" size={24} className="mb-3 text-lg font-bold tracking-tight">
@@ -206,7 +283,7 @@ export default async function BillingPage() {
               <thead className="text-xs text-muted">
                 <tr className="border-b border-line">
                   <th className="px-4 py-3 font-medium">Date</th>
-                  <th className="px-4 py-3 font-medium">Plan</th>
+                  <th className="px-4 py-3 font-medium">For</th>
                   <th className="px-4 py-3 font-medium">Amount</th>
                   <th className="px-4 py-3 font-medium">GCash reference</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -220,14 +297,26 @@ export default async function BillingPage() {
                     <tr key={p.id} className="border-b border-line last:border-0">
                       <td className="px-4 py-3">{date(p.created_at as string)}</td>
                       <td className="px-4 py-3">
-                        {planName.get(p.plan_id) ?? "Plan"}, {p.months} mo
+                        {paymentItem(
+                          p as unknown as Parameters<typeof paymentItem>[0],
+                          true,
+                        )}
                       </td>
                       <td className="px-4 py-3 tabular-nums">{p.method === "complimentary" ? "Free" : formatPeso(p.amount_minor as number)}</td>
                       <td className="px-4 py-3 tabular-nums">{p.reference ?? "—"}</td>
                       <td className={cx("px-4 py-3 font-medium", s.tone)}>
                         <span className="inline-flex items-center gap-1.5">
                           <Icon className="size-4" aria-hidden /> {s.label}
-                          {p.status === "confirmed" && p.period_end ? <span className="font-normal text-muted"> · until {date(p.period_end as string)}</span> : null}
+                          {p.status === "confirmed" && p.period_end ? (
+                            <span className="font-normal text-muted">
+                              {" "}
+                              ·{" "}
+                              {p.pack_code
+                                ? say("use by", "gamitin bago")
+                                : "until"}{" "}
+                              {date(p.period_end as string)}
+                            </span>
+                          ) : null}
                         </span>
                       </td>
                     </tr>

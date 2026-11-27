@@ -1,5 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { amortize, financingPlans, type FinancingInfo } from "@propilot/shared";
+import { noThinking } from "./listing-assistant";
 import { formatPeso } from "./money";
 import { dealLine, dealRef, decideOffer, type NegotiationContext, type NewOffer, type PriorOffer } from "./negotiation";
 import { TYPE_LABEL } from "./property-labels";
@@ -35,8 +36,11 @@ export type AssistantResult = {
   offers?: NewOffer[];
 };
 
-export const MAX_HISTORY = 16;
+/** Messages of the chat the AI reads (owner's decision, 27 Nov 2026: 10, down from 16, to keep replies cheaper). */
+export const MAX_HISTORY = 10;
 export const MAX_REPLY_CHARS = 1000;
+/** AI rounds for one reply: up to 2 rounds of tool calls, then the answer (was 4). */
+export const MAX_ROUNDS = 3;
 
 function short(l: MessengerListing): string {
   return `- [${l.id}] ${l.name} | ${TYPE_LABEL[l.type as keyof typeof TYPE_LABEL] ?? l.type} | ${l.location} | ${formatPeso(l.price_minor)} | ${l.status}`;
@@ -79,20 +83,70 @@ const LANGUAGE_RULE: Record<ChatLanguage, string> = {
   english: "Write in English only, even if they write in Filipino or another language.",
 };
 
+type PromptOpts = {
+  channel?: Channel;
+  focus?: MessengerListing;
+  language?: ChatLanguage;
+  negotiate?: boolean;
+};
+
+/**
+ * The system prompt in two parts. `stable` is the same for every chat of the
+ * business on a day (rules and listings), so it is cached and later calls read it
+ * at a tenth of the price. `notes` is about this conversation only.
+ */
+export function messengerSystemParts(
+  pageName: string,
+  listings: MessengerListing[],
+  firstReply: boolean,
+  today: string,
+  opts: PromptOpts = {},
+): { stable: string; notes: string } {
+  const notes = [
+    firstReply
+      ? `- This is your first reply in this conversation: start by saying you're ${pageName}'s automated assistant and that an agent can take over anytime.`
+      : "",
+    opts.focus
+      ? `- They started this chat from the listing [${opts.focus.id}] ${opts.focus.name}. Assume that's the one they mean unless they say otherwise.`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return {
+    stable: stablePrompt(pageName, listings, today, opts),
+    notes: notes ? `About this conversation:\n${notes}` : "",
+  };
+}
+
+/** The whole system prompt as one text. */
 export function messengerSystemPrompt(
   pageName: string,
   listings: MessengerListing[],
   firstReply: boolean,
   today: string,
-  opts: { channel?: Channel; focus?: MessengerListing; language?: ChatLanguage; negotiate?: boolean } = {},
+  opts: PromptOpts = {},
+): string {
+  const { stable, notes } = messengerSystemParts(
+    pageName,
+    listings,
+    firstReply,
+    today,
+    opts,
+  );
+  return notes ? `${stable}\n\n${notes}` : stable;
+}
+
+function stablePrompt(
+  pageName: string,
+  listings: MessengerListing[],
+  today: string,
+  opts: PromptOpts,
 ): string {
   const where = opts.channel === "app" ? "messages sent through the MyHomeSeller app to" : "Facebook Messenger messages for";
   return `You answer ${where} "${pageName}", a real estate business in the Philippines. Today is ${today}.
 
 You help people who message the business with questions about its property listings, and you collect viewing requests.
-${firstReply ? `- This is your first reply in this conversation: start by saying you're ${pageName}'s automated assistant and that an agent can take over anytime.\n` : ""}${
-    opts.focus ? `- They started this chat from the listing [${opts.focus.id}] ${opts.focus.name}. Assume that's the one they mean unless they say otherwise.\n` : ""
-  }- Answer only from the listings below and what get_listing_details returns. If something isn't stated (floor area, parking, dues, turnover date, interest rates, exact address), say the listing doesn't say and offer to pass the question to an agent. Never guess or use outside knowledge about a property, developer or area.
+- Answer only from the listings below and what get_listing_details returns. If something isn't stated (floor area, parking, dues, turnover date, interest rates, exact address), say the listing doesn't say and offer to pass the question to an agent. Never guess or use outside knowledge about a property, developer or area.
 - If you can't tell which listing they mean (for example they replied to an ad or post), ask, briefly listing the closest matches.
 - Monthly payments: always use estimate_monthly_payment, never calculate yourself. If they haven't given a rate and term, ask; say rates vary by lender. Present results as estimates.
 - To book a viewing, get their name, mobile number and preferred date (and the listing), then call save_viewing_request. Then tell them an agent will confirm.
@@ -361,12 +415,44 @@ export async function messengerReply(
   const messages = toModelMessages(ctx.history);
   if (!messages.length) return result;
   const focus = ctx.listings.find((l) => l.id === ctx.focusListingId);
-  const system = messengerSystemPrompt(ctx.pageName, ctx.listings, firstReply, ctx.today, { channel: ctx.channel, focus, language: ctx.language, negotiate: Boolean(ctx.negotiation) });
-  const tools = ctx.negotiation ? [...MESSENGER_TOOLS, OFFER_TOOL] : MESSENGER_TOOLS;
-  for (let round = 0; round < 4; round++) {
-    const res = await client.messages.create({ model, max_tokens: 500, system, tools, messages });
-    const calls = res.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
-    if (res.stop_reason === "tool_use" && calls.length && round < 3) {
+  const parts = messengerSystemParts(
+    ctx.pageName,
+    ctx.listings,
+    firstReply,
+    ctx.today,
+    {
+      channel: ctx.channel,
+      focus,
+      language: ctx.language,
+      negotiate: Boolean(ctx.negotiation),
+    },
+  );
+  // The tools and the stable part are cached (one breakpoint); the top-level marker also caches the chat so far, for the next round.
+  const system: Anthropic.TextBlockParam[] = [
+    { type: "text", text: parts.stable, cache_control: { type: "ephemeral" } },
+    ...(parts.notes ? [{ type: "text" as const, text: parts.notes }] : []),
+  ];
+  const tools = ctx.negotiation
+    ? [...MESSENGER_TOOLS, OFFER_TOOL]
+    : MESSENGER_TOOLS;
+  for (let round = 0; round < MAX_ROUNDS; round++) {
+    const res = await client.messages.create({
+      model,
+      ...noThinking(model),
+      max_tokens: 500,
+      system,
+      tools,
+      messages,
+      cache_control: { type: "ephemeral" },
+    });
+    const calls = res.content.filter(
+      (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+    );
+    if (
+      res.stop_reason === "tool_use" &&
+      calls.length &&
+      round < MAX_ROUNDS - 1
+    ) {
       messages.push({ role: "assistant", content: res.content });
       messages.push({
         role: "user",

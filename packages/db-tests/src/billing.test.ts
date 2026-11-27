@@ -63,11 +63,11 @@ describe("plans", () => {
       { code: "basic", feature_key: "home_finder_buyers", limit: 5 },
       { code: "basic", feature_key: "team_members", limit: 2 },
       { code: "pro", feature_key: "ai", limit: null },
-      { code: "pro", feature_key: "ai_replies", limit: 10000 },
+      { code: "pro", feature_key: "ai_replies", limit: 6000 },
       { code: "pro", feature_key: "home_finder_buyers", limit: 20 },
       { code: "pro", feature_key: "team_members", limit: 5 },
       { code: "agency", feature_key: "ai", limit: null },
-      { code: "agency", feature_key: "ai_replies", limit: 25000 },
+      { code: "agency", feature_key: "ai_replies", limit: 15000 },
       { code: "agency", feature_key: "home_finder_buyers", limit: 60 },
       { code: "agency", feature_key: "team_members", limit: 15 },
     ]);

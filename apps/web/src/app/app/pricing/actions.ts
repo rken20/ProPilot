@@ -9,7 +9,15 @@ import { requireBusiness, requireUser } from "@/lib/auth";
 import { fieldErrorsFrom } from "@/lib/form";
 import { DEFAULT_MODEL } from "@/lib/listing-assistant";
 import { businessPlan } from "@/lib/plan";
-import { pricingInputSchema, researchPrice, type OwnListing, type PricingInput, type PricingReport } from "@/lib/pricing-advisor";
+import {
+  pricingInputSchema,
+  researchPrice,
+  REUSE_DAYS,
+  samePricingInput,
+  type OwnListing,
+  type PricingInput,
+  type PricingReport,
+} from "@/lib/pricing-advisor";
 import { publicListingPath } from "@/lib/public-listing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -24,6 +32,8 @@ export type PriceState = {
   values?: Record<string, string>;
   report?: PricingReport;
   input?: PricingInput;
+  /** Set when this is an earlier check for the same details, shown again and not counted. */
+  reusedAt?: string;
 };
 
 /** Public MyHomeSeller listings of the same type in the same town, as extra context. */
@@ -66,6 +76,30 @@ export async function checkPrice(propertyId: string | null, _prev: PriceState, f
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const admin = createAdminClient();
   if (!apiKey || !admin) return { values, error: say("The Pricing Advisor isn't available right now.", "Hindi available ang Pricing Advisor ngayon.") };
+
+  // The same details checked in the last 30 days: show that check again, free.
+  const { data: recent } = await admin
+    .from("price_checks")
+    .select("input, result, created_at")
+    .eq("business_id", biz.businessId)
+    .not("result", "is", null)
+    .gte(
+      "created_at",
+      new Date(Date.now() - REUSE_DAYS * 86_400_000).toISOString(),
+    )
+    .order("created_at", { ascending: false })
+    .limit(40);
+  const earlier = (recent ?? []).find((r) => {
+    const old = pricingInputSchema.safeParse(r.input);
+    return old.success && samePricingInput(old.data, input);
+  });
+  if (earlier)
+    return {
+      values,
+      report: earlier.result as PricingReport,
+      input,
+      reusedAt: earlier.created_at as string,
+    };
 
   const supabase = await createClient();
   const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "price_check", p_limit: 6, p_window_seconds: 3600 });

@@ -39,6 +39,28 @@ export const pricingInputSchema = z
   });
 export type PricingInput = z.infer<typeof pricingInputSchema>;
 
+/** A price check for the same details within this many days is shown again instead of run again (owner's decision, 27 Nov 2026). */
+export const REUSE_DAYS = 30;
+
+/** Whether two price checks ask about the same property: same details, the address compared without case or extra spaces. */
+export function samePricingInput(a: PricingInput, b: PricingInput): boolean {
+  const place = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .replace(/\s*,\s*/g, ", ")
+      .trim();
+  return (
+    place(a.location) === place(b.location) &&
+    a.type === b.type &&
+    (a.floorArea ?? null) === (b.floorArea ?? null) &&
+    (a.lotArea ?? null) === (b.lotArea ?? null) &&
+    (a.bedrooms ?? null) === (b.bedrooms ?? null) &&
+    (a.bathrooms ?? null) === (b.bathrooms ?? null) &&
+    a.condition === b.condition
+  );
+}
+
 /** A public MyHomeSeller listing in the same area, given to the AI as context and shown to the owner. */
 export type OwnListing = { id: string; name: string; location: string; priceMinor: number };
 

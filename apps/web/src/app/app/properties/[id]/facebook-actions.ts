@@ -8,7 +8,7 @@ import { requireBusiness, requireUser } from "@/lib/auth";
 import { pageWithToken, RECONNECT_MESSAGE } from "@/lib/facebook-pages";
 import { str } from "@/lib/form";
 import { MAX_CAPTION, defaultCaption, type CaptionListing } from "@/lib/listing-caption";
-import { DEFAULT_MODEL } from "@/lib/listing-assistant";
+import { DEFAULT_MODEL, noThinking } from "@/lib/listing-assistant";
 import { mediaUrl } from "@/lib/media";
 import { canPublish, GraphError, metaConfig, publishPost, uploadPhoto } from "@/lib/meta";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -110,6 +110,7 @@ export async function draftCaption(propertyId: string): Promise<{ caption?: stri
   try {
     const res = await new Anthropic({ apiKey }).messages.create({
       model: process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
+      ...noThinking(process.env.ANTHROPIC_MODEL || DEFAULT_MODEL),
       max_tokens: 700,
       system: `You write Facebook Page posts for a real estate agent in the Philippines.
 Write one post for the listing below, 60 to 130 words, in clear English that Filipino buyers read easily.

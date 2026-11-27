@@ -10,7 +10,10 @@ import { formatPeso } from "@/lib/money";
 import { loadReportData } from "@/lib/report-data";
 import { fmtDuration, leadsReport, messengerReport, parseRange } from "@/lib/reports";
 import { createClient } from "@/lib/supabase/server";
-import { aiEnabled } from "@/lib/plan";
+import { aiEnabled, businessPlan } from "@/lib/plan";
+import { askUsedThisMonth, creditBalance, recordAiUse } from "@/lib/ai-credits";
+import { creditsNeeded } from "@/lib/credit-rules";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { upgradeMessage } from "@/lib/plan-rules";
 
 const ROLE = { owner: "owner", admin: "admin", agent: "agent", marketing: "marketing" } as const;
@@ -29,8 +32,44 @@ export async function askAgentAssistant(raw: AgentTurn[]): Promise<{ reply?: str
   const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_bucket: "agent_assistant", p_limit: 40, p_window_seconds: 3600 });
   if (allowed !== true) return { error: say("You've asked a lot in the last hour. Please try again later.", "Marami ka nang naitanong nitong huling oras. Paki-try ulit mamaya.") };
 
-  const since = (days?: number) => new Date(Date.now() - (days ?? 3650) * 86_400_000).toISOString();
-  const canSeeLeads = can(biz.role, "lead.viewAll") || can(biz.role, "lead.viewAssigned");
+  // The month's questions come with the plan; past them, each question takes 2 AI credits.
+  const admin = createAdminClient();
+  if (!admin)
+    return {
+      error: say(
+        "Couldn't answer just now. Please try again.",
+        "Hindi makasagot ngayon. Paki-try ulit.",
+      ),
+    };
+  const plan = await businessPlan(biz.businessId);
+  const limit = plan.askQuestions;
+  const credits =
+    limit === null
+      ? 0
+      : creditsNeeded(
+          "ask",
+          await askUsedThisMonth(admin, biz.businessId),
+          limit,
+        );
+  if (credits > 0 && (await creditBalance(admin, biz.businessId)) < credits) {
+    const n = (limit ?? 0).toLocaleString("en-PH");
+    return {
+      error: can(biz.role, "billing.manage")
+        ? say(
+            `You've asked all ${n} questions in this month's plan. They renew on the 1st, or buy AI credits in Billing to keep asking.`,
+            `Naitanong mo na ang lahat ng ${n} na tanong sa plan ngayong buwan. Magre-renew sa a-uno, o bumili ng AI credits sa Billing para tuloy ang pagtatanong.`,
+          )
+        : say(
+            `Your team has asked all ${n} questions in this month's plan. They renew on the 1st, or the owner can buy AI credits in Billing.`,
+            `Naitanong na ng team ang lahat ng ${n} na tanong sa plan ngayong buwan. Magre-renew sa a-uno, o pwedeng bumili ang owner ng AI credits sa Billing.`,
+          ),
+    };
+  }
+
+  const since = (days?: number) =>
+    new Date(Date.now() - (days ?? 3650) * 86_400_000).toISOString();
+  const canSeeLeads =
+    can(biz.role, "lead.viewAll") || can(biz.role, "lead.viewAssigned");
   const canChat = can(biz.role, "conversation.reply");
 
   const tools: AgentTools = {
@@ -160,6 +199,7 @@ export async function askAgentAssistant(raw: AgentTurn[]): Promise<{ reply?: str
       tools,
       history,
     );
+    await recordAiUse(admin, biz.businessId, "ask", credits);
     return { reply };
   } catch (e) {
     console.error("[assistant] failed:", e instanceof Error ? e.message : String(e));

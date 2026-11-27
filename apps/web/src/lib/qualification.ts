@@ -1,4 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
+import { noThinking } from "./listing-assistant";
 import { formatPeso } from "./money";
 import { transcript, type HelperTurn } from "./reply-helper";
 
@@ -221,6 +222,7 @@ export function mergeFacts(current: Facts, found: Facts): Facts {
 export async function qualify(client: Pick<Anthropic, "messages">, model: string, ctx: QualifyContext): Promise<Qualification | null> {
   const res = await client.messages.create({
     model,
+    ...noThinking(model),
     max_tokens: 600,
     system: SYSTEM,
     tools: [QUALIFY_TOOL],

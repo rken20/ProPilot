@@ -141,6 +141,27 @@ export function GcashPayForm({
         </div>
       </fieldset>
 
+      <GcashSteps total={total} gcash={gcash} kind="plan" />
+    </form>
+  );
+}
+
+/**
+ * Send the money by GCash, then report the reference number for checking. Used
+ * for plans and for AI credit packs. Without `gcash`, says payments aren't set up.
+ */
+export function GcashSteps({
+  total,
+  gcash,
+  kind,
+}: {
+  total: number;
+  gcash: { number: string; name: string } | null;
+  kind: "plan" | "credits";
+}) {
+  const say = useSay();
+  return (
+    <>
       {gcash ? (
         <>
           <ol className="space-y-4 text-sm">
@@ -159,11 +180,36 @@ export function GcashPayForm({
             <li className="rounded-xl bg-surface p-4">
               <p className="font-semibold">2. Tell us the payment details</p>
               <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                <Field label="Reference number" htmlFor="reference" hint={say("13 digits, on your GCash receipt", "13 digits, nasa GCash receipt mo")}>
-                  <Input id="reference" name="reference" inputMode="numeric" autoComplete="off" required placeholder="1012 345 678901" maxLength={20} />
+                <Field
+                  label="Reference number"
+                  htmlFor={`${kind}-reference`}
+                  hint={say(
+                    "13 digits, on your GCash receipt",
+                    "13 digits, nasa GCash receipt mo",
+                  )}
+                >
+                  <Input
+                    id={`${kind}-reference`}
+                    name="reference"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    required
+                    placeholder="1012 345 678901"
+                    maxLength={20}
+                  />
                 </Field>
-                <Field label="Name on your GCash account" htmlFor="payerName">
-                  <Input id="payerName" name="payerName" autoComplete="name" required maxLength={120} placeholder="e.g. JUAN D." />
+                <Field
+                  label="Name on your GCash account"
+                  htmlFor={`${kind}-payerName`}
+                >
+                  <Input
+                    id={`${kind}-payerName`}
+                    name="payerName"
+                    autoComplete="name"
+                    required
+                    maxLength={120}
+                    placeholder="e.g. JUAN D."
+                  />
                 </Field>
               </div>
             </li>
@@ -171,15 +217,20 @@ export function GcashPayForm({
 
           <SubmitButton pendingText="Sending…">I&apos;ve paid, send for checking</SubmitButton>
           <p className="text-xs text-muted">
-            {say(
-              "We check each payment by hand. Your plan starts when we confirm it, not when you send it.",
-              "Mano-mano naming chine-check ang bawat payment. Magsisimula ang plan mo kapag na-confirm na namin, hindi pag-send mo.",
-            )}
+            {kind === "plan"
+              ? say(
+                  "We check each payment by hand. Your plan starts when we confirm it, not when you send it.",
+                  "Mano-mano naming chine-check ang bawat payment. Magsisimula ang plan mo kapag na-confirm na namin, hindi pag-send mo.",
+                )
+              : say(
+                  "We check each payment by hand. Your credits are added when we confirm it, not when you send it.",
+                  "Mano-mano naming chine-check ang bawat payment. Madadagdag ang credits mo kapag na-confirm na namin, hindi pag-send mo.",
+                )}
           </p>
         </>
       ) : (
         <Alert tone="info">{say("GCash payments aren't set up yet, so you can't pay here today. Please check back soon.", "Hindi pa naka-set up ang GCash payments, kaya hindi ka pa makakabayad dito ngayon. Paki-check ulit soon.")}</Alert>
       )}
-    </form>
+    </>
   );
 }

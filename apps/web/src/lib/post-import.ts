@@ -1,4 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
+import { noThinking } from "./listing-assistant";
 import { z } from "zod";
 import { PROPERTY_TYPES } from "@propilot/shared";
 import { centavosToPesosInput } from "./money";
@@ -95,6 +96,7 @@ export function toFormValues(input: unknown): Record<string, string> {
 export async function fillFromPost(client: Anthropic, model: string, post: string): Promise<Record<string, string>> {
   const res = await client.messages.create({
     model,
+    ...noThinking(model),
     max_tokens: 2048,
     system: POST_SYSTEM,
     tools: [FILL_TOOL],

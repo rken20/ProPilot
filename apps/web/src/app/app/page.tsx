@@ -14,6 +14,9 @@ import { DashboardView, type Activity, type AiItem, type SetupStep } from "./das
 import { agentName } from "@/lib/agent-info";
 import { aiEnabled, businessPlan } from "@/lib/plan";
 import { businessUsage } from "@/lib/usage";
+import { creditBalance } from "@/lib/ai-credits";
+import { CREDIT_KEYS } from "@/lib/usage-rules";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { listingsNeedingFloor } from "@/lib/floors";
 import { buyerFinderUsed } from "@/lib/buyer-finder";
 import { performanceSeries, viewingsByMonth } from "@/lib/dashboard-stats";
@@ -182,8 +185,24 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
   const needsFloor = plan.negotiation && (biz.role === "owner" || biz.role === "admin") ? await listingsNeedingFloor(supabase, biz.businessId) : new Map();
   const floorIds = [...needsFloor.keys()];
   // AI allowances this month, for the notice when one is low or used up.
-  const usage = canSeeLeads ? await businessUsage(supabase, biz.businessId, plan) : [];
-  const { data: planRow } = await supabase.from("plans").select("price_minor").eq("code", plan.code).maybeSingle();
+  const usage = canSeeLeads
+    ? await businessUsage(supabase, biz.businessId, plan)
+    : [];
+  // Credits carry AI replies and Ask MyHomeSeller on once their allowance is used up. Read on the server,
+  // so agents (who can't see the credit lots) are told the AI is still answering.
+  const creditAdmin = usage.some(
+    (u) => u.level === "out" && CREDIT_KEYS.includes(u.key),
+  )
+    ? createAdminClient()
+    : null;
+  const credits = creditAdmin
+    ? await creditBalance(creditAdmin, biz.businessId)
+    : 0;
+  const { data: planRow } = await supabase
+    .from("plans")
+    .select("price_minor")
+    .eq("code", plan.code)
+    .maybeSingle();
   const nameOf = (id: string) => {
     if (id === user?.id) return "You";
     const p = profiles?.find((x) => x.id === id);
@@ -276,6 +295,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
       pricingAdvisor={plan.priceChecks !== 0}
       followUps={followUpsIncluded(plan.code)}
       usage={usage}
+      credits={credits}
       canSeeBilling={can(biz.role, "billing.view")}
       floorsNeeded={floorIds.length ? { count: floorIds.length, href: floorIds.length === 1 ? `/app/properties/${floorIds[0]}#ai-negotiation` : "/app/properties" } : null}
       recent={recent}

@@ -79,6 +79,8 @@ export type DashboardData = {
   followUps: boolean;
   /** This month's AI allowances; a notice shows when one is low or used up. */
   usage: UsageItem[];
+  /** AI credits left, for the allowance notice. */
+  credits: number;
   canSeeBilling: boolean;
   /** On plans with AI negotiation: for-sale listings whose lowest price the owner still has to set. */
   floorsNeeded?: { count: number; href: string } | null;
@@ -124,6 +126,7 @@ export function DashboardView({
   pricingAdvisor,
   followUps,
   usage,
+  credits,
   canSeeBilling,
   floorsNeeded,
   now,
@@ -145,7 +148,13 @@ export function DashboardView({
   return (
     <div className="pp-stagger space-y-5">
       {notice ? <Alert tone="success">{notice}</Alert> : null}
-      <UsageNotice items={usage} planCode={plan.code} canSeeBilling={canSeeBilling} say={say} />
+      <UsageNotice
+        items={usage}
+        planCode={plan.code}
+        canSeeBilling={canSeeBilling}
+        say={say}
+        credits={credits}
+      />
       {floorsNeeded ? (
         <div role="status" className="pp-fade flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-amber-200 bg-tile-lemon px-4 py-3 text-sm text-ink">
           <Icon3d name="robot" size={28} className="shrink-0" />

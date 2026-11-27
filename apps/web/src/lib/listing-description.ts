@@ -1,4 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
+import { noThinking } from "./listing-assistant";
 
 /**
  * A short listing description written by the AI from the facts the agent
@@ -46,6 +47,7 @@ export function descriptionPrompt(f: DescriptionFacts): string {
 export async function writeDescription(client: Pick<Anthropic, "messages">, model: string, f: DescriptionFacts): Promise<string> {
   const res = await client.messages.create({
     model,
+    ...noThinking(model),
     max_tokens: 500,
     system: SYSTEM,
     messages: [{ role: "user", content: descriptionPrompt(f) }],

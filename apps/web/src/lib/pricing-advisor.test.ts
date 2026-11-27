@@ -1,6 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
-import { buildReport, normalizeUrl, pricingInputSchema, pricingPrompt, researchPrice, roundPrice, type PricingInput } from "./pricing-advisor";
+import { buildReport, normalizeUrl, pricingInputSchema, pricingPrompt, researchPrice, roundPrice, samePricingInput, type PricingInput } from "./pricing-advisor";
 
 const condo: PricingInput = pricingInputSchema.parse({ location: "Mandurriao, Iloilo City", type: "condominium", floorArea: "50", bedrooms: "2", bathrooms: "1", condition: "good" });
 const ownUrl = (id: string) => `/l/${id}`;
@@ -169,5 +169,18 @@ describe("a research run", () => {
     const create = vi.fn().mockResolvedValue({ stop_reason: "end_turn", content: [{ type: "text", text: "Here is what I found." }] });
     expect(await researchPrice({ messages: { create } } as unknown as Anthropic, "m", condo, [], ownUrl)).toBeNull();
     expect(create).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("reusing a price check", () => {
+  const base = { location: "Mandurriao, Iloilo City", type: "condominium" as const, floorArea: 32, condition: "good" as const };
+  it("treats the same details as the same check, whatever the address's case or spacing", () => {
+    expect(samePricingInput(base, { ...base, location: "  mandurriao ,iloilo  city " })).toBe(true);
+  });
+  it("treats any different detail as a new check", () => {
+    expect(samePricingInput(base, { ...base, floorArea: 33 })).toBe(false);
+    expect(samePricingInput(base, { ...base, bedrooms: 1 })).toBe(false);
+    expect(samePricingInput(base, { ...base, condition: "new" as const })).toBe(false);
+    expect(samePricingInput(base, { ...base, location: "Jaro, Iloilo City" })).toBe(false);
   });
 });

@@ -3,7 +3,13 @@ import Anthropic from "@anthropic-ai/sdk";
 import { sendEmail, esc } from "./email";
 import { pageWithToken } from "./facebook-pages";
 import { DEFAULT_MODEL } from "./listing-assistant";
-import { messengerReply, type Channel, type MessengerListing, type Turn } from "./messenger-assistant";
+import {
+  MAX_HISTORY,
+  messengerReply,
+  type Channel,
+  type MessengerListing,
+  type Turn,
+} from "./messenger-assistant";
 import { OFFERS_PER_LISTING_PER_DAY, dealHoldReply } from "./negotiation";
 import type { NegotiationContext, PriorOffer } from "./negotiation";
 import { formatPeso } from "./money";
@@ -19,6 +25,8 @@ import {
 import { createAdminClient } from "./supabase/admin";
 import { aiEnabled, businessPlan } from "@/lib/plan";
 import { aiRepliesThisMonth } from "@/lib/plan-limits";
+import { creditBalance, recordAiUse } from "@/lib/ai-credits";
+import { CREDIT_COST, creditsNeeded } from "@/lib/credit-rules";
 
 /** Cost guards: AI replies per conversation per day, and per business per day. */
 export const AI_REPLIES_PER_CONVERSATION_DAY = 25;
@@ -113,8 +121,21 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
     return;
   }
   const plan = await businessPlan(businessId);
-  if (plan.aiReplies !== null && (await aiRepliesThisMonth(admin, businessId)) >= plan.aiReplies) {
-    await flag(admin, conv.id as string, `This month's ${plan.aiReplies.toLocaleString()} AI replies on ${plan.name} are used up, so this needs a person.`);
+  // Past the month's AI replies, each reply takes an AI credit (taken once it's sent).
+  const credits =
+    plan.aiReplies === null
+      ? 0
+      : creditsNeeded(
+          "reply",
+          await aiRepliesThisMonth(admin, businessId),
+          plan.aiReplies,
+        );
+  if (credits > 0 && (await creditBalance(admin, businessId)) < credits) {
+    await flag(
+      admin,
+      conv.id as string,
+      `This month's ${plan.aiReplies!.toLocaleString()} AI replies on ${plan.name} are used up and there are no AI credits left, so this needs a person. An owner can buy AI credits in Billing.`,
+    );
     return;
   }
 
@@ -137,8 +158,25 @@ async function handle(ev: MessengerEvent, appOrigin: string) {
   await commitDeals(admin, conv.id as string, turn);
 
   try {
-    const mid = await sendMessage(fetch, cfg, page.pageId, page.token, ev.psid, turn.result.reply);
-    await admin.from("messenger_messages").insert({ conversation_id: conv.id, business_id: businessId, sender: "ai", body: turn.result.reply, mid: mid ?? null });
+    const mid = await sendMessage(
+      fetch,
+      cfg,
+      page.pageId,
+      page.token,
+      ev.psid,
+      turn.result.reply,
+    );
+    await admin
+      .from("messenger_messages")
+      .insert({
+        conversation_id: conv.id,
+        business_id: businessId,
+        sender: "ai",
+        body: turn.result.reply,
+        mid: mid ?? null,
+      });
+    if (credits > 0)
+      await recordAiUse(admin, businessId, "reply", CREDIT_COST.reply);
   } catch (e) {
     log("send", e);
     if (e instanceof GraphError && e.tokenInvalid) {
@@ -210,17 +248,29 @@ export async function aiTurn(admin: Admin, conv: ConvRef, opts: { name: string; 
     return null;
   }
 
-  const [{ data: history }, { data: props }, { data: settings }] = await Promise.all([
-    admin.from("messenger_messages").select("sender, body").eq("conversation_id", conv.id).order("created_at", { ascending: false }).limit(16),
-    admin
-      .from("properties")
-      .select("id, name, type, location, status, price_minor, reservation_fee_minor, description, financing")
-      .eq("business_id", conv.business_id)
-      .in("status", ["available", "reserved"])
-      .order("updated_at", { ascending: false })
-      .limit(40),
-    admin.from("agent_settings").select("chat_language").eq("business_id", conv.business_id).maybeSingle(),
-  ]);
+  const [{ data: history }, { data: props }, { data: settings }] =
+    await Promise.all([
+      admin
+        .from("messenger_messages")
+        .select("sender, body")
+        .eq("conversation_id", conv.id)
+        .order("created_at", { ascending: false })
+        .limit(MAX_HISTORY),
+      admin
+        .from("properties")
+        .select(
+          "id, name, type, location, status, price_minor, reservation_fee_minor, description, financing",
+        )
+        .eq("business_id", conv.business_id)
+        .in("status", ["available", "reserved"])
+        .order("updated_at", { ascending: false })
+        .limit(40),
+      admin
+        .from("agent_settings")
+        .select("chat_language")
+        .eq("business_id", conv.business_id)
+        .maybeSingle(),
+    ]);
   // Negotiation (Pro, Agency): the owner's lowest prices stay on the server. The model only gets the result of each check.
   let negotiation: NegotiationContext | undefined;
   if (opts.negotiate) {

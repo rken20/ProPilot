@@ -10,6 +10,15 @@ import { formatPeso } from "./money";
  */
 
 export const DEFAULT_MODEL = "claude-haiku-5-5";
+
+/**
+ * Thinking off for short calls on Haiku 5.5. Its thinking is on by default, is
+ * billed as output and counts toward max_tokens, so with our small limits a
+ * reply could run out before any text. Other models keep their own default.
+ */
+export function noThinking(model: string): { thinking?: { type: "disabled" } } {
+  return /haiku-5/.test(model) ? { thinking: { type: "disabled" } } : {};
+}
 export const MAX_TURNS = 12;
 export const MAX_MESSAGE_CHARS = 600;
 
@@ -114,6 +123,7 @@ export async function answer(client: Client, model: string, l: Listing, history:
   for (let round = 0; round < 4; round++) {
     const res = await client.messages.create({
       model,
+      ...noThinking(model),
       max_tokens: 400,
       system: systemPrompt(l),
       tools,

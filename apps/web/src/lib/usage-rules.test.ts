@@ -15,13 +15,28 @@ describe("allowance levels", () => {
   });
 
   it("covers only what the plan includes with a limit", () => {
-    const items = usageItems(pro, { replies: 8_400, finder: 20, priceChecks: 0, videoAds: 0 });
+    const items = usageItems(pro, { replies: 8_400, ask: 0, finder: 20, priceChecks: 0, videoAds: 0 });
     expect(items).toEqual([
       { key: "replies", used: 8_400, limit: 10_000, level: "low" },
       { key: "finder", used: 20, limit: 20, level: "out" },
     ]);
-    expect(usageItems({ ...pro, aiReplies: null }, { replies: 99_999, finder: 1, priceChecks: 0, videoAds: 0 })).toEqual([{ key: "finder", used: 1, limit: 20, level: "ok" }]);
-    expect(usageItems({ ai: false, aiReplies: 0, homeFinderBuyers: 0, priceChecks: 0 }, { replies: 0, finder: 0, priceChecks: 0, videoAds: 0 })).toEqual([]);
+    expect(usageItems({ ...pro, aiReplies: null }, { replies: 99_999, ask: 0, finder: 1, priceChecks: 0, videoAds: 0 })).toEqual([{ key: "finder", used: 1, limit: 20, level: "ok" }]);
+    expect(usageItems({ ai: false, aiReplies: 0, homeFinderBuyers: 0, priceChecks: 0 }, { replies: 0, ask: 0, finder: 0, priceChecks: 0, videoAds: 0 })).toEqual([]);
+  });
+
+  it("includes the Ask MyHomeSeller limit when the plan has one", () => {
+    expect(usageItems({ ...pro, askQuestions: 400 }, { replies: 10, ask: 330, finder: 0, priceChecks: 0, videoAds: 0 }).map((i) => [i.key, i.level])).toEqual([
+      ["replies", "ok"],
+      ["ask", "low"],
+      ["finder", "ok"],
+    ]);
+  });
+
+  it("says AI credits carry replies and Ask MyHomeSeller on, but not other allowances", () => {
+    const out = { key: "replies", used: 6_000, limit: 6_000, level: "out" } as const;
+    expect(usageSentence(out, undefined, 2_500)).toBe("AI replies: all 6,000 replies for this month are used. These now use your AI credits: 2,500 left.");
+    expect(usageSentence(out, undefined, 0)).toContain("New buyer messages wait for a person");
+    expect(usageSentence({ key: "priceChecks", used: 20, limit: 20, level: "out" }, undefined, 2_500)).toContain("No more price checks");
   });
 
   it("says what is low and what stops when it's used up", () => {

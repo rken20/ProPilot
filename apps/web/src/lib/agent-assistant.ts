@@ -1,5 +1,6 @@
 import type { Lang } from "./lang";
 import type Anthropic from "@anthropic-ai/sdk";
+import { noThinking } from "./listing-assistant";
 
 /**
  * "Ask MyHomeSeller": a read-only assistant for the team. Its tools only read
@@ -11,6 +12,8 @@ import type Anthropic from "@anthropic-ai/sdk";
 export type AgentTurn = { role: "user" | "assistant"; content: string };
 export const MAX_AGENT_TURNS = 16;
 export const MAX_AGENT_CHARS = 1500;
+/** Characters of one lookup's result the AI reads (was 12,000). */
+export const MAX_TOOL_RESULT_CHARS = 6000;
 
 export type AgentTools = {
   findLeads(i: { status?: string; sinceDays?: number; notContacted?: boolean }): Promise<unknown>;
@@ -103,7 +106,8 @@ export async function runAgentTool(tools: AgentTools, name: string, input: unkno
       default:
         return JSON.stringify({ error: "unknown tool" });
     }
-    return JSON.stringify(out).slice(0, 12000);
+    // Kept short: every lookup is read again on each later round of the answer.
+    return JSON.stringify(out).slice(0, MAX_TOOL_RESULT_CHARS);
   } catch (e) {
     return JSON.stringify({ error: e instanceof Error ? e.message : "lookup failed" });
   }
@@ -132,8 +136,19 @@ export async function agentAnswer(
   const messages: Anthropic.MessageParam[] = history.map((t) => ({ role: t.role, content: t.content }));
   const system = agentSystemPrompt(ctx);
   for (let round = 0; round < 5; round++) {
-    const res = await client.messages.create({ model, max_tokens: 900, system, tools: AGENT_TOOLS, messages });
-    const calls = res.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+    // Cached: the tools and the system prompt, and the conversation so far for the next round.
+    const res = await client.messages.create({
+      model,
+      ...noThinking(model),
+      max_tokens: 900,
+      system,
+      tools: AGENT_TOOLS,
+      messages,
+      cache_control: { type: "ephemeral" },
+    });
+    const calls = res.content.filter(
+      (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+    );
     if (res.stop_reason === "tool_use" && calls.length && round < 4) {
       messages.push({ role: "assistant", content: res.content });
       const results = await Promise.all(calls.map(async (c) => ({ type: "tool_result" as const, tool_use_id: c.id, content: await runAgentTool(tools, c.name, c.input) })));
