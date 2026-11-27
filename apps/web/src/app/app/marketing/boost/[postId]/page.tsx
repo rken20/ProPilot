@@ -40,8 +40,8 @@ export default async function BoostPage({ params, searchParams }: PageProps<"/ap
   const [plan, say] = await Promise.all([businessPlan(biz.businessId), appSay()]);
   const canSpend = can(biz.role, "ads.spend");
   const back = (
-    <Link href="/app/marketing/analyst" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
-      <ArrowLeft className="size-4" aria-hidden /> Analyst
+    <Link href="/app/marketing/boost" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
+      <ArrowLeft className="size-4" aria-hidden /> Boost & Ads
     </Link>
   );
   const header = (

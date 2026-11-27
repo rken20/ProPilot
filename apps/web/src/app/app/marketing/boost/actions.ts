@@ -174,6 +174,7 @@ export async function startBoost(postId: string, _prev: BoostState, form: FormDa
     };
   }
   revalidatePath(`/app/marketing/boost/${postId}`);
+  revalidatePath("/app/marketing/boost");
   revalidatePath("/app/marketing/analyst");
   return { started: Date.now() };
 }
@@ -182,13 +183,13 @@ export async function startBoost(postId: string, _prev: BoostState, form: FormDa
 export async function stopBoost(boostId: string) {
   const biz = await owner();
   const user = await requireUser();
-  if (!biz || !UUID.test(boostId)) redirect("/app/marketing/analyst");
+  if (!biz || !UUID.test(boostId)) redirect("/app/marketing/boost");
   const admin = createAdminClient();
   const cfg = metaConfig();
   const { data: b } = admin
     ? await admin.from("ad_boosts").select("id, facebook_post_id, campaign_id, status").eq("id", boostId).eq("business_id", biz.businessId).maybeSingle()
     : { data: null };
-  const back = b ? `/app/marketing/boost/${b.facebook_post_id}` : "/app/marketing/analyst";
+  const back = b ? `/app/marketing/boost/${b.facebook_post_id}` : "/app/marketing/boost";
   if (!admin || !cfg || !b || b.status !== "active" || !b.campaign_id) redirect(back);
   const signIn = await adSignIn(admin, biz.businessId);
   let notice = "boost-stopped";
@@ -201,6 +202,7 @@ export async function stopBoost(boostId: string) {
     notice = "boost-stop-failed";
   }
   revalidatePath(back);
+  revalidatePath("/app/marketing/boost");
   redirect(`${back}?notice=${notice}`);
 }
 

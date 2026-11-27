@@ -23,8 +23,8 @@ export type MarketingData = {
   };
   /** May open the Analyst: people who see reports, and people who post. */
   canSeeAnalyst: boolean;
-  /** Boosting (Pro and Agency): boosts running, and where the tile leads. Null when the plan doesn't include it. */
-  boost: { running: number; href: string | null } | null;
+  /** Boosting (Pro and Agency): boosts running now. Null when the plan doesn't include it. */
+  boost: { running: number } | null;
   canSeeBilling: boolean;
   /** The listing that drew the most views in the last 30 days, if any had views. */
   top: { id: string; name: string; views: number; isPublic: boolean } | null;
@@ -94,41 +94,23 @@ export function MarketingView({
         : "/app/integrations",
     },
     {
+      // Boosting and its results in one place; the Analyst covers how posts perform.
       icon: "rocket",
       tone: "lemon",
-      title: "Boost",
+      title: "Boost & Ads",
       ...(!data.boost
         ? {
             note: say("Boost your video ads. Pro and Agency", "I-boost ang video ads mo. Pro at Agency"),
             href: data.canSeeBilling ? "/app/billing" : undefined,
           }
-        : data.boost.running
-          ? {
-              note:
-                data.boost.running === 1
-                  ? say("1 boost running", "1 boost ang tumatakbo")
-                  : say(`${data.boost.running} boosts running`, `${data.boost.running} boosts ang tumatakbo`),
-              href: data.boost.href ?? undefined,
-            }
-          : data.boost.href
-            ? {
-                note: say("Boost a video ad, with your OK on every spend", "I-boost ang video ad, may OK mo sa bawat gastos"),
-                href: data.boost.href,
-              }
-            : {
-                note: say("Post a video ad to your Page first, then boost it", "Mag-post muna ng video ad sa Page mo, tapos i-boost"),
-                href: "/app/video",
-              }),
-    },
-    {
-      icon: "target",
-      tone: "peach",
-      title: "Ads",
-      note: say(
-        "How your boosted posts are doing",
-        "Kumusta ang boosted posts mo",
-      ),
-      href: data.canSeeAnalyst ? "/app/marketing/analyst#boosted" : undefined,
+        : {
+            note: data.boost.running
+              ? data.boost.running === 1
+                ? say("1 boost running, and what each spent and brought in", "1 boost ang tumatakbo, at ang nagastos at dinala ng bawat isa")
+                : say(`${data.boost.running} boosts running, and what each spent and brought in`, `${data.boost.running} boosts ang tumatakbo, at ang nagastos at dinala ng bawat isa`)
+              : say("Boost a video ad, with your OK on every spend", "I-boost ang video ad, may OK mo sa bawat gastos"),
+            href: data.canSeeAnalyst ? "/app/marketing/boost" : undefined,
+          }),
     },
     {
       icon: "chart",
@@ -154,7 +136,7 @@ export function MarketingView({
         )}
       />
 
-      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {tiles.map((t) => {
           const body = (
             <>
