@@ -84,6 +84,12 @@ async function get<T>(f: Fetch, cfg: MetaConfig, path: string, token: string, pa
   return call<T>(f, `${graph(cfg, path)}?${q}`);
 }
 
+/** A read that a page waits on: it gives up after a few seconds instead of twenty. */
+async function getFast<T>(f: Fetch, cfg: MetaConfig, path: string, token: string, params: Record<string, string> = {}): Promise<T> {
+  const q = new URLSearchParams({ ...params, access_token: token, appsecret_proof: appSecretProof(token, cfg.appSecret) });
+  return call<T>(f, `${graph(cfg, path)}?${q}`, { signal: AbortSignal.timeout(7000) });
+}
+
 async function post<T>(f: Fetch, cfg: MetaConfig, path: string, token: string, params: Record<string, string>, timeoutMs?: number): Promise<T> {
   const body = new URLSearchParams({ ...params, access_token: token, appsecret_proof: appSecretProof(token, cfg.appSecret) });
   return call<T>(f, graph(cfg, path), { method: "POST", body, ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}) });
@@ -211,6 +217,114 @@ export function isFacebookImageUrl(raw: string): boolean {
   } catch {
     return false;
   }
+}
+
+// ------------------------------------------------------------------ how a post is doing
+
+/** The full id of a Page's post, "<pageId>_<n>". A video's post id sometimes comes back as the number alone. */
+export function fullPostId(pageId: string, postId: string): string | null {
+  if (new RegExp(`^${pageId}_\\d+$`).test(postId)) return postId;
+  return /^\d+$/.test(postId) && /^\d+$/.test(pageId) ? `${pageId}_${postId}` : null;
+}
+
+/** The post a Page video belongs to, once Facebook has finished processing it. */
+export async function videoPostId(f: Fetch, cfg: MetaConfig, pageId: string, videoId: string, pageToken: string): Promise<string | null> {
+  if (!/^\d{5,30}$/.test(videoId)) return null;
+  const r = await getFast<{ post_id?: string }>(f, cfg, videoId, pageToken, { fields: "post_id" });
+  return r.post_id ? fullPostId(pageId, r.post_id) : null;
+}
+
+export type PostEngagement = { reactions: number; comments: number; shares: number };
+
+/** Reactions, comments and shares on one of the Page's own posts. Needs only `pages_read_engagement`. */
+export async function postEngagement(f: Fetch, cfg: MetaConfig, pageId: string, postId: string, pageToken: string): Promise<PostEngagement> {
+  if (!new RegExp(`^${pageId}_\\d+$`).test(postId)) throw new GraphError("post is not from this Page", 400);
+  const r = await getFast<{ reactions?: { summary?: { total_count?: number } }; comments?: { summary?: { total_count?: number } }; shares?: { count?: number } }>(f, cfg, postId, pageToken, {
+    fields: "reactions.summary(true).limit(0),comments.summary(true).limit(0),shares",
+  });
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : 0);
+  return { reactions: n(r.reactions?.summary?.total_count), comments: n(r.comments?.summary?.total_count), shares: n(r.shares?.count) };
+}
+
+/** One metric as Facebook returned it: a number, and its parts when a breakdown was asked for. */
+export type InsightValue = { total: number | null; parts: Record<string, number> };
+
+/**
+ * Lifetime insights of one of the Page's own posts. Needs `read_insights` on
+ * the connection, and Facebook gives them only for Pages with 100 or more
+ * likes. One unknown metric fails the whole request, so callers ask in small
+ * groups and treat a failure as "not available".
+ */
+export async function postInsights(f: Fetch, cfg: MetaConfig, pageId: string, postId: string, pageToken: string, metrics: string[], breakdown?: string): Promise<Map<string, InsightValue>> {
+  if (!new RegExp(`^${pageId}_\\d+$`).test(postId)) throw new GraphError("post is not from this Page", 400);
+  if (!metrics.length || metrics.some((m) => !/^[a-z0-9_]+$/.test(m)) || (breakdown && !/^[a-z_]+$/.test(breakdown))) throw new GraphError("bad metric", 400);
+  const raw = await getFast<unknown>(f, cfg, `${postId}/insights`, pageToken, { metric: metrics.join(","), period: "lifetime", ...(breakdown ? { breakdown } : {}) });
+  return readInsights(raw);
+}
+
+/**
+ * Reads an insights answer without assuming one shape. A plain metric is
+ * `values: [{ value: 123 }]`. With a breakdown, Facebook's documentation gives
+ * no example, so this accepts the shapes its insights use elsewhere: an object
+ * of parts as the value, parts one level down, a `total_value` with
+ * `breakdowns`, or one entry per part. Anything else is left out, never guessed.
+ */
+export function readInsights(raw: unknown): Map<string, InsightValue> {
+  const out = new Map<string, InsightValue>();
+  const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : typeof v === "string" && /^\d+(\.\d+)?$/.test(v) ? Number(v) : null);
+  const data = (raw as { data?: unknown } | null)?.data;
+  if (!Array.isArray(data)) return out;
+  for (const entry of data as Array<Record<string, unknown>>) {
+    const name = typeof entry?.name === "string" ? entry.name : null;
+    if (!name) continue;
+    const slot = out.get(name) ?? { total: null, parts: {} };
+    const addPart = (key: unknown, value: unknown) => {
+      const n = num(value);
+      if (n !== null && (typeof key === "string" || typeof key === "number" || typeof key === "boolean")) slot.parts[String(key).toLowerCase()] = (slot.parts[String(key).toLowerCase()] ?? 0) + n;
+    };
+    const readValue = (value: unknown, label?: unknown) => {
+      const n = num(value);
+      if (n !== null) {
+        if (label === undefined) slot.total = (slot.total ?? 0) + n;
+        else addPart(label, n);
+        return;
+      }
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+          if (num(v) !== null) addPart(k, v);
+          else if (v && typeof v === "object" && !Array.isArray(v)) for (const [k2, v2] of Object.entries(v as Record<string, unknown>)) addPart(k2, v2);
+        }
+      }
+    };
+    // One entry per part: the part's name sits beside the value.
+    const label = [entry.breakdown_value, entry.dimension_value, (entry.dimension_values as unknown[] | undefined)?.[0]].find((v) => v !== undefined);
+    const values = Array.isArray(entry.values) ? (entry.values as Array<Record<string, unknown>>) : [];
+    // Lifetime metrics carry one value; when there are several, the last is the newest.
+    const last = values[values.length - 1];
+    if (last) readValue(last.value, label ?? last.breakdown_value ?? (last.dimension_values as unknown[] | undefined)?.[0]);
+    const tv = entry.total_value as { value?: unknown; breakdowns?: Array<{ results?: Array<{ dimension_values?: unknown[]; value?: unknown }> }> } | undefined;
+    if (tv) {
+      if (!last && num(tv.value) !== null) slot.total = num(tv.value);
+      for (const b of tv.breakdowns ?? []) for (const r of b.results ?? []) addPart(r.dimension_values?.[0], r.value);
+    }
+    out.set(name, slot);
+  }
+  return out;
+}
+
+/**
+ * How many of a breakdown's views came from ads. Facebook leaves out parts
+ * that are zero, so "only the not-from-ads part came back" means none. Null
+ * when the answer doesn't say which part is which.
+ */
+export function fromAds(v: InsightValue | undefined): number | null {
+  if (!v) return null;
+  const yes = ["true", "1", "yes", "ads", "paid", "is_from_ads"];
+  const no = ["false", "0", "no", "organic", "not_from_ads"];
+  const keys = Object.keys(v.parts);
+  const hit = keys.filter((k) => yes.includes(k));
+  if (hit.length) return hit.reduce((n, k) => n + v.parts[k]!, 0);
+  return keys.some((k) => no.includes(k)) ? 0 : null;
 }
 
 // ------------------------------------------------------------------ publishing

@@ -2,6 +2,12 @@ import { createHmac } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   appSecretProof,
+  fromAds,
+  fullPostId,
+  postEngagement,
+  postInsights,
+  readInsights,
+  videoPostId,
   canPublish,
   dialogUrl,
   GraphError,
@@ -157,5 +163,72 @@ describe("parseSignedRequest", () => {
     expect(parseSignedRequest(sign({ algorithm: "none", user_id: "555" }), "shh")).toBeNull();
     expect(parseSignedRequest(sign({ algorithm: "HMAC-SHA256", user_id: "5 OR 1=1" }), "shh")).toBeNull();
     expect(parseSignedRequest("garbage", "shh")).toBeNull();
+  });
+});
+
+describe("how a post is doing", () => {
+  const last = (f: ReturnType<typeof vi.fn>) => new URL(f.mock.calls.at(-1)![0] as string);
+
+  it("builds the full post id, and refuses anything that isn't this Page's", async () => {
+    expect(fullPostId("111", "111_222")).toBe("111_222");
+    expect(fullPostId("111", "222")).toBe("111_222");
+    expect(fullPostId("111", "999_222")).toBeNull();
+    expect(fullPostId("111", "222/insights")).toBeNull();
+    const f = vi.fn(json({}));
+    await expect(postEngagement(f, cfg, "111", "999_222", "tok")).rejects.toThrow(/not from this Page/);
+    await expect(postInsights(f, cfg, "111", "999_222", "tok", ["post_clicks"])).rejects.toThrow(/not from this Page/);
+    await expect(postInsights(f, cfg, "111", "111_222", "tok", ["post_clicks&x=1"])).rejects.toThrow(/bad metric/);
+    expect(f).not.toHaveBeenCalled();
+  });
+
+  it("reads reactions, comments and shares, with zero for what Facebook leaves out", async () => {
+    const f = vi.fn(json({ reactions: { summary: { total_count: 12 } }, comments: { summary: { total_count: 3 } }, id: "111_222" }));
+    expect(await postEngagement(f, cfg, "111", "111_222", "tok")).toEqual({ reactions: 12, comments: 3, shares: 0 });
+    const url = last(f);
+    expect(url.pathname).toBe("/v25.0/111_222");
+    expect(url.searchParams.get("fields")).toBe("reactions.summary(true).limit(0),comments.summary(true).limit(0),shares");
+    expect(url.searchParams.get("appsecret_proof")).toBe(appSecretProof("tok", "shh"));
+  });
+
+  it("finds the post of a video once Facebook has one", async () => {
+    expect(await videoPostId(vi.fn(json({ post_id: "222", id: "55555" })), cfg, "111", "55555", "tok")).toBe("111_222");
+    expect(await videoPostId(vi.fn(json({ id: "55555" })), cfg, "111", "55555", "tok")).toBeNull();
+  });
+
+  it("asks for lifetime insights, with the breakdown when given", async () => {
+    const f = vi.fn(json({ data: [{ name: "post_media_view", period: "lifetime", values: [{ value: 640 }] }, { name: "post_clicks", period: "lifetime", values: [{ value: 21 }] }] }));
+    const got = await postInsights(f, cfg, "111", "111_222", "tok", ["post_media_view", "post_clicks"]);
+    expect(got.get("post_media_view")?.total).toBe(640);
+    expect(got.get("post_clicks")?.total).toBe(21);
+    expect(last(f).pathname).toBe("/v25.0/111_222/insights");
+    expect(last(f).searchParams.get("period")).toBe("lifetime");
+    expect(last(f).searchParams.has("breakdown")).toBe(false);
+    await postInsights(f, cfg, "111", "111_222", "tok", ["post_media_view"], "is_from_ads");
+    expect(last(f).searchParams.get("breakdown")).toBe("is_from_ads");
+  });
+
+  it("passes on Facebook's refusal, so the caller can show what it has", async () => {
+    const f = vi.fn(json({ error: { message: "(#10) This endpoint requires the 'read_insights' permission", code: 10 } }, 403));
+    await expect(postInsights(f, cfg, "111", "111_222", "tok", ["post_media_view"])).rejects.toBeInstanceOf(GraphError);
+  });
+
+  it("reads a breakdown in whichever shape it comes, and never guesses", () => {
+    const ads = (raw: unknown) => fromAds(readInsights(raw).get("post_media_view"));
+    // An object of parts as the value.
+    expect(ads({ data: [{ name: "post_media_view", values: [{ value: { true: 400, false: 240 } }] }] })).toBe(400);
+    // Parts one level down, under the breakdown's name.
+    expect(ads({ data: [{ name: "post_media_view", values: [{ value: { is_from_ads: { "1": 400, "0": 240 } } }] }] })).toBe(400);
+    // total_value with breakdowns.
+    expect(ads({ data: [{ name: "post_media_view", total_value: { breakdowns: [{ dimension_keys: ["is_from_ads"], results: [{ dimension_values: ["true"], value: 400 }, { dimension_values: ["false"], value: 240 }] }] } }] })).toBe(400);
+    // One entry per part.
+    expect(ads({ data: [{ name: "post_media_view", breakdown_value: "true", values: [{ value: 400 }] }, { name: "post_media_view", breakdown_value: "false", values: [{ value: 240 }] }] })).toBe(400);
+    // Facebook leaves out zero parts: only "not from ads" came back, so none were from ads.
+    expect(ads({ data: [{ name: "post_media_view", values: [{ value: { false: 240 } }] }] })).toBe(0);
+    // Nothing that says which part is which.
+    expect(ads({ data: [{ name: "post_media_view", values: [{ value: 640 }] }] })).toBeNull();
+    expect(ads({ data: [{ name: "post_media_view", values: [{ value: { fans: 100, others: 540 } }] }] })).toBeNull();
+    expect(ads({ data: [] })).toBeNull();
+    expect(ads("nonsense")).toBeNull();
+    expect(readInsights({ data: [{ name: "post_clicks", values: [{ value: -4 }] }, { values: [{ value: 3 }] }] }).get("post_clicks")?.total).toBeNull();
   });
 });

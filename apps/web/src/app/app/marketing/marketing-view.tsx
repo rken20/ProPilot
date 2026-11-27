@@ -21,7 +21,8 @@ export type MarketingData = {
     postsThisMonth: number;
     postHref: string | null;
   };
-  canSeeReports: boolean;
+  /** May open the Analyst: people who see reports, and people who post. */
+  canSeeAnalyst: boolean;
   /** The listing that drew the most views in the last 30 days, if any had views. */
   top: { id: string; name: string; views: number; isPublic: boolean } | null;
   hasListings: boolean;
@@ -36,7 +37,7 @@ export type MarketingData = {
 
 /**
  * The Marketing Agent: one place for everything that gets a listing seen.
- * Every number here is real. Boost and Ads aren't built yet and say so.
+ * Every number here is real. Boost isn't built yet and says so.
  */
 export function MarketingView({
   data,
@@ -103,19 +104,20 @@ export function MarketingView({
       tone: "peach",
       title: "Ads",
       note: say(
-        "Coming soon: results of your boosts and what to change",
-        "Coming soon: resulta ng boosts mo at ano ang babaguhin",
+        "How your boosted posts are doing",
+        "Kumusta ang boosted posts mo",
       ),
+      href: data.canSeeAnalyst ? "/app/marketing/analyst#boosted" : undefined,
     },
     {
       icon: "chart",
       tone: "mint",
       title: "Analyst",
       note: say(
-        "Your views, inquiries and sales",
-        "Views, inquiries at sales mo",
+        "How your posts are doing, and what to do next",
+        "Kumusta ang posts mo, at ano ang susunod",
       ),
-      href: data.canSeeReports ? "/app/reports" : undefined,
+      href: data.canSeeAnalyst ? "/app/marketing/analyst" : undefined,
     },
   ];
 

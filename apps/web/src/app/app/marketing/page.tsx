@@ -125,7 +125,8 @@ export default async function MarketingPage() {
       postsThisMonth: postsRes.count ?? 0,
       postHref: forSale[0] ? `/app/properties/${forSale[0].id}` : null,
     },
-    canSeeReports: can(biz.role, "analytics.view"),
+    canSeeAnalyst:
+      can(biz.role, "analytics.view") || can(biz.role, "content.publish"),
     top: top ?? null,
     hasListings: listings.length > 0,
     buyers,
