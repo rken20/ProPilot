@@ -105,6 +105,8 @@ export function PriceHelper({ plan }: { plan: PriceHelperPlan }) {
     const input = document.getElementById("price") as HTMLInputElement | null;
     if (!input) return;
     input.value = Math.round(priceMinor / 100).toLocaleString("en-PH");
+    // Let the financing section recompute its monthly payments.
+    input.dispatchEvent(new Event("input", { bubbles: true }));
     input.focus();
     input.scrollIntoView({ behavior: "smooth", block: "center" });
     setPicked(priceMinor);

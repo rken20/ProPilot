@@ -272,9 +272,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
             }
           : null
       }
-      facebookConnected={pagesConnected}
       pricingAdvisor={plan.priceChecks !== 0}
-      videoAds={plan.videoAds !== 0}
       usage={usage}
       canSeeBilling={can(biz.role, "billing.view")}
       floorsNeeded={floorIds.length ? { count: floorIds.length, href: floorIds.length === 1 ? `/app/properties/${floorIds[0]}#ai-negotiation` : "/app/properties" } : null}

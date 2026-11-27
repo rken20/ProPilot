@@ -1,3 +1,4 @@
+import type { FinancingInfo } from "@propilot/shared";
 import "server-only";
 import type { PROPERTY_TYPES } from "@propilot/shared";
 import { createClient } from "@/lib/supabase/server";
@@ -13,13 +14,7 @@ export type Listing = {
   currency: string;
   status: "available" | "reserved";
   description: string | null;
-  financing: {
-    bankFinancing?: boolean;
-    pagIbig?: boolean;
-    inHouse?: boolean;
-    downpaymentPercent?: number;
-    notes?: string;
-  } | null;
+  financing: FinancingInfo | null;
   business_name: string;
   updated_at: string;
   /** Present on search results only. */

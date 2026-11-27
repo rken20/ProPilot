@@ -13,7 +13,6 @@ import {
   CircleCheck,
   ClipboardCheck,
   Handshake,
-  Headset,
   Home,
   Megaphone,
   MessageCircle,
@@ -21,7 +20,7 @@ import {
   Plus,
   Rocket,
   Users,
-  Video,
+  MessageCircleHeart,
   Zap,
   type LucideIcon,
 } from "lucide-react";
@@ -74,11 +73,8 @@ export type DashboardData = {
   aiActivity: AiItem[];
   /** Last 30 days as running totals, and the listing with the most interest; null for roles that can't see reports. */
   performance: { points: PerfPoint[]; top: { id: string; views: number; inquiries: number } | null } | null;
-  facebookConnected: boolean;
   /** Whether the plan includes the Pricing Advisor (Agency). The button shows either way. */
   pricingAdvisor: boolean;
-  /** Whether the plan includes the Video Ad Maker. */
-  videoAds: boolean;
   /** This month's AI allowances; a notice shows when one is low or used up. */
   usage: UsageItem[];
   canSeeBilling: boolean;
@@ -123,9 +119,7 @@ export function DashboardView({
   assistant,
   aiActivity,
   performance,
-  facebookConnected,
   pricingAdvisor,
-  videoAds,
   usage,
   canSeeBilling,
   floorsNeeded,
@@ -456,20 +450,15 @@ export function DashboardView({
               tone="from-[#0e97a9] to-[#0a7183]"
               label={canCreateProperty ? "Add a Property" : "Open Properties"}
             />
-            <Action href="/app/video" icon={Video} tone="from-[#2f7af5] to-[#1a5fe0]" label="Video Ad Maker" note={videoAds ? undefined : "Pro plan"} />
-            <Action
-              href={facebookConnected ? (firstListing ? `/app/properties/${firstListing.id}` : "/app/properties/new") : "/app/integrations"}
-              icon={Megaphone}
-              tone="from-[#12a356] to-[#0b7a3f]"
-              label={facebookConnected ? "Post Listing on Facebook" : "Connect Your Facebook Page"}
-            />
+            <Action href="/app/marketing" icon={Megaphone} tone="from-[#2f7af5] to-[#1a5fe0]" label="Marketing Agent" />
+            <Action href="/app/follow-ups" icon={MessageCircleHeart} tone="from-[#12a356] to-[#0b7a3f]" label="Follow-up Assistant" />
             <Action
               href={performance ? "/app/reports" : "/app/pipeline"}
               icon={BarChart3}
               tone="from-[#7c4ff0] to-[#5a31c7]"
               label={performance ? "View Detailed Reports" : "Open Your Leads"}
+              className="col-span-2"
             />
-            <Action icon={Headset} tone="from-[#e58a0b] to-[#bd6304]" label="Contact Our Support Team" note="Coming soon" />
           </div>
         </Panel>
       </div>
@@ -716,11 +705,12 @@ function ActivityList({ recent, now, say }: { recent: Activity[]; now?: Date; sa
 }
 
 /** A colored shortcut tile. Without `href` it's something that isn't ready yet, so it can't be pressed. */
-function Action({ href, icon: Icon, tone, label, note }: { href?: string; icon: LucideIcon; tone: string; label: string; note?: string }) {
+function Action({ href, icon: Icon, tone, label, note, className: extra }: { href?: string; icon: LucideIcon; tone: string; label: string; note?: string; className?: string }) {
   const className = cx(
     "flex min-h-16 flex-col justify-center gap-2 rounded-2xl bg-gradient-to-br p-3.5 text-sm leading-tight font-bold text-white sm:flex-row sm:items-center sm:justify-start sm:gap-3",
     tone,
     href ? "pp-lift pp-bounce" : "cursor-default",
+    extra,
   );
   const body = (
     <>

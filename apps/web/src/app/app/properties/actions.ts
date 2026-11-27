@@ -1,5 +1,6 @@
 "use server";
 
+import { lowestDownPercent, type FinancingInfo, type FinancingKey, type FinancingTerms } from "@propilot/shared";
 import type { Say } from "@/lib/lang";
 import { appSay } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
@@ -21,8 +22,17 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const FORM_KEYS = [
   "name", "type", "location", "price", "reservationFee", "status", "description",
-  "downpaymentPercent", "financingNotes", "lowestPrice", "acceptPrice",
+  "financingNotes", "lowestPrice", "acceptPrice",
+  "bankDown", "bankRate", "bankYears", "pagibigDown", "pagibigRate", "pagibigYears",
+  "inHouseDown", "inHouseRate", "inHouseYears", "inHouseDownMonths",
 ] as const;
+
+/** Form field names for each financing option's terms, and where each lands in the saved listing. */
+const TERM_FORM = {
+  bank: { flag: "bankFinancing", downPercent: "bankDown", ratePercent: "bankRate", years: "bankYears" },
+  pagibig: { flag: "pagIbig", downPercent: "pagibigDown", ratePercent: "pagibigRate", years: "pagibigYears" },
+  inHouse: { flag: "inHouse", downPercent: "inHouseDown", ratePercent: "inHouseRate", years: "inHouseYears", downMonths: "inHouseDownMonths" },
+} as const;
 
 function readForm(form: FormData) {
   const data = Object.fromEntries(FORM_KEYS.map((k) => [k, str(form, k)])) as Record<(typeof FORM_KEYS)[number], string>;
@@ -34,7 +44,15 @@ function validate(form: FormData, say: Say) {
   const { data, checks } = readForm(form);
   const price = pesosToCentavos(data.price);
   const reservation = pesosToCentavos(data.reservationFee);
-  const dp = data.downpaymentPercent.trim() === "" ? undefined : Number(data.downpaymentPercent);
+  // Terms are kept only for the options that are ticked. An empty box means "not stated".
+  const num = (s: string) => (s.trim() === "" ? undefined : Number(s));
+  const terms: FinancingInfo["terms"] = {};
+  for (const [key, f] of Object.entries(TERM_FORM) as Array<[FinancingKey, (typeof TERM_FORM)[FinancingKey]]>) {
+    if (!checks[f.flag]) continue;
+    const one: FinancingTerms = { downPercent: num(data[f.downPercent]), ratePercent: num(data[f.ratePercent]), years: num(data[f.years]), downMonths: "downMonths" in f ? num(data[f.downMonths]) : undefined };
+    if (Object.values(one).some((x) => x !== undefined)) terms[key] = one;
+  }
+  const dp = lowestDownPercent({ ...checks, terms });
 
   const parsed = propertySchema.safeParse({
     name: data.name,
@@ -44,14 +62,19 @@ function validate(form: FormData, say: Say) {
     reservationFee: reservation === null ? undefined : { amountMinor: reservation },
     status: data.status || "available",
     description: data.description || undefined,
-    financing: { ...checks, downpaymentPercent: dp, notes: data.financingNotes || undefined },
+    financing: { ...checks, downpaymentPercent: dp, notes: data.financingNotes || undefined, terms: Object.keys(terms).length ? terms : undefined },
   });
   if (!parsed.success) {
     const fe = fieldErrorsFrom(parsed.error, say);
     // Map nested schema paths to the form's field names.
     if (fe["price.amountMinor"]) fe.price = say("Enter the price in pesos, e.g. 4500000", "Ilagay ang presyo sa pesos, hal. 4500000");
     if (fe["reservationFee.amountMinor"]) fe.reservationFee = say("Enter a peso amount, e.g. 25000", "Maglagay ng amount sa pesos, hal. 25000");
-    if (fe["financing.downpaymentPercent"]) fe.downpaymentPercent = say("Enter a percentage from 0 to 100", "Maglagay ng percentage mula 0 hanggang 100");
+    for (const [key, f] of Object.entries(TERM_FORM)) {
+      if (fe[`financing.terms.${key}.downPercent`]) fe[f.downPercent] = say("0 to 100", "0 hanggang 100");
+      if (fe[`financing.terms.${key}.ratePercent`]) fe[f.ratePercent] = say("0 to 50", "0 hanggang 50");
+      if (fe[`financing.terms.${key}.years`]) fe[f.years] = say("A whole number, 1 to 40", "Buong number, 1 hanggang 40");
+      if ("downMonths" in f && fe[`financing.terms.${key}.downMonths`]) fe[f.downMonths] = say("A whole number, 1 to 60", "Buong number, 1 hanggang 60");
+    }
     return { ok: false as const, state: { fieldErrors: fe, data: { ...data, ...flagData(checks), isPublic: form.get("isPublic") === "on" ? "on" : "" } } };
   }
   return { ok: true as const, value: parsed.data, isPublic: form.get("isPublic") === "on" };

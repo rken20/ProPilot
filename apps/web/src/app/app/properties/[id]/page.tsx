@@ -124,7 +124,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
     price: centavosToPesosInput(p.price_minor),
     reservationFee: centavosToPesosInput(p.reservation_fee_minor),
     description: p.description ?? "",
-    downpaymentPercent: financing.downpaymentPercent === undefined ? "" : String(financing.downpaymentPercent),
+    ...termValues(financing),
     financingNotes: typeof financing.notes === "string" ? financing.notes : "",
     bankFinancing: financing.bankFinancing ? "on" : "",
     pagIbig: financing.pagIbig ? "on" : "",
@@ -287,4 +287,20 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       {superAdmin ? <DeleteListing name={p.name} action={deleteProperty.bind(null, p.id)} /> : null}
     </>
   );
+}
+
+/** The saved financing terms as the form's field values. An option without its own downpayment shows the listing's general one. */
+function termValues(financing: Record<string, unknown>): Record<string, string> {
+  const terms = (financing.terms ?? {}) as Partial<Record<string, Record<string, number | undefined>>>;
+  const text = (n: number | undefined) => (n === undefined ? "" : String(n));
+  const general = typeof financing.downpaymentPercent === "number" ? financing.downpaymentPercent : undefined;
+  const out: Record<string, string> = {};
+  for (const [key, prefix] of [["bank", "bank"], ["pagibig", "pagibig"], ["inHouse", "inHouse"]] as const) {
+    const t = terms[key] ?? {};
+    out[`${prefix}Down`] = text(t.downPercent ?? general);
+    out[`${prefix}Rate`] = text(t.ratePercent);
+    out[`${prefix}Years`] = text(t.years);
+  }
+  out.inHouseDownMonths = text(terms.inHouse?.downMonths);
+  return out;
 }

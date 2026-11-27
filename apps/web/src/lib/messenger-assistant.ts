@@ -1,5 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { amortize } from "@propilot/shared";
+import { amortize, financingPlans, type FinancingInfo } from "@propilot/shared";
 import { formatPeso } from "./money";
 import { dealLine, dealRef, decideOffer, type NegotiationContext, type NewOffer, type PriorOffer } from "./negotiation";
 import { TYPE_LABEL } from "./property-labels";
@@ -20,7 +20,7 @@ export type MessengerListing = {
   price_minor: number;
   reservation_fee_minor: number | null;
   description: string | null;
-  financing: { bankFinancing?: boolean; pagIbig?: boolean; inHouse?: boolean; downpaymentPercent?: number; notes?: string } | null;
+  financing: FinancingInfo | null;
 };
 
 export type Turn = { from: "buyer" | "ai" | "agent" | "page"; text: string };
@@ -42,6 +42,16 @@ function short(l: MessengerListing): string {
   return `- [${l.id}] ${l.name} | ${TYPE_LABEL[l.type as keyof typeof TYPE_LABEL] ?? l.type} | ${l.location} | ${formatPeso(l.price_minor)} | ${l.status}`;
 }
 
+/** One line per option whose interest and years the seller entered, with the payment worked out, so the AI quotes it and never does the sum itself. */
+export function financingTermLines(priceMinor: number, f: FinancingInfo): string[] {
+  return financingPlans(priceMinor, f)
+    .filter((p) => p.sellerSet)
+    .map(
+      (p) =>
+        `${p.label} terms from the seller: ${p.downPercent}% downpayment (${formatPeso(p.downpaymentMinor)}${p.downMonthlyMinor ? `, payable over ${p.downMonths} months at about ${formatPeso(Math.round(p.downMonthlyMinor / 100) * 100)} a month` : ""}), ${p.ratePercent}% interest a year, ${p.years} years: about ${formatPeso(Math.round(p.monthlyMinor / 100) * 100)} a month. An estimate; the lender or seller confirms the final figures.`,
+    );
+}
+
 function details(l: MessengerListing): string {
   const f = l.financing ?? {};
   return [
@@ -53,6 +63,7 @@ function details(l: MessengerListing): string {
     `Reservation fee: ${l.reservation_fee_minor === null ? "not stated" : formatPeso(l.reservation_fee_minor)}`,
     `Financing: ${[f.bankFinancing && "bank financing", f.pagIbig && "Pag-IBIG", f.inHouse && "in-house financing"].filter(Boolean).join(", ") || "not stated"}`,
     `Required downpayment: ${f.downpaymentPercent === undefined ? "not stated" : `${f.downpaymentPercent}%`}`,
+    ...financingTermLines(l.price_minor, f),
     `Financing notes: ${f.notes || "none"}`,
     `Description: ${(l.description || "none").slice(0, 2500)}`,
   ].join("\n");

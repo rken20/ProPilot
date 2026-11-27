@@ -47,11 +47,13 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const homeTabs: SectionTab[] = [
     { href: "/app", label: "Overview" },
     ...(can(current.role, "analytics.view") ? [{ href: "/app/reports", label: "Reports" }] : []),
+    { href: "/app/marketing", label: "Marketing" },
   ];
   const salesTabs: SectionTab[] = sales
     ? [
         { href: "/app/pipeline", label: "Leads" },
         { href: "/app/leads", label: "Inquiries" },
+        { href: "/app/follow-ups", label: "Follow-ups" },
         { href: "/app/agents", label: "AI agents", count: waiting },
       ]
     : [];
@@ -71,9 +73,9 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   ];
 
   const items: NavItem[] = [
-    { href: "/app", label: "Dashboard", icon: "dashboard", match: ["/app/reports"] },
+    { href: "/app", label: "Dashboard", icon: "dashboard", match: ["/app/reports", "/app/marketing"] },
     { href: "/app/properties", label: "Properties", icon: "properties", match: ["/app/pricing", "/app/video"] },
-    ...(sales ? [{ href: "/app/pipeline", label: "Leads", icon: "pipeline" as const, count: waiting, match: ["/app/leads", "/app/agents"] }] : []),
+    ...(sales ? [{ href: "/app/pipeline", label: "Leads", icon: "pipeline" as const, count: waiting, match: ["/app/leads", "/app/agents", "/app/follow-ups"] }] : []),
     ...(can(current.role, "conversation.reply") ? [{ href: "/app/inbox", label: "Messages", icon: "inbox" as const }] : []),
     ...(settingsTabs.length
       ? [{ href: settingsTabs[0]!.href, label: "Settings", icon: "settings" as const, count: paymentsWaiting, match: settingsTabs.map((t) => t.href) }]

@@ -67,6 +67,14 @@ export const moneySchema = z.object({
   currency: z.string().length(3).default("PHP"),
 });
 
+/** The terms of one financing option. Empty fields mean the seller hasn't said. */
+const financingTermsSchema = z.object({
+  downPercent: z.number().min(0).max(100).optional(),
+  ratePercent: z.number().min(0).max(50).optional(),
+  years: z.number().int().min(1).max(40).optional(),
+  downMonths: z.number().int().min(1).max(60).optional(),
+});
+
 export const propertySchema = z.object({
   name: z.string().trim().min(2).max(160),
   type: z.enum(PROPERTY_TYPES),
@@ -82,6 +90,7 @@ export const propertySchema = z.object({
       pagIbig: z.boolean().optional(),
       inHouse: z.boolean().optional(),
       notes: z.string().max(1000).optional(),
+      terms: z.object({ bank: financingTermsSchema.optional(), pagibig: financingTermsSchema.optional(), inHouse: financingTermsSchema.optional() }).optional(),
     })
     .optional(),
 });

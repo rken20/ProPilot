@@ -115,7 +115,7 @@ export function GcashPayForm({
                 onClick={() => setMonths(m)}
                 className={cx(
                   "min-h-10 rounded-full border px-4 text-sm font-bold transition-colors",
-                  m === months ? "border-brand-600 bg-brand-600 text-white" : "border-line bg-white text-ink hover:border-grape-300 hover:bg-grape-50",
+                  m === months ? "border-frame-1 bg-frame-1 text-white" : "border-line bg-white text-ink hover:border-grape-300 hover:bg-grape-50",
                 )}
               >
                 {m === 12 ? say("1 year", "1 taon") : `${m} mo`}

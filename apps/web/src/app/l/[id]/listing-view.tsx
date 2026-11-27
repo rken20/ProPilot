@@ -1,3 +1,4 @@
+import { financingPlans } from "@propilot/shared";
 import { LangProvider } from "@/components/lang";
 import { sayIn, type Lang, type Say } from "@/lib/lang";
 import Link from "next/link";
@@ -135,7 +136,7 @@ export function PublicListingView({
               </LangProvider>
             </section>
             <LangProvider lang={lang}>
-              <LoanEstimator priceMinor={listing.price_minor} defaultDownpayment={listing.financing?.downpaymentPercent} />
+              <LoanEstimator priceMinor={listing.price_minor} plans={financingPlans(listing.price_minor, listing.financing)} defaultDownpayment={listing.financing?.downpaymentPercent} />
             </LangProvider>
           </aside>
         </div>

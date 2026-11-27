@@ -8,6 +8,7 @@ import { Alert, Field, IconTitle, Input, Label, Select, Textarea } from "@/compo
 import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/lib/form";
 import { STATUS_LABEL, TYPE_LABEL } from "@/lib/property-labels";
+import { FinancingFields } from "./financing-fields";
 import { WriteDescriptionButton } from "./write-description";
 
 export type PropertyFormValues = Record<string, string>;
@@ -132,29 +133,7 @@ export function PropertyForm({
           </p>
         ) : null}
 
-        <section className="space-y-3">
-          <p className="text-sm font-medium text-zinc-800">Financing options</p>
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            {[
-              ["bankFinancing", "Bank financing"],
-              ["pagIbig", "Pag-IBIG"],
-              ["inHouse", "In-house financing"],
-            ].map(([key, label]) => (
-              <Label key={key} className="flex items-center gap-2 font-normal">
-                <input type="checkbox" name={key} defaultChecked={v[key!] === "on"} className="size-4 accent-brand-600" />
-                {label}
-              </Label>
-            ))}
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Downpayment (%)" htmlFor="downpaymentPercent" error={e.downpaymentPercent} hint="Optional">
-              <Input id="downpaymentPercent" name="downpaymentPercent" inputMode="decimal" defaultValue={v.downpaymentPercent} placeholder="20" />
-            </Field>
-            <Field label="Financing notes" htmlFor="financingNotes" hint={say("Terms the assistant may quote, e.g. up to 20 years", "Terms na pwedeng sabihin ng assistant, hal. up to 20 years")}>
-              <Input id="financingNotes" name="financingNotes" defaultValue={v.financingNotes} />
-            </Field>
-          </div>
-        </section>
+        <FinancingFields values={v} errors={e} readOnly={readOnly} />
 
         <Label className="flex items-start gap-3 rounded-xl border border-line bg-surface p-4 font-normal">
           <input type="checkbox" name="isPublic" defaultChecked={v.isPublic === "on"} className="mt-0.5 size-4 accent-brand-600" />
