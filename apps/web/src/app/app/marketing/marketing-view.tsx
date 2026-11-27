@@ -154,7 +154,8 @@ export function MarketingView({
             TILES[t.tone],
           );
           return (
-            <li key={t.title} className="last:max-lg:col-span-2">
+            // On phones (2 columns), only an odd last tile takes the whole row.
+            <li key={t.title} className={tiles.length % 2 ? "last:max-lg:col-span-2" : undefined}>
               {t.href ? (
                 <Link href={t.href} className={cx(box, "pp-lift pp-bounce")}>
                   {body}
