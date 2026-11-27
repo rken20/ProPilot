@@ -7,7 +7,7 @@ import { mediaUrl } from "@/lib/media";
 import { jsonLdText, listingDescription, listingJsonLd, listingTitle } from "@/lib/listing-seo";
 import { getPublicListing, publicListingPath, recordListingView } from "@/lib/public-listing";
 import { siteOrigin } from "@/lib/site";
-import { sendInquiry } from "./actions";
+import { reportListing, sendInquiry } from "./actions";
 import { matchAlertsOn } from "@/lib/match-alerts";
 import { PublicListingView } from "./listing-view";
 
@@ -45,7 +45,7 @@ export default async function PublicListingPage({ params }: PageProps<"/l/[id]">
         // Structured data for search engines. The text is the owner's own, with "<" escaped.
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdText(listingJsonLd(listing, `${origin}${publicListingPath(listing.id)}`, images)) }} />
       ) : null}
-      <PublicListingView listing={listing} inquiry={sendInquiry.bind(null, listing.id)} matchEmails={matchAlertsOn()} lang={await sellerLang(listing.business_id)} />
+      <PublicListingView listing={listing} inquiry={sendInquiry.bind(null, listing.id)} report={reportListing.bind(null, listing.id)} matchEmails={matchAlertsOn()} lang={await sellerLang(listing.business_id)} />
     </>
   );
 }

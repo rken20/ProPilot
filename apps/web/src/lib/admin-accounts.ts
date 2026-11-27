@@ -9,6 +9,9 @@ export type AccountBusiness = {
   role: string;
   member_status: string;
   restricted: boolean;
+  /** When MyHomeSeller verified this seller, and the admin's note on what was checked. */
+  verified_at: string | null;
+  verified_note: string | null;
   plan_code: string;
   plan_name: string;
   period_end: string | null;
@@ -82,6 +85,21 @@ export const ACCOUNT_NOTICES: Record<
   string,
   { tone: "success" | "error"; text: string; textTl: string }
 > = {
+  verified: {
+    tone: "success",
+    text: "Marked as a verified seller. Their public pages show the mark now.",
+    textTl: "Na-mark na bilang verified seller. Makikita na ang mark sa public pages nila.",
+  },
+  unverified: {
+    tone: "success",
+    text: "Verified mark removed.",
+    textTl: "Inalis na ang verified mark.",
+  },
+  "verify-failed": {
+    tone: "error",
+    text: "Couldn't change the verified mark. Note what you checked, then try again.",
+    textTl: "Hindi nabago ang verified mark. Isulat kung ano ang chineck mo, tapos subukan ulit.",
+  },
   "plan-saved": {
     tone: "success",
     text: "Plan changed.",

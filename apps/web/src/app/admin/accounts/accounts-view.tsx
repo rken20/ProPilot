@@ -43,6 +43,11 @@ type Actions = {
     form: FormData,
   ) => Promise<void>;
   deleteAccount: (userId: string, form: FormData) => Promise<void>;
+  setVerified: (
+    businessId: string,
+    verified: boolean,
+    form: FormData,
+  ) => Promise<void>;
 };
 
 function Tile({
@@ -126,6 +131,70 @@ function PlanForm({
   );
 }
 
+/** Mark a business as a verified seller, or take the mark away. */
+function VerifyForm({
+  b,
+  q,
+  setVerified,
+  say,
+}: {
+  say: Say;
+  b: AccountBusiness;
+  q: string;
+  setVerified: Actions["setVerified"];
+}) {
+  if (b.verified_at)
+    return (
+      <div className="mt-2 rounded-2xl bg-tile-mint/60 p-3 text-sm">
+        <p>
+          <span className="font-semibold">
+            Verified {day.format(new Date(b.verified_at))}.
+          </span>{" "}
+          {b.verified_note}
+        </p>
+        <form action={setVerified.bind(null, b.id, false)} className="mt-2">
+          <input type="hidden" name="q" value={q} />
+          <SubmitButton variant="secondary" pendingText="Saving…">
+            Remove Verified Mark
+          </SubmitButton>
+        </form>
+      </div>
+    );
+  const id = `verify-${b.id}`;
+  return (
+    <details className="mt-2">
+      <summary className="cursor-pointer text-sm font-semibold text-grape-700 hover:text-grape-800">
+        Mark as verified seller
+      </summary>
+      <form
+        action={setVerified.bind(null, b.id, true)}
+        className="mt-3 space-y-3 rounded-2xl bg-grape-50/60 p-3"
+      >
+        <input type="hidden" name="q" value={q} />
+        <p className="text-xs text-muted">
+          {say(
+            "Check their ID or licence with them directly first (a video call, in person, or the PRC or DHSUD lookup). Don't paste ID numbers or documents here: write only what you checked and when.",
+            "I-check muna nang direkta ang ID o licence nila (video call, personal, o sa PRC o DHSUD lookup). Huwag mag-paste ng ID numbers o documents dito: isulat lang kung ano ang chineck mo at kailan.",
+          )}
+        </p>
+        <div>
+          <Label htmlFor={id}>What you checked</Label>
+          <Input
+            id={id}
+            name="note"
+            required
+            maxLength={500}
+            placeholder="Government ID seen on a video call, 27 Nov"
+          />
+        </div>
+        <SubmitButton variant="secondary" pendingText="Saving…">
+          Mark Verified
+        </SubmitButton>
+      </form>
+    </details>
+  );
+}
+
 function AccountCard({
   a,
   meId,
@@ -190,6 +259,9 @@ function AccountCard({
                 {b.restricted ? (
                   <Badge tone="hot">Off public pages</Badge>
                 ) : null}
+                {b.verified_at ? (
+                  <Badge tone="brand">Verified seller</Badge>
+                ) : null}
               </p>
               {b.role === "owner" ? (
                 <PlanForm
@@ -199,6 +271,14 @@ function AccountCard({
                   now={now}
                   setPlan={actions.setPlan}
                   plans={plans}
+                />
+              ) : null}
+              {b.role === "owner" ? (
+                <VerifyForm
+                  say={say}
+                  b={b}
+                  q={q}
+                  setVerified={actions.setVerified}
                 />
               ) : null}
             </li>

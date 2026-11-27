@@ -6,7 +6,7 @@ import { appSay } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
-import { PROPERTY_STATUSES, can, propertySchema } from "@propilot/shared";
+import { PROPERTY_STATUSES, can, propertySchema, sellerDeclarationSchema } from "@propilot/shared";
 import { requireBusiness, requireUser } from "@/lib/auth";
 import { fieldErrorsFrom, str, type FormState } from "@/lib/form";
 import { pesosToCentavos } from "@/lib/money";
@@ -17,6 +17,7 @@ import { publicListingPath } from "@/lib/public-listing";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { checkFloor } from "@/lib/floor-rules";
 import { businessPlan } from "@/lib/plan";
+import { checkListing } from "@/lib/listing-check-jobs";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -25,6 +26,7 @@ const FORM_KEYS = [
   "financingNotes", "lowestPrice", "acceptPrice",
   "bankDown", "bankRate", "bankYears", "pagibigDown", "pagibigRate", "pagibigYears",
   "inHouseDown", "inHouseRate", "inHouseYears", "inHouseDownMonths",
+  "sellerCapacity", "sellerLicense",
 ] as const;
 
 /** Form field names for each financing option's terms, and where each lands in the saved listing. */
@@ -40,8 +42,21 @@ function readForm(form: FormData) {
   return { data, checks };
 }
 
-function validate(form: FormData, say: Say) {
+/**
+ * `declared` is the declaration already on the listing, if any: the box is
+ * ticked once per declaration, so an edit that leaves it as it was doesn't ask again.
+ */
+function validate(form: FormData, say: Say, declared?: { capacity: string | null; license: string | null }) {
   const { data, checks } = readForm(form);
+  const seller = sellerDeclarationSchema.safeParse({ capacity: data.sellerCapacity, license: data.sellerCapacity === "owner" ? undefined : data.sellerLicense || undefined });
+  const sellerErrors: Record<string, string> = {};
+  if (!seller.success) {
+    if (seller.error.issues.some((i) => i.path[0] === "capacity")) sellerErrors.sellerCapacity = say("Choose how you're listing this property", "Piliin kung paano mo nili-list ang property na ito");
+    else sellerErrors.sellerLicense = say("Enter the licence number: letters and numbers, at least 3", "Ilagay ang licence number: letters at numbers, hindi bababa sa 3");
+  } else {
+    const same = declared?.capacity === seller.data.capacity && (declared.license ?? null) === (seller.data.license ?? null);
+    if (!same && form.get("sellerConfirm") !== "on") sellerErrors.sellerConfirm = say("Tick the box to confirm", "I-tick ang box para mag-confirm");
+  }
   const price = pesosToCentavos(data.price);
   const reservation = pesosToCentavos(data.reservationFee);
   // Terms are kept only for the options that are ticked. An empty box means "not stated".
@@ -64,8 +79,8 @@ function validate(form: FormData, say: Say) {
     description: data.description || undefined,
     financing: { ...checks, downpaymentPercent: dp, notes: data.financingNotes || undefined, terms: Object.keys(terms).length ? terms : undefined },
   });
-  if (!parsed.success) {
-    const fe = fieldErrorsFrom(parsed.error, say);
+  if (!parsed.success || !seller.success || Object.keys(sellerErrors).length) {
+    const fe: Record<string, string> = { ...(parsed.success ? {} : fieldErrorsFrom(parsed.error, say)), ...sellerErrors };
     // Map nested schema paths to the form's field names.
     if (fe["price.amountMinor"]) fe.price = say("Enter the price in pesos, e.g. 4500000", "Ilagay ang presyo sa pesos, hal. 4500000");
     if (fe["reservationFee.amountMinor"]) fe.reservationFee = say("Enter a peso amount, e.g. 25000", "Maglagay ng amount sa pesos, hal. 25000");
@@ -75,17 +90,20 @@ function validate(form: FormData, say: Say) {
       if (fe[`financing.terms.${key}.years`]) fe[f.years] = say("A whole number, 1 to 40", "Buong number, 1 hanggang 40");
       if ("downMonths" in f && fe[`financing.terms.${key}.downMonths`]) fe[f.downMonths] = say("A whole number, 1 to 60", "Buong number, 1 hanggang 60");
     }
-    return { ok: false as const, state: { fieldErrors: fe, data: { ...data, ...flagData(checks), isPublic: form.get("isPublic") === "on" ? "on" : "" } } };
+    return { ok: false as const, state: { fieldErrors: fe, data: { ...data, ...flagData(checks), isPublic: form.get("isPublic") === "on" ? "on" : "", sellerConfirm: form.get("sellerConfirm") === "on" ? "on" : "" } } };
   }
-  return { ok: true as const, value: parsed.data, isPublic: form.get("isPublic") === "on" };
+  return { ok: true as const, value: parsed.data, seller: seller.data, isPublic: form.get("isPublic") === "on" };
 }
 
 function flagData(checks: Record<string, boolean>) {
   return Object.fromEntries(Object.entries(checks).map(([k, v]) => [k, v ? "on" : ""]));
 }
 
-function toRow(v: ReturnType<typeof propertySchema.parse>) {
+function toRow(v: ReturnType<typeof propertySchema.parse>, seller: ReturnType<typeof sellerDeclarationSchema.parse>) {
   return {
+    // The database stamps who declared and when.
+    seller_capacity: seller.capacity,
+    seller_license: seller.capacity === "owner" ? null : (seller.license ?? null),
     name: v.name,
     type: v.type,
     location: v.location,
@@ -115,14 +133,14 @@ export async function createProperty(_prev: FormState, form: FormData): Promise<
   const floorCheck = setsFloor ? checkFloor(str(form, "lowestPrice"), str(form, "acceptPrice"), result.value.price.amountMinor, true) : null;
   if (floorCheck && !floorCheck.ok) {
     const { data, checks } = readForm(form);
-    return { fieldErrors: { [floorCheck.field]: say(...floorCheck.message) }, data: { ...data, ...flagData(checks), isPublic: result.isPublic ? "on" : "" } };
+    return { fieldErrors: { [floorCheck.field]: say(...floorCheck.message) }, data: { ...data, ...flagData(checks), isPublic: result.isPublic ? "on" : "", sellerConfirm: form.get("sellerConfirm") === "on" ? "on" : "" } };
   }
 
   const supabase = await createClient();
   // business_id comes from the server-side session, never from the form.
   const { data, error } = await supabase
     .from("properties")
-    .insert({ ...toRow(result.value), is_public: result.isPublic, business_id: biz.businessId, created_by: user.id })
+    .insert({ ...toRow(result.value, result.seller), is_public: result.isPublic, business_id: biz.businessId, created_by: user.id })
     .select("id")
     .single();
   if (error) return { error: say("Couldn't save the property. Please try again.", "Hindi na-save ang property. Paki-try ulit."), data: readForm(form).data };
@@ -149,6 +167,8 @@ export async function createProperty(_prev: FormState, form: FormData): Promise<
     );
   }
 
+  // The app's own checks (wording, price) file a report for the app admin; they never block a save.
+  after(() => checkListing(data.id));
   revalidatePath("/app/properties");
   redirect(`/app/properties/${data.id}?notice=${!floorSaved ? "created-no-floor" : ref ? "created-importing" : "created"}`);
 }
@@ -158,20 +178,25 @@ export async function updateProperty(id: string, _prev: FormState, form: FormDat
   const biz = await requireBusiness();
   if (!can(biz.role, "property.update")) return { error: say("Your role can't edit properties.", "Hindi pwedeng mag-edit ng properties ang role mo.") };
 
-  const result = validate(form, say);
+  if (!UUID.test(id)) return { error: say("You can't edit this property.", "Hindi mo pwedeng i-edit ang property na ito.") };
+  const supabase = await createClient();
+  const { data: current } = await supabase.from("properties").select("seller_capacity, seller_license").eq("id", id).eq("business_id", biz.businessId).maybeSingle();
+  if (!current) return { error: say("You can't edit this property.", "Hindi mo pwedeng i-edit ang property na ito.") };
+  const result = validate(form, say, { capacity: current.seller_capacity as string | null, license: current.seller_license as string | null });
   if (!result.ok) return result.state;
 
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("properties")
-    .update({ ...toRow(result.value), is_public: result.isPublic, updated_at: new Date().toISOString() })
+    .update({ ...toRow(result.value, result.seller), is_public: result.isPublic, updated_at: new Date().toISOString() })
     .eq("id", id)
     .eq("business_id", biz.businessId)
     .select("id");
   if (error) return { error: say("Couldn't save changes. Please try again.", "Hindi na-save ang changes. Paki-try ulit.") };
   if (!data?.length) return { error: say("You can't edit this property.", "Hindi mo pwedeng i-edit ang property na ito.") };
 
+  after(() => checkListing(id));
   revalidatePath("/app/properties");
+  revalidatePath(publicListingPath(id));
   return { ok: true, message: "Saved." };
 }
 

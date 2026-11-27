@@ -5,9 +5,10 @@ import { cx } from "@/components/ui";
 const TABS = [
   { href: "/admin/payments", label: "Payments and plans" },
   { href: "/admin/accounts", label: "Accounts" },
+  { href: "/admin/reports", label: "Reports" },
 ] as const;
 
-/** The way back to the app and the two admin screens, shown at the top of each. */
+/** The way back to the app and the admin screens, shown at the top of each. */
 export function AdminTabs({
   current,
 }: {

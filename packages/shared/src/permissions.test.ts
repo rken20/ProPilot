@@ -108,3 +108,17 @@ describe("viewingRequestSchema", () => {
     expect(signUpSchema.parse({ fullName: "Ana Cruz", email: "a@b.co", password: "long-enough-pass" }).accountType).toBe("agent");
   });
 });
+
+describe("sellerDeclarationSchema", () => {
+  it("asks a broker, an agent and a developer for a licence number, not an owner", async () => {
+    const { sellerDeclarationSchema } = await import("./schemas");
+    expect(sellerDeclarationSchema.safeParse({ capacity: "owner" }).success).toBe(true);
+    for (const capacity of ["broker", "agent", "developer"]) {
+      expect(sellerDeclarationSchema.safeParse({ capacity }).success).toBe(false);
+      expect(sellerDeclarationSchema.safeParse({ capacity, license: "PRC 0012345" }).success).toBe(true);
+    }
+    expect(sellerDeclarationSchema.safeParse({ capacity: "broker", license: "x" }).success).toBe(false);
+    expect(sellerDeclarationSchema.safeParse({ capacity: "broker", license: "<script>" }).success).toBe(false);
+    expect(sellerDeclarationSchema.safeParse({ capacity: "friend" }).success).toBe(false);
+  });
+});

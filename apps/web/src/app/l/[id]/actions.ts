@@ -11,6 +11,9 @@ import { notifyNewLead, syncLeadsSheet } from "@/lib/lead-jobs";
 import { lookingForNote, parseWants, withNote } from "@/lib/match-alert-rules";
 import { matchAlertsOn, saveAlert } from "@/lib/match-alerts";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { emailSuperAdmins } from "@/lib/billing-email";
+import { ANY_REASON_LABEL, REPORT_REASONS } from "@/lib/seller-trust";
+import { siteOrigin } from "@/lib/site";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -136,4 +139,54 @@ export async function sendInquiry(propertyId: string, _prev: FormState, form: Fo
         )
       : say("Sent. The agent will call or text you to confirm.", "Na-send na. Tatawagan o ite-text ka ng agent para mag-confirm."),
   };
+}
+
+/**
+ * "Report this listing", from anyone on a public page. The report goes to the
+ * app admin only. The answer is the same whether or not a new report was
+ * filed, so nothing about the listing's reports can be read off it.
+ */
+export async function reportListing(propertyId: string, _prev: FormState, form: FormData): Promise<FormState> {
+  const say = sayIn(toLang(str(form, "lang")));
+  const thanks = { ok: true, message: say("Thank you. MyHomeSeller will look into this listing.", "Salamat. Titingnan ng MyHomeSeller ang listing na ito.") };
+  if (str(form, "website")) return thanks;
+
+  const data = { reason: str(form, "reason"), details: str(form, "details").trim(), contact: str(form, "contact").trim() };
+  const fieldErrors: Record<string, string> = {};
+  if (!(REPORT_REASONS as readonly string[]).includes(data.reason)) fieldErrors.reason = say("Choose what's wrong", "Piliin kung ano ang mali");
+  if (data.details.length > 1000) fieldErrors.details = say("Keep it under 1,000 characters", "Hanggang 1,000 characters lang");
+  else if (data.reason === "other" && data.details.length < 10) fieldErrors.details = say("Tell us what's wrong in a few words", "Sabihin sa ilang salita kung ano ang mali");
+  if (data.contact && !(EMAIL.test(data.contact) || /^[+0-9][0-9\s-]{6,28}$/.test(data.contact))) fieldErrors.contact = say("Enter a mobile number or an email, or leave it blank", "Maglagay ng mobile number o email, o iwanang blangko");
+  if (data.contact.length > 120) fieldErrors.contact = say("That's too long", "Masyadong mahaba");
+  if (!/^[0-9a-f-]{36}$/i.test(propertyId) || Object.keys(fieldErrors).length) return { fieldErrors, data };
+
+  const admin = createAdminClient();
+  if (!admin) return { error: say("Reports aren't available right now. Please try again later.", "Hindi available ang reports ngayon. Paki-try ulit mamaya."), data };
+  const [hour, day] = await Promise.all([
+    admin.rpc("consume_anon_rate_limit", { p_key: await visitorKey("report-hour"), p_limit: 3, p_window_seconds: 3600 }),
+    admin.rpc("consume_anon_rate_limit", { p_key: await visitorKey("report-day"), p_limit: 6, p_window_seconds: 86400 }),
+  ]);
+  if (hour.data !== true || day.data !== true) return { error: say("You've sent several reports already. Please try again later.", "Ilang beses ka nang nag-report. Paki-try ulit mamaya."), data };
+
+  const { data: id, error } = await admin.rpc("report_listing", { p_property: propertyId, p_source: "visitor", p_reason: data.reason, p_details: data.details || null, p_contact: data.contact || null });
+  if (error) {
+    if (/not available/.test(error.message)) return { error: say("This listing isn't public anymore.", "Hindi na public ang listing na ito."), data };
+    console.error("[report] not filed:", error.message);
+    return { error: say("Couldn't send your report. Please try again.", "Hindi na-send ang report mo. Paki-try ulit."), data };
+  }
+  if (id) {
+    // The reporter's contact stays out of the email: it's in the Reports screen only.
+    after(() =>
+      emailSuperAdmins(
+        admin,
+        "A listing was reported",
+        [
+          ["Why", ANY_REASON_LABEL[data.reason] ?? data.reason],
+          ["What they said", data.details || "(nothing more)"],
+        ],
+        { label: "Open Reports", url: `${siteOrigin() ?? "https://myhomeseller.ai"}/admin/reports` },
+      ),
+    );
+  }
+  return thanks;
 }

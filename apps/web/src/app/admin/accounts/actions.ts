@@ -70,6 +70,31 @@ export async function setRestricted(
   back(form, restricted ? "restricted" : "unrestricted");
 }
 
+/**
+ * Mark a business as a verified seller, or take the mark away. The proof is
+ * checked outside the app; only the decision and a note on what was checked
+ * are kept.
+ */
+export async function setVerified(businessId: string, verified: boolean, form: FormData) {
+  const { user, admin } = await requireSuperAdmin();
+  const note = str(form, "note").trim().slice(0, 500);
+  if (!UUID.test(businessId) || (verified && !note)) back(form, "verify-failed");
+  const { error } = await admin.rpc("admin_set_verified", {
+    p_business: businessId,
+    p_verified: verified,
+    p_note: note || null,
+    p_by: user.id,
+  });
+  if (error) {
+    console.error("[admin] verify failed:", error.message);
+    back(form, "verify-failed");
+  }
+  revalidatePath("/l/[id]", "page");
+  revalidatePath("/properties");
+  revalidatePath("/app", "layout");
+  back(form, verified ? "verified" : "unverified");
+}
+
 /** Every photo file of the businesses about to be deleted. The API returns 1,000 rows at a time. */
 async function mediaFiles(
   admin: SupabaseClient,

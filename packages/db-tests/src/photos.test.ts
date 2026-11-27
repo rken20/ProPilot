@@ -20,8 +20,8 @@ let privProp: string;
 async function addProperty(isPublic: boolean) {
   const { rows } = await as(db, OWNER_A, () =>
     db.query<{ id: string }>(
-      `insert into public.properties (business_id, name, type, location, price_minor, created_by, is_public)
-       values ($1, 'Photo test (test)', 'condominium', 'Iloilo', 100, $2, $3) returning id`,
+      `insert into public.properties (business_id, name, type, location, price_minor, created_by, is_public, seller_capacity)
+       values ($1, 'Photo test (test)', 'condominium', 'Iloilo', 100, $2, $3, 'owner') returning id`,
       [bizA, OWNER_A, isPublic],
     ),
   );

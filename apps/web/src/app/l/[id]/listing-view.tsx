@@ -2,7 +2,7 @@ import { financingPlans } from "@propilot/shared";
 import { LangProvider } from "@/components/lang";
 import { sayIn, type Lang, type Say } from "@/lib/lang";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { MapPin, ShieldCheck, ShieldQuestion } from "lucide-react";
 import { Icon3d, type Icon3dName } from "@/components/icon-3d";
 import { Logo } from "@/components/logo";
 import type { FormState } from "@/lib/form";
@@ -14,6 +14,8 @@ import type { PublicListing } from "@/lib/public-listing";
 import { Gallery } from "./gallery";
 import { LoanEstimator } from "./loan-estimator";
 import { ViewingForm } from "./viewing-form";
+import { ReportListing } from "./report-listing";
+import { declarationLine } from "@/lib/seller-trust";
 
 /** A tinted panel when a listing has no photos yet. */
 function NoPhotos({ name, say }: { name: string; say: Say }) {
@@ -31,6 +33,7 @@ function NoPhotos({ name, say }: { name: string; say: Say }) {
 export function PublicListingView({
   listing,
   inquiry,
+  report,
   matchEmails = false,
   lang = "taglish",
 }: {
@@ -38,11 +41,14 @@ export function PublicListingView({
   lang?: Lang;
   listing: PublicListing;
   inquiry: (prev: FormState, form: FormData) => Promise<FormState>;
+  /** "Report this listing": goes to MyHomeSeller, not to the seller. */
+  report: (prev: FormState, form: FormData) => Promise<FormState>;
   matchEmails?: boolean;
 }) {
   const say = sayIn(lang);
   const photos = listing.photos.map((p) => ({ id: p.id, full: mediaUrl(p.path) ?? "", thumb: mediaUrl(p.thumb) ?? "" }));
   const fin = financingLabels(listing.financing);
+  const declared = declarationLine(listing.seller, say);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
   const facts: Array<{ icon: Icon3dName; tile: string; label: string; value: string }> = [
     { icon: "houses", tile: "bg-tile-lavender", label: "Type", value: TYPE_LABEL[listing.type as keyof typeof TYPE_LABEL] ?? "Property" },
@@ -118,6 +124,38 @@ export function PublicListingView({
                 <p className="mt-2 max-w-prose text-[15px] leading-relaxed text-ink/85">{listing.financing.notes}</p>
               </section>
             ) : null}
+
+            <section aria-labelledby="seller-title">
+              <h2 id="seller-title" className="text-lg font-bold">
+                About the seller
+              </h2>
+              <div className="mt-2 max-w-prose rounded-[var(--radius-tile)] border border-line bg-white p-4">
+                <p className="flex flex-wrap items-center gap-2 font-bold">
+                  {listing.business_name}
+                  {listing.seller.verified ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-tile-mint px-2.5 py-0.5 text-xs font-bold text-brand-700">
+                      <ShieldCheck className="size-3.5" aria-hidden /> Verified seller
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-tile-lemon px-2.5 py-0.5 text-xs font-bold text-brass-700">
+                      <ShieldQuestion className="size-3.5" aria-hidden /> Not yet verified
+                    </span>
+                  )}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-ink/85">
+                  {listing.seller.verified
+                    ? say(
+                        "MyHomeSeller checked this seller's ID or licence. That is a check of the seller, not of the property's title or papers.",
+                        "Na-check ng MyHomeSeller ang ID o licence ng seller na ito. Ang seller ang na-check, hindi ang title o papeles ng property.",
+                      )
+                    : say(
+                        "MyHomeSeller hasn't checked this seller's ID or licence yet. Take extra care before paying anything.",
+                        "Hindi pa na-check ng MyHomeSeller ang ID o licence ng seller na ito. Mag-ingat bago magbayad ng kahit ano.",
+                      )}
+                </p>
+                {declared ? <p className="mt-2 text-sm leading-relaxed text-ink/85">{declared}</p> : null}
+              </div>
+            </section>
           </div>
 
           <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
@@ -137,6 +175,30 @@ export function PublicListingView({
             </section>
             <LangProvider lang={lang}>
               <LoanEstimator priceMinor={listing.price_minor} plans={financingPlans(listing.price_minor, listing.financing)} defaultDownpayment={listing.financing?.downpaymentPercent} />
+            </LangProvider>
+            <section className="rounded-[1.5rem] border border-line bg-white p-5" aria-labelledby="safe-title">
+              <h2 id="safe-title" className="flex items-center gap-2 text-base font-bold">
+                <ShieldCheck className="size-5 text-brand-600" aria-hidden /> Before you pay anything
+              </h2>
+              <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-ink/85">
+                <li>{say("See the property in person first.", "Puntahan at tingnan muna ang property.")}</li>
+                <li>
+                  {say(
+                    "Ask to see the title and the seller's ID, and check the title with the Registry of Deeds.",
+                    "Hingin ang title at ID ng seller, at ipa-check ang title sa Registry of Deeds.",
+                  )}
+                </li>
+                <li>
+                  {say(
+                    "Don't send a reservation fee or deposit before a viewing, whoever asks.",
+                    "Huwag magpadala ng reservation fee o deposit bago mag-viewing, kahit sino ang humingi.",
+                  )}
+                </li>
+                <li>{say("If you're being rushed or the price looks too good, stop and report the listing.", "Kung minamadali ka o sobrang baba ng presyo, huminto at i-report ang listing.")}</li>
+              </ul>
+            </section>
+            <LangProvider lang={lang}>
+              <ReportListing action={report} />
             </LangProvider>
           </aside>
         </div>

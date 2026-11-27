@@ -22,8 +22,8 @@ let pubB: string; // public (B)
 async function addProperty(owner: string, biz: string, name: string, isPublic: boolean, status = "available") {
   const { rows } = await as(db, owner, () =>
     db.query<{ id: string }>(
-      `insert into public.properties (business_id, name, type, location, price_minor, created_by, is_public, status)
-       values ($1, $2, 'condominium', 'Iloilo City', 450000000, $3, $4, $5) returning id`,
+      `insert into public.properties (business_id, name, type, location, price_minor, created_by, is_public, status, seller_capacity)
+       values ($1, $2, 'condominium', 'Iloilo City', 450000000, $3, $4, $5, 'owner') returning id`,
       [biz, name, owner, isPublic, status],
     ),
   );

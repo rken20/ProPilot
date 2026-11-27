@@ -3,7 +3,7 @@ import type { Account, AdminCounts } from "@/lib/admin-accounts";
 import { requireSuperAdmin } from "@/lib/superadmin";
 import { AdminTabs } from "../admin-tabs";
 import { AccountsView } from "./accounts-view";
-import { deleteAccount, setPlan, setRestricted } from "./actions";
+import { deleteAccount, setPlan, setRestricted, setVerified } from "./actions";
 
 export const metadata = { title: "Accounts · MyHomeSeller admin" };
 
@@ -66,7 +66,7 @@ export default async function AdminAccountsPage({
         notice={notice}
         meId={user.id}
         now={new Date()}
-        actions={{ setPlan, setRestricted, deleteAccount }}
+        actions={{ setPlan, setRestricted, deleteAccount, setVerified }}
         limit={LIMIT}
         lang={await userLang()}
       />

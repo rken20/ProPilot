@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
+import { checkPhoto } from "@/lib/listing-check-jobs";
 import { pageWithToken } from "./facebook-pages";
 import { FULL_EDGE, MAX_PHOTOS, MEDIA_BUCKET, THUMB_EDGE, photoPaths } from "./media";
 import { isFacebookImageUrl, metaConfig, pagePost, postImageUrls } from "./meta";
@@ -96,6 +97,7 @@ export async function copyPostPhotos(businessId: string, propertyId: string, pag
         continue;
       }
       order++;
+      await checkPhoto(propertyId, paths.full);
     } catch (e) {
       console.error("[meta] photo copy failed:", e instanceof Error ? e.message : String(e));
     }

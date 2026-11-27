@@ -18,12 +18,15 @@ export function NewProperty({
   pages,
   pricing,
   negotiation,
+  seller,
 }: {
   canPaste: boolean;
   pages: Page[];
   pricing: PriceHelperPlan | null;
   /** AI negotiation on Pro and Agency: owners and admins set the lowest price here; agents are told it's set later. */
   negotiation?: "set" | "later";
+  /** How this business declared on its last listing, as the form's starting values. */
+  seller?: Record<string, string>;
 }) {
   // Writing a description and filling from a post both need AI on the plan.
   const aiWrite = canPaste;
@@ -149,7 +152,7 @@ export function NewProperty({
         <PropertyForm
           key={state.nonce ?? 0}
           action={createProperty}
-          initial={{ isPublic: "on", ...(state.values ?? {}) }}
+          initial={{ isPublic: "on", ...(seller ?? {}), ...(state.values ?? {}) }}
           submitLabel="Save property"
           aiWrite={aiWrite}
           hidden={state.importRef ? { importPost: state.importRef } : undefined}

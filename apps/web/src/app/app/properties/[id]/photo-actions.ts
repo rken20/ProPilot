@@ -2,6 +2,8 @@
 
 import { appSay } from "@/lib/lang-server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { checkPhoto } from "@/lib/listing-check-jobs";
 import { can } from "@propilot/shared";
 import { requireBusiness } from "@/lib/auth";
 import { MAX_PHOTOS, MEDIA_BUCKET, photoPaths } from "@/lib/media";
@@ -46,6 +48,8 @@ export async function addPhoto(propertyId: string, input: PhotoInput): Promise<{
     await supabase.storage.from(MEDIA_BUCKET).remove([paths.full, paths.thumb]);
     return { error: /at most/.test(error.message) ? error.message : say("Couldn't save the photo. Please try again.", "Hindi na-save ang photo. Paki-try ulit.") };
   }
+  // Fingerprint the photo and see whether this listing's photos are on another seller's listing. Never blocks the upload.
+  after(() => checkPhoto(propertyId, paths.full));
   refresh(propertyId);
   return {};
 }

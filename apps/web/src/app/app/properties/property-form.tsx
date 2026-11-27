@@ -1,13 +1,14 @@
 "use client";
 
 import { useSay } from "@/components/lang";
-import { useActionState, type ReactNode } from "react";
-import { PROPERTY_STATUSES, PROPERTY_TYPES } from "@propilot/shared";
+import { useActionState, useState, type ReactNode } from "react";
+import { PROPERTY_STATUSES, PROPERTY_TYPES, SELLER_CAPACITIES } from "@propilot/shared";
 import { Icon3d } from "@/components/icon-3d";
 import { Alert, Field, IconTitle, Input, Label, Select, Textarea } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/lib/form";
 import { STATUS_LABEL, TYPE_LABEL } from "@/lib/property-labels";
+import { CAPACITY_LABEL, LICENSE_LABEL, isCapacity } from "@/lib/seller-trust";
 import { FinancingFields } from "./financing-fields";
 import { WriteDescriptionButton } from "./write-description";
 
@@ -22,6 +23,7 @@ export function PropertyForm({
   aiWrite = false,
   priceHelp,
   negotiation,
+  publicOff = false,
 }: {
   action: (prev: FormState, form: FormData) => Promise<FormState>;
   initial: PropertyFormValues;
@@ -39,6 +41,8 @@ export function PropertyForm({
    * or an admin sets it.
    */
   negotiation?: "set" | "later";
+  /** MyHomeSeller took this listing's public page down: the box is off and can't be ticked. */
+  publicOff?: boolean;
 }) {
   const say = useSay();
   const [state, formAction] = useActionState(action, { data: initial });
@@ -135,8 +139,10 @@ export function PropertyForm({
 
         <FinancingFields values={v} errors={e} readOnly={readOnly} />
 
+        <SellerDeclaration values={v} declared={initial} errors={e} readOnly={readOnly} />
+
         <Label className="flex items-start gap-3 rounded-xl border border-line bg-surface p-4 font-normal">
-          <input type="checkbox" name="isPublic" defaultChecked={v.isPublic === "on"} className="mt-0.5 size-4 accent-brand-600" />
+          <input type="checkbox" name="isPublic" defaultChecked={v.isPublic === "on" && !publicOff} disabled={publicOff} className="mt-0.5 size-4 accent-brand-600" />
           <span>
             <span className="block font-semibold text-ink">Give it a public page</span>
             <span className="block text-sm text-muted">
@@ -145,6 +151,11 @@ export function PropertyForm({
                 "Kahit sino na may link, makikita ang listing at makakapag-send ng inquiry sa'yo, hindi kailangan ng account, at pwede rin itong lumabas sa Google. I-share ang link sa Facebook, Messenger o text. I-untick kung gusto mong private lang. Laging naka-hide ang sold at archived listings.",
               )}
             </span>
+            {publicOff ? (
+              <span className="mt-1 block text-sm font-semibold text-hot">
+                {say("MyHomeSeller took this listing's public page down, so this can't be turned on.", "Tinanggal ng MyHomeSeller ang public page ng listing na ito, kaya hindi ito pwedeng i-on.")}
+              </span>
+            ) : null}
           </span>
         </Label>
 
@@ -156,5 +167,86 @@ export function PropertyForm({
 
       {readOnly ? null : <SubmitButton pendingText="Saving…">{submitLabel}</SubmitButton>}
     </form>
+  );
+}
+
+/**
+ * The seller declaration: in what capacity they're listing, the licence number
+ * that goes with it, and a box confirming the listing is real. Once made, an
+ * edit that leaves it as it was doesn't ask for the box again.
+ */
+function SellerDeclaration({
+  values: v,
+  declared,
+  errors: e,
+  readOnly,
+}: {
+  values: PropertyFormValues;
+  /** What the listing already has: `declaredOn` is set when a declaration was made. */
+  declared: PropertyFormValues;
+  errors: Record<string, string>;
+  readOnly: boolean;
+}) {
+  const say = useSay();
+  const [capacity, setCapacity] = useState(v.sellerCapacity ?? "");
+  const [license, setLicense] = useState(v.sellerLicense ?? "");
+  const needsLicense = isCapacity(capacity) && capacity !== "owner";
+  const unchanged =
+    Boolean(declared.declaredOn) && capacity === (declared.sellerCapacity ?? "") && (needsLicense ? license.trim() : "") === (declared.sellerCapacity === "owner" ? "" : (declared.sellerLicense ?? ""));
+
+  return (
+    <section className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
+      <IconTitle icon="handshake" className="text-sm font-semibold">
+        Seller declaration
+      </IconTitle>
+      <p className="mt-1 text-sm text-muted">
+        {say(
+          "Buyers see this on the listing's public page. It helps them trust the listing, and keeps fake listings out.",
+          "Makikita ito ng buyers sa public page ng listing. Tumutulong ito para pagkatiwalaan nila ang listing, at para walang fake listings.",
+        )}
+      </p>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <Field label="How are you listing this property?" htmlFor="sellerCapacity" error={e.sellerCapacity}>
+          <Select id="sellerCapacity" name="sellerCapacity" value={capacity} onChange={(ev) => setCapacity(ev.target.value)} required>
+            <option value="" disabled>
+              Choose one
+            </option>
+            {SELLER_CAPACITIES.map((c) => (
+              <option key={c} value={c}>
+                {CAPACITY_LABEL[c]}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        {needsLicense ? (
+          <Field
+            label={LICENSE_LABEL[capacity]}
+            htmlFor="sellerLicense"
+            error={e.sellerLicense}
+            hint={say("Shown on the public page, so buyers can check it.", "Ipapakita sa public page, para ma-check ng buyers.")}
+          >
+            <Input id="sellerLicense" name="sellerLicense" value={license} onChange={(ev) => setLicense(ev.target.value)} maxLength={60} autoComplete="off" required />
+          </Field>
+        ) : null}
+      </div>
+      {readOnly ? null : unchanged ? (
+        <p className="mt-3 text-sm text-muted">
+          {say(`You confirmed this listing is real on ${declared.declaredOn}.`, `Kinumpirma mong totoo ang listing na ito noong ${declared.declaredOn}.`)}
+        </p>
+      ) : (
+        <>
+          <Label className="mt-3 flex items-start gap-3 font-normal">
+            <input type="checkbox" name="sellerConfirm" defaultChecked={v.sellerConfirm === "on"} required className="mt-0.5 size-4 accent-brand-600" />
+            <span className="text-sm text-ink">
+              {say(
+                "I confirm that this property is real and for sale, that the photos and details are of this property, and that I own it or have the owner's permission to list it. A false listing can be taken down and the account restricted.",
+                "Kinukumpirma ko na totoo at for sale ang property na ito, na ang photos at details ay sa property na ito, at ako ang may-ari o may pahintulot ako ng may-ari na i-list ito. Ang maling listing ay pwedeng tanggalin at ma-restrict ang account.",
+              )}
+            </span>
+          </Label>
+          {e.sellerConfirm ? <p className="pp-fade mt-1.5 text-sm text-red-700">{e.sellerConfirm}</p> : null}
+        </>
+      )}
+    </section>
   );
 }

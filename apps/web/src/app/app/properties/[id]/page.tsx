@@ -1,6 +1,7 @@
 import { sayIn } from "@/lib/lang";
 import { businessLang } from "@/lib/lang-server";
 import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
 import { can } from "@propilot/shared";
 import { Alert, buttonClass, Card, PageHeader, Panel } from "@/components/ui";
@@ -30,6 +31,7 @@ import { LowestPrice, Offers } from "../../offers";
 import { publicListingPath } from "@/lib/public-listing";
 import { siteOrigin } from "@/lib/site";
 import { daysAgoIso } from "@/lib/time";
+import { sellerVerified, supportEmail } from "@/lib/seller-verified";
 
 const STATUS_ACTION: Record<(typeof PROPERTY_STATUSES)[number], string> = {
   available: "Mark as available",
@@ -130,7 +132,14 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
     pagIbig: financing.pagIbig ? "on" : "",
     inHouse: financing.inHouse ? "on" : "",
     isPublic: p.is_public ? "on" : "",
+    sellerCapacity: (p.seller_capacity as string | null) ?? "",
+    sellerLicense: (p.seller_license as string | null) ?? "",
+    // Set once a declaration is made: the form then asks for the box again only if it changes.
+    declaredOn: p.declared_at ? new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", dateStyle: "medium" }).format(new Date(p.declared_at as string)) : "",
   };
+  const takenDown = Boolean(p.taken_down_at);
+  const verified = shareable ? await sellerVerified(biz.businessId) : false;
+  const support = supportEmail();
 
   // Owners/admins edit any listing; agents only listings assigned to them (RLS enforces the same).
   const canEdit =
@@ -159,6 +168,17 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
           ) : null
         }
       />
+      {takenDown ? (
+        <div className="mb-4">
+          <Alert>
+            <span className="font-semibold">{say("MyHomeSeller took this listing's public page down.", "Tinanggal ng MyHomeSeller ang public page ng listing na ito.")}</span>{" "}
+            {say("Reason:", "Dahilan:")} {p.taken_down_reason as string}{" "}
+            {support
+              ? say(`If this is a mistake, email ${support}.`, `Kung mali ito, mag-email sa ${support}.`)
+              : say("If this is a mistake, contact MyHomeSeller.", "Kung mali ito, kontakin ang MyHomeSeller.")}
+          </Alert>
+        </div>
+      ) : null}
       {floorIssue ? (
         <div className="mb-4">
           <Alert>
@@ -214,6 +234,29 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
         </div>
       ) : null}
       {shareable ? <ShareListing url={publicUrl} views={views} inquiries={inquiries} /> : null}
+      {shareable ? (
+        <p className="-mt-2 mb-6 flex items-start gap-2 rounded-2xl bg-tile-sky/60 p-4 text-sm text-ink/80">
+          <ShieldCheck className={`mt-0.5 size-4 shrink-0 ${verified ? "text-brand-600" : "text-muted"}`} aria-hidden />
+          <span>
+            {verified
+              ? say("Verified seller: buyers see this mark on your public pages.", "Verified seller: nakikita ng buyers ang mark na ito sa public pages mo.")
+              : say(
+                  "Your public pages say “Not yet verified”. MyHomeSeller verifies a seller by checking an ID or licence with you directly; nothing is uploaded here.",
+                  "“Not yet verified” ang nakalagay sa public pages mo. Vine-verify ng MyHomeSeller ang seller sa pag-check ng ID o licence nang direkta sa'yo; walang ina-upload dito.",
+                )}
+            {!verified && support ? (
+              <>
+                {" "}
+                {say("To ask, email", "Para mag-request, mag-email sa")}{" "}
+                <a href={`mailto:${support}`} className="font-semibold text-grape-700 underline underline-offset-2">
+                  {support}
+                </a>
+                .
+              </>
+            ) : null}
+          </span>
+        </p>
+      ) : null}
       <div className="mb-6">
         <PhotoManager
           businessId={biz.businessId}
@@ -224,7 +267,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       </div>
       <Card>
         {/* The key resets the form when the status is changed with the buttons further down. */}
-        <PropertyForm key={p.status} action={updateProperty.bind(null, p.id)} initial={initial} submitLabel="Save changes" readOnly={!canEdit} aiWrite={aiOn} />
+        <PropertyForm key={`${p.status}:${initial.declaredOn}:${initial.sellerCapacity}:${initial.sellerLicense}`} action={updateProperty.bind(null, p.id)} initial={initial} submitLabel="Save changes" readOnly={!canEdit} aiWrite={aiOn} publicOff={takenDown} />
       </Card>
 
       {finder ? (

@@ -32,8 +32,8 @@ beforeAll(async () => {
   for (let i = 0; i < 12; i++) {
     const { rows } = await as(db, OWNER, () =>
       db.query<{ id: string }>(
-        `insert into public.properties (business_id, name, type, location, price_minor, created_by, is_public)
-         values ($1, $2, 'lot', 'Iloilo', 100, $3, true) returning id`,
+        `insert into public.properties (business_id, name, type, location, price_minor, created_by, is_public, seller_capacity)
+         values ($1, $2, 'lot', 'Iloilo', 100, $3, true, 'owner') returning id`,
         [biz, `Lot ${i} (test)`, OWNER],
       ),
     );

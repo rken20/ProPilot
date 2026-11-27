@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, MapPin, Search, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, MapPin, Search, ShieldCheck, Star } from "lucide-react";
 import { Icon3d } from "@/components/icon-3d";
 import { Logo } from "@/components/logo";
 import { SiteLangToggle } from "@/components/site-lang-toggle";
@@ -359,6 +359,11 @@ function Card({
             <span className="truncate">{l.location}</span>
           </p>
           <ul className="mt-auto flex flex-wrap gap-1.5 pt-3.5">
+            {l.verified ? (
+              <li className="inline-flex items-center gap-1 rounded-full bg-tile-mint px-2.5 py-0.5 text-xs font-bold text-brand-700">
+                <ShieldCheck className="size-3.5" aria-hidden /> Verified seller
+              </li>
+            ) : null}
             {tags.map((t) => (
               <li
                 key={t}

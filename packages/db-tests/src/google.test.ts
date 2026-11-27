@@ -23,8 +23,8 @@ beforeAll(async () => {
   otherBiz = await as(db, OTHER_OWNER, async () => (await db.query<{ id: string }>(`select public.create_business('Other (test)') as id`)).rows[0]!.id);
   const prop = await as(db, OWNER, async () =>
     (await db.query<{ id: string }>(
-      `insert into public.properties (business_id, name, type, location, price_minor, created_by, is_public)
-       values ($1, 'Lot (test)', 'lot', 'Iloilo', 100, $2, true) returning id`,
+      `insert into public.properties (business_id, name, type, location, price_minor, created_by, is_public, seller_capacity)
+       values ($1, 'Lot (test)', 'lot', 'Iloilo', 100, $2, true, 'owner') returning id`,
       [biz, OWNER],
     )).rows[0]!.id,
   );

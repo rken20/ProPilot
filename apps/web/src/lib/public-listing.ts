@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { filterBrowse, pageOf, sortBrowse, type BrowseQuery, type BrowseRow } from "@/lib/browse-rules";
 import type { Listing } from "@/lib/listings";
 import { planRank } from "@/lib/match-alert-rules";
+import { isCapacity, type SellerInfo } from "@/lib/seller-trust";
 
 /**
  * A listing as anyone with its link sees it. Read with the service role because
@@ -24,10 +25,18 @@ export type PublicListing = {
   business_name: string;
   /** The seller, for the page's language. */
   business_id: string;
+  /** What the seller declared, and whether MyHomeSeller has verified them. */
+  seller: SellerInfo;
   photos: Array<{ id: string; path: string; thumb: string }>;
   created_at: string | null;
   updated_at: string | null;
 };
+
+/** The verified mark, read off a business row with its `seller_verifications` joined (one row, or none). */
+function verifiedIn(business: unknown): boolean {
+  const v = (business as { seller_verifications?: unknown } | null)?.seller_verifications;
+  return Array.isArray(v) ? v.length > 0 : Boolean(v);
+}
 
 export const getPublicListing = cache(async (id: string): Promise<PublicListing | null> => {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
@@ -35,7 +44,7 @@ export const getPublicListing = cache(async (id: string): Promise<PublicListing 
   if (!admin) return null;
   const { data: p } = await admin
     .from("properties")
-    .select("id, business_id, name, type, location, price_minor, reservation_fee_minor, currency, status, description, financing, created_at, updated_at, businesses!inner(name, restricted_at)")
+    .select("id, business_id, name, type, location, price_minor, reservation_fee_minor, currency, status, description, financing, seller_capacity, seller_license, created_at, updated_at, businesses!inner(name, restricted_at, seller_verifications(verified_at))")
     .eq("id", id)
     .eq("is_public", true)
     // A business the app admin has restricted has no public pages until it is lifted.
@@ -64,6 +73,7 @@ export const getPublicListing = cache(async (id: string): Promise<PublicListing 
     financing: (p.financing as Listing["financing"]) ?? null,
     business_name: (p.businesses as unknown as { name: string } | null)?.name ?? "the agent",
     business_id: p.business_id as string,
+    seller: { capacity: isCapacity(p.seller_capacity) ? p.seller_capacity : null, license: (p.seller_license as string | null) ?? null, verified: verifiedIn(p.businesses) },
     created_at: (p.created_at as string | null) ?? null,
     updated_at: (p.updated_at as string | null) ?? null,
     photos: (media ?? []).map((m) => ({ id: m.id as string, path: m.storage_path as string, thumb: (m.thumb_path ?? m.storage_path) as string })),
@@ -96,6 +106,8 @@ export type BrowseListing = BrowseRow & {
   financing: Listing["financing"];
   /** The seller is on a paid plan, which is why it shows first by default. */
   featured: boolean;
+  /** MyHomeSeller has verified the seller. */
+  verified: boolean;
   thumb: string | null;
 };
 
@@ -113,7 +125,7 @@ export async function browsePublicListings(query: BrowseQuery, cap = 1000): Prom
   if (!admin) return none;
   const { data } = await admin
     .from("properties")
-    .select("id, business_id, name, type, location, price_minor, currency, status, financing, created_at, businesses!inner(restricted_at)")
+    .select("id, business_id, name, type, location, price_minor, currency, status, financing, created_at, businesses!inner(restricted_at, seller_verifications(verified_at))")
     .eq("is_public", true)
     .is("businesses.restricted_at", null)
     .in("status", ["available", "reserved"])
@@ -131,6 +143,7 @@ export async function browsePublicListings(query: BrowseQuery, cap = 1000): Prom
     status: p.status as "available" | "reserved",
     financing: (p.financing as Listing["financing"]) ?? null,
     created_at: (p.created_at as string | null) ?? null,
+    verified: verifiedIn(p.businesses),
   }));
 
   // Only plans whose paid period is still running count; everyone else is on Free.
