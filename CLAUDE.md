@@ -22,3 +22,21 @@ Where they disagree with this file, this file wins. In particular, this is a sol
 is fine (Vercel deploys `main`), and every new table still needs an RLS policy plus a test in `packages/db-tests`.
 
 Update them by re-copying from upstream; don't hand-edit their files.
+
+## New features: cost and profit heads-up first
+
+Owner's standing request (27 Nov 2026): whenever a new feature is proposed or asked for, say before
+building it whether it is profitable and plausible. Give, in a few lines:
+
+- what it costs MyHomeSeller per use and per subscriber a month (AI tokens, web searches, SMS,
+  storage, third-party fees), with the prices looked up, not remembered;
+- which plans it fits, and whether it needs a monthly limit, AI credits or a paid add-on;
+- a verdict: add, add with a cap, paid add-on only, later, or don't add;
+- any clash with the ground rules (a person approves outside messages, the owner decides prices
+  and boost spend, real numbers only, video ads show photos unaltered).
+
+The cost model is the "MyHomeSeller costs per feature and future features" Sheet
+(https://claude.ai/artifact/7DGPaomWUXHsrNyzocuHuN): read its current prices and usage before
+estimating, and add the new feature's row there once the owner decides. Current AI limits a month:
+replies 3,000 / 6,000 / 15,000 and Ask MyHomeSeller 150 / 400 / 1,000 (Basic / Pro / Agency); past
+them, AI credits (1 a reply, 2 a question).
