@@ -146,22 +146,14 @@ describe("the seller declaration", () => {
     expect((await read(id)).is_public).toBe(true);
   });
 
-  it("needs a licence number from a broker, an agent and a developer, not from an owner", async () => {
+  it("takes a licence number from a broker, an agent and a developer, and doesn't insist on one", async () => {
     for (const capacity of ["broker", "agent", "developer"]) {
-      await expect(
-        list(OWNER, biz, { seller_capacity: capacity }),
-      ).rejects.toThrow(/properties_seller_license_check/);
-      await expect(
-        list(OWNER, biz, { seller_capacity: capacity, seller_license: "  " }),
-      ).rejects.toThrow(/properties_seller_license_check/);
+      const without = await list(OWNER, biz, { is_public: true, seller_capacity: capacity });
+      expect((await read(without)).seller_license).toBeNull();
     }
-    await expect(
-      list(OWNER, biz, { seller_capacity: "friend" }),
-    ).rejects.toThrow(/properties_seller_capacity_check/);
-    const id = await list(OWNER, biz, {
-      seller_capacity: "broker",
-      seller_license: "PRC 0012345",
-    });
+    await expect(list(OWNER, biz, { seller_capacity: "friend" })).rejects.toThrow(/properties_seller_capacity_check/);
+    await expect(list(OWNER, biz, { seller_capacity: "broker", seller_license: "x".repeat(61) })).rejects.toThrow(/properties_seller_license_check/);
+    const id = await list(OWNER, biz, { seller_capacity: "broker", seller_license: "PRC 0012345" });
     expect((await read(id)).seller_license).toBe("PRC 0012345");
   });
 
@@ -505,6 +497,21 @@ describe("verified sellers", () => {
     ).toBe(1);
   });
 
+  it("closes the \"no licence number\" reports on the seller's listings, and no others", async () => {
+    await db.query(`select public.admin_set_verified($1, false, null, $2)`, [biz, ADMIN]);
+    const mine = await list(OWNER, biz, { is_public: true, seller_capacity: "agent" });
+    const theirs = await list(OTHER, otherBiz, { is_public: true, seller_capacity: "agent" });
+    await report(mine, "auto", "auto_license", "Listed as an agent without a licence number.");
+    await report(mine, "visitor", "pay_first");
+    await report(theirs, "auto", "auto_license", "Listed as an agent without a licence number.");
+    await db.query(`select public.admin_set_verified($1, true, 'PRC ID and licence checked on a video call', $2)`, [biz, ADMIN]);
+    const open = (await db.query<{ property_id: string; reason: string }>(`select property_id, reason from public.listing_reports where status = 'open' and property_id in ($1, $2) order by reason`, [mine, theirs])).rows;
+    expect(open).toEqual([
+      { property_id: theirs, reason: "auto_license" },
+      { property_id: mine, reason: "pay_first" },
+    ]);
+  });
+
   it("show in the Accounts list, and the mark can be taken away", async () => {
     const businesses = async () =>
       (
@@ -527,6 +534,18 @@ describe("verified sellers", () => {
       ADMIN,
     ]);
     expect((await businesses()).verified_at).toBeNull();
+  });
+});
+
+describe("the map pin", () => {
+  it("is coordinates or a place name of sensible length, or nothing", async () => {
+    const id = await list(OWNER, biz, { seller_capacity: "owner", map_query: "10.720200,122.562100" });
+    const set = (v: string | null) => as(db, OWNER, () => db.query(`update public.properties set map_query = $1 where id = $2`, [v, id]));
+    await set("SM City Iloilo");
+    await set(null);
+    await expect(set("")).rejects.toThrow(/properties_map_query_check/);
+    await expect(set("x".repeat(201))).rejects.toThrow(/properties_map_query_check/);
+    await expect(set("line\nbreak")).rejects.toThrow(/properties_map_query_check/);
   });
 });
 

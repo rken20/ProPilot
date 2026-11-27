@@ -75,6 +75,8 @@ export type DashboardData = {
   performance: { points: PerfPoint[]; top: { id: string; views: number; inquiries: number } | null } | null;
   /** Whether the plan includes the Pricing Advisor (Agency). The button shows either way. */
   pricingAdvisor: boolean;
+  /** The Follow-up Assistant is on this plan (Pro, Agency). */
+  followUps: boolean;
   /** This month's AI allowances; a notice shows when one is low or used up. */
   usage: UsageItem[];
   canSeeBilling: boolean;
@@ -120,6 +122,7 @@ export function DashboardView({
   aiActivity,
   performance,
   pricingAdvisor,
+  followUps,
   usage,
   canSeeBilling,
   floorsNeeded,
@@ -451,7 +454,7 @@ export function DashboardView({
               label={canCreateProperty ? "Add a Property" : "Open Properties"}
             />
             <Action href="/app/marketing" icon={Megaphone} tone="from-[#2f7af5] to-[#1a5fe0]" label="Marketing Agent" />
-            <Action href="/app/follow-ups" icon={MessageCircleHeart} tone="from-[#12a356] to-[#0b7a3f]" label="Follow-up Assistant" />
+            <Action href="/app/follow-ups" icon={MessageCircleHeart} tone="from-[#12a356] to-[#0b7a3f]" label="Follow-up Assistant" note={followUps ? undefined : "Pro plan"} />
             <Action
               href={performance ? "/app/reports" : "/app/pipeline"}
               icon={BarChart3}

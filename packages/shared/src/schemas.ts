@@ -98,25 +98,23 @@ export type PropertyInput = z.infer<typeof propertySchema>;
 
 /**
  * In what capacity someone lists a property. A broker, an agent and a developer
- * each list under a licence number; an owner selling their own property doesn't.
+ * can give the licence number they list under. It is optional (owner's decision,
+ * 27 Nov 2026): without one the public page says so and the app admin reviews
+ * the listing.
  */
 export const SELLER_CAPACITIES = ["owner", "broker", "agent", "developer"] as const;
 export type SellerCapacity = (typeof SELLER_CAPACITIES)[number];
 
 /** The seller declaration made with a listing. The confirmation itself is a ticked box the form checks. */
-export const sellerDeclarationSchema = z
-  .object({
-    capacity: z.enum(SELLER_CAPACITIES),
-    license: z
-      .string()
-      .trim()
-      .max(60)
-      .regex(/^[A-Za-z0-9][A-Za-z0-9 .\/#-]{2,}$/)
-      .optional(),
-  })
-  .superRefine((v, ctx) => {
-    if (v.capacity !== "owner" && !v.license) ctx.addIssue({ code: "custom", path: ["license"], message: "Enter the licence number" });
-  });
+export const sellerDeclarationSchema = z.object({
+  capacity: z.enum(SELLER_CAPACITIES),
+  license: z
+    .string()
+    .trim()
+    .max(60)
+    .regex(/^[A-Za-z0-9][A-Za-z0-9 .\/#-]{2,}$/)
+    .optional(),
+});
 export type SellerDeclaration = z.infer<typeof sellerDeclarationSchema>;
 
 /** A buyer's request to view a listing. */

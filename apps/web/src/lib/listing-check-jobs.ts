@@ -11,6 +11,7 @@ import {
   type Finding,
 } from "@/lib/listing-checks";
 import { MEDIA_BUCKET } from "@/lib/media";
+import { listsWithoutLicense } from "@/lib/seller-trust";
 import { formatPeso } from "@/lib/money";
 import { siteOrigin } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,6 +27,8 @@ const REASON_LABEL: Record<Finding["reason"], string> = {
   auto_price: "Price far below similar listings",
   auto_wording: "Wording asks for payment before a viewing or outside the app",
   auto_photos: "Same photos as another seller's listing",
+  auto_license:
+    "Listed by a broker, agent or developer without a licence number",
 };
 
 async function file(
@@ -68,13 +71,38 @@ export async function checkListing(propertyId: string): Promise<void> {
     const { data: p } = await admin
       .from("properties")
       .select(
-        "id, name, type, location, price_minor, currency, status, description, financing",
+        "id, business_id, name, type, location, price_minor, currency, status, description, financing, seller_capacity, seller_license",
       )
       .eq("id", propertyId)
       .maybeSingle();
     if (!p || (p.status !== "available" && p.status !== "reserved")) return;
     const listing = { id: p.id as string, name: p.name as string };
     const price = Number(p.price_minor);
+
+    // No licence number from a broker, an agent or a developer: the admin looks at the listing, unless they already verified the seller.
+    if (
+      listsWithoutLicense(
+        p.seller_capacity as string | null,
+        p.seller_license as string | null,
+      )
+    ) {
+      const { data: verified } = await admin
+        .from("seller_verifications")
+        .select("business_id")
+        .eq("business_id", p.business_id as string)
+        .maybeSingle();
+      const as =
+        p.seller_capacity === "agent"
+          ? "an agent"
+          : p.seller_capacity === "broker"
+            ? "a broker"
+            : "the developer";
+      if (!verified)
+        await file(admin, listing, {
+          reason: "auto_license",
+          details: `Listed as ${as} without a licence number. Check the seller, then mark them verified in Accounts or dismiss this.`,
+        });
+    }
 
     const notes = (p.financing as { notes?: unknown } | null)?.notes;
     const words = payFirstWording(

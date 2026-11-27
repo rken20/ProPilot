@@ -15,6 +15,7 @@ import { Gallery } from "./gallery";
 import { LoanEstimator } from "./loan-estimator";
 import { ViewingForm } from "./viewing-form";
 import { ReportListing } from "./report-listing";
+import { ListingMap } from "@/components/listing-map";
 import { declarationLine } from "@/lib/seller-trust";
 
 /** A tinted panel when a listing has no photos yet. */
@@ -124,6 +125,16 @@ export function PublicListingView({
                 <p className="mt-2 max-w-prose text-[15px] leading-relaxed text-ink/85">{listing.financing.notes}</p>
               </section>
             ) : null}
+
+            <section aria-labelledby="map-title">
+              <h2 id="map-title" className="text-lg font-bold">
+                Location
+              </h2>
+              <p className="mt-1 mb-2 flex items-center gap-1.5 text-[15px] text-ink/85">
+                <MapPin className="size-4 shrink-0" aria-hidden /> {listing.location}
+              </p>
+              <ListingMap query={listing.map} title={say(`Map of ${listing.name}`, `Map ng ${listing.name}`)} className="max-w-prose" />
+            </section>
 
             <section aria-labelledby="seller-title">
               <h2 id="seller-title" className="text-lg font-bold">

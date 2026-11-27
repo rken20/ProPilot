@@ -110,6 +110,11 @@ export default function PrivacyPage() {
               <li>Vercel: hosting the app (Tokyo region).</li>
               <li>Anthropic: the AI that answers listing questions and chats, reads pasted posts, writes listing text and scores leads. Lead scoring isn&apos;t sent names, phone numbers or emails.</li>
               <li>Google and Meta (Facebook): only if you connect them, for the features above.</li>
+              <li>
+                Google Maps: each listing page shows a Google map of the property&apos;s location. When the map loads, your browser
+                connects to Google, which sees the usual details of a page visit (such as your IP address) under Google&apos;s own
+                privacy policy.
+              </li>
               <li>An email provider, if email alerts are switched on.</li>
             </ul>
           </Section>

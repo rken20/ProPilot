@@ -5,7 +5,11 @@
  * decides.
  */
 
-export type AutoReason = "auto_price" | "auto_wording" | "auto_photos";
+export type AutoReason =
+  | "auto_price"
+  | "auto_wording"
+  | "auto_photos"
+  | "auto_license";
 export type Finding = { reason: AutoReason; details: string };
 
 const fold = (s: string) =>

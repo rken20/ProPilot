@@ -10,6 +10,7 @@ import type { FormState } from "@/lib/form";
 import { STATUS_LABEL, TYPE_LABEL } from "@/lib/property-labels";
 import { CAPACITY_LABEL, LICENSE_LABEL, isCapacity } from "@/lib/seller-trust";
 import { FinancingFields } from "./financing-fields";
+import { MapField } from "./map-field";
 import { WriteDescriptionButton } from "./write-description";
 
 export type PropertyFormValues = Record<string, string>;
@@ -84,6 +85,9 @@ export function PropertyForm({
             <Field label="Location" htmlFor="location" error={e.location} hint={say("Barangay, city, landmark", "Barangay, city, landmark")}>
               <Input id="location" name="location" defaultValue={v.location} required />
             </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <MapField values={v} errors={e} readOnly={readOnly} />
           </div>
         </section>
 
@@ -223,9 +227,12 @@ function SellerDeclaration({
             label={LICENSE_LABEL[capacity]}
             htmlFor="sellerLicense"
             error={e.sellerLicense}
-            hint={say("Shown on the public page, so buyers can check it.", "Ipapakita sa public page, para ma-check ng buyers.")}
+            hint={say(
+              "Optional, but it helps. It's shown on the public page so buyers can check it. Without it the page says “No licence number given” and MyHomeSeller reviews the listing, until you're a verified seller.",
+              "Optional, pero malaking tulong. Ipapakita ito sa public page para ma-check ng buyers. Kapag wala, “No licence number given” ang nakalagay sa page at ire-review ng MyHomeSeller ang listing, hangga't hindi ka pa verified seller.",
+            )}
           >
-            <Input id="sellerLicense" name="sellerLicense" value={license} onChange={(ev) => setLicense(ev.target.value)} maxLength={60} autoComplete="off" required />
+            <Input id="sellerLicense" name="sellerLicense" value={license} onChange={(ev) => setLicense(ev.target.value)} maxLength={60} autoComplete="off" />
           </Field>
         ) : null}
       </div>

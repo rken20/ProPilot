@@ -18,7 +18,8 @@ const csp = [
   `img-src 'self' data: blob: ${supabase} https://*.fbcdn.net`,
   "font-src 'self' data:",
   `connect-src 'self' ${supabase} ${supabase.replace(/^https/, "wss")} https://vercel.live${dev ? " ws:" : ""}`,
-  "frame-src https://vercel.live",
+  // Google Maps: the map on each listing.
+  "frame-src https://vercel.live https://www.google.com https://maps.google.com",
   "frame-ancestors 'none'",
   `form-action 'self' ${supabase} https://accounts.google.com`,
   "base-uri 'self'",

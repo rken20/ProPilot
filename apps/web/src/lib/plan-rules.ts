@@ -7,6 +7,10 @@
 import type { Lang, Say } from "./lang";
 
 export const FREE_PLAN = "free";
+
+/** The Follow-up Assistant is part of Pro and Agency (owner's decision, 27 Nov 2026). */
+export const FOLLOW_UP_PLANS: readonly string[] = ["pro", "agency"];
+export const followUpsIncluded = (planCode: string) => FOLLOW_UP_PLANS.includes(planCode);
 export const PAID_PLANS = ["basic", "pro", "agency"] as const;
 
 /** GCash reference numbers are 13 digits. People often type them with spaces. */
@@ -83,7 +87,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "AI-written listing descriptions and captions",
       "Ask MyHomeSeller and the reply helper",
     ],
-    excludes: "No Video Ad Maker. Limited Buyer Finder.",
+    excludes: "No Video Ad Maker or Follow-up Assistant. Limited Buyer Finder.",
   },
   pro: {
     tagline: "For agents",
@@ -93,6 +97,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Up to 10,000 AI replies a month",
       "AI negotiation: the chat negotiates down to a lowest price you set, and closes deals at a price you pre-approve",
       "Video Ad Maker: 10 video ads a month from your listing photos, with AI-picked templates, text and music",
+      "Follow-up Assistant: quiet leads listed for you, with a message written and ready to send",
     ],
   },
   agency: {
@@ -103,6 +108,7 @@ export const PLAN_COPY: Record<string, { tagline: string; includes: string[]; ex
       "Up to 25,000 AI replies a month",
       "Pricing Advisor: 20 AI price checks a month, with comparable listings",
       "Video Ad Maker: 30 video ads a month from your listing photos, with AI-picked templates, text and music",
+      "Follow-up Assistant: quiet leads listed for you, with a message written and ready to send",
     ],
   },
 };
@@ -124,7 +130,7 @@ const PLAN_COPY_TL: typeof PLAN_COPY = {
       "Listing descriptions at captions na sulat ng AI",
       "Ask MyHomeSeller at ang reply helper",
     ],
-    excludes: "Walang Video Ad Maker. Limited ang Buyer Finder.",
+    excludes: "Walang Video Ad Maker o Follow-up Assistant. Limited ang Buyer Finder.",
   },
   pro: {
     tagline: "Para sa mga agent",
@@ -134,6 +140,7 @@ const PLAN_COPY_TL: typeof PLAN_COPY = {
       "Hanggang 10,000 AI replies kada buwan",
       "AI negotiation: nakikipag-negotiate ang chat hanggang sa lowest price na sine-set mo, at nagko-close ng deal sa presyong pre-approved mo",
       "Video Ad Maker: 10 video ads kada buwan mula sa listing photos mo, na AI ang pumipili ng template, text at music",
+      "Follow-up Assistant: nakalista ang mga tahimik na lead, may message na nakasulat at ready nang i-send",
     ],
   },
   agency: {
@@ -144,6 +151,7 @@ const PLAN_COPY_TL: typeof PLAN_COPY = {
       "Hanggang 25,000 AI replies kada buwan",
       "Pricing Advisor: 20 AI price checks kada buwan, na may comparable listings",
       "Video Ad Maker: 30 video ads kada buwan mula sa listing photos mo, na AI ang pumipili ng template, text at music",
+      "Follow-up Assistant: nakalista ang mga tahimik na lead, may message na nakasulat at ready nang i-send",
     ],
   },
 };

@@ -119,7 +119,7 @@ function ListingCard({ l, actions }: { l: ReportedListing; actions: Actions }) {
             )}
             <span className="text-muted">
               {l.capacity
-                ? `Declared as ${CAPACITY[l.capacity] ?? l.capacity}${l.license ? `, no. ${l.license}` : ""}`
+                ? `Declared as ${CAPACITY[l.capacity] ?? l.capacity}${l.license ? `, no. ${l.license}` : l.capacity === "owner" ? "" : ", no licence number"}`
                 : "No seller declaration (listed before it was asked for)"}
             </span>
           </p>

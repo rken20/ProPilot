@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { filterBrowse, pageOf, sortBrowse, type BrowseQuery, type BrowseRow } from "@/lib/browse-rules";
 import type { Listing } from "@/lib/listings";
 import { planRank } from "@/lib/match-alert-rules";
+import { mapQuery } from "@/lib/map";
 import { isCapacity, type SellerInfo } from "@/lib/seller-trust";
 
 /**
@@ -27,6 +28,8 @@ export type PublicListing = {
   business_id: string;
   /** What the seller declared, and whether MyHomeSeller has verified them. */
   seller: SellerInfo;
+  /** What the map shows: the seller's exact pin, or the location. */
+  map: string;
   photos: Array<{ id: string; path: string; thumb: string }>;
   created_at: string | null;
   updated_at: string | null;
@@ -44,7 +47,7 @@ export const getPublicListing = cache(async (id: string): Promise<PublicListing 
   if (!admin) return null;
   const { data: p } = await admin
     .from("properties")
-    .select("id, business_id, name, type, location, price_minor, reservation_fee_minor, currency, status, description, financing, seller_capacity, seller_license, created_at, updated_at, businesses!inner(name, restricted_at, seller_verifications(verified_at))")
+    .select("id, business_id, name, type, location, price_minor, reservation_fee_minor, currency, status, description, financing, seller_capacity, seller_license, map_query, created_at, updated_at, businesses!inner(name, restricted_at, seller_verifications(verified_at))")
     .eq("id", id)
     .eq("is_public", true)
     // A business the app admin has restricted has no public pages until it is lifted.
@@ -73,6 +76,7 @@ export const getPublicListing = cache(async (id: string): Promise<PublicListing 
     financing: (p.financing as Listing["financing"]) ?? null,
     business_name: (p.businesses as unknown as { name: string } | null)?.name ?? "the agent",
     business_id: p.business_id as string,
+    map: mapQuery({ location: p.location as string, map_query: p.map_query as string | null }),
     seller: { capacity: isCapacity(p.seller_capacity) ? p.seller_capacity : null, license: (p.seller_license as string | null) ?? null, verified: verifiedIn(p.businesses) },
     created_at: (p.created_at as string | null) ?? null,
     updated_at: (p.updated_at as string | null) ?? null,

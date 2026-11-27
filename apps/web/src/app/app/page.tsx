@@ -1,3 +1,4 @@
+import { followUpsIncluded } from "@/lib/plan-rules";
 import { sayIn } from "@/lib/lang";
 import { businessLang } from "@/lib/lang-server";
 import { businessPages } from "@/lib/facebook-pages";
@@ -273,6 +274,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/app">)
           : null
       }
       pricingAdvisor={plan.priceChecks !== 0}
+      followUps={followUpsIncluded(plan.code)}
       usage={usage}
       canSeeBilling={can(biz.role, "billing.view")}
       floorsNeeded={floorIds.length ? { count: floorIds.length, href: floorIds.length === 1 ? `/app/properties/${floorIds[0]}#ai-negotiation` : "/app/properties" } : null}

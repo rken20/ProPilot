@@ -18,6 +18,8 @@ import { isSuperAdmin } from "@/lib/superadmin";
 import { checkFloor } from "@/lib/floor-rules";
 import { businessPlan } from "@/lib/plan";
 import { checkListing } from "@/lib/listing-check-jobs";
+import { readPinInput } from "@/lib/map";
+import { pinFromShortLink } from "@/lib/map-resolve";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -26,7 +28,7 @@ const FORM_KEYS = [
   "financingNotes", "lowestPrice", "acceptPrice",
   "bankDown", "bankRate", "bankYears", "pagibigDown", "pagibigRate", "pagibigYears",
   "inHouseDown", "inHouseRate", "inHouseYears", "inHouseDownMonths",
-  "sellerCapacity", "sellerLicense",
+  "sellerCapacity", "sellerLicense", "mapPin",
 ] as const;
 
 /** Form field names for each financing option's terms, and where each lands in the saved listing. */
@@ -52,7 +54,7 @@ function validate(form: FormData, say: Say, declared?: { capacity: string | null
   const sellerErrors: Record<string, string> = {};
   if (!seller.success) {
     if (seller.error.issues.some((i) => i.path[0] === "capacity")) sellerErrors.sellerCapacity = say("Choose how you're listing this property", "Piliin kung paano mo nili-list ang property na ito");
-    else sellerErrors.sellerLicense = say("Enter the licence number: letters and numbers, at least 3", "Ilagay ang licence number: letters at numbers, hindi bababa sa 3");
+    else sellerErrors.sellerLicense = say("Use letters and numbers, at least 3, or leave it blank", "Letters at numbers lang, hindi bababa sa 3, o iwanang blangko");
   } else {
     const same = declared?.capacity === seller.data.capacity && (declared.license ?? null) === (seller.data.license ?? null);
     if (!same && form.get("sellerConfirm") !== "on") sellerErrors.sellerConfirm = say("Tick the box to confirm", "I-tick ang box para mag-confirm");
@@ -93,6 +95,31 @@ function validate(form: FormData, say: Say, declared?: { capacity: string | null
     return { ok: false as const, state: { fieldErrors: fe, data: { ...data, ...flagData(checks), isPublic: form.get("isPublic") === "on" ? "on" : "", sellerConfirm: form.get("sellerConfirm") === "on" ? "on" : "" } } };
   }
   return { ok: true as const, value: parsed.data, seller: seller.data, isPublic: form.get("isPublic") === "on" };
+}
+
+/**
+ * The exact map pin a seller typed or pasted: coordinates, a Google Maps link,
+ * or one of its short share links (followed here to see where it points).
+ * Null when the field was left empty; an error when nothing could be read.
+ */
+async function readMapPin(form: FormData, say: Say): Promise<{ ok: true; pin: string | null } | { ok: false; state: FormState }> {
+  const typed = readPinInput(str(form, "mapPin"));
+  if (typed.kind === "none") return { ok: true, pin: null };
+  const pin = typed.kind === "pin" ? typed.query : typed.kind === "short" ? await pinFromShortLink(typed.url) : null;
+  if (pin) return { ok: true, pin };
+  const { data, checks } = readForm(form);
+  return {
+    ok: false,
+    state: {
+      fieldErrors: {
+        mapPin:
+          typed.kind === "short"
+            ? say("Couldn't read a place from that link. Paste the long link from your browser's address bar, type the coordinates, or leave this blank.", "Hindi mabasa ang lugar sa link na iyan. I-paste ang mahabang link mula sa address bar ng browser, i-type ang coordinates, o iwanang blangko.")
+            : say("Paste a Google Maps link, coordinates like 10.7202, 122.5621 or a landmark's name, or leave this blank.", "Mag-paste ng Google Maps link, coordinates gaya ng 10.7202, 122.5621 o pangalan ng landmark, o iwanang blangko."),
+      },
+      data: { ...data, ...flagData(checks), isPublic: form.get("isPublic") === "on" ? "on" : "", sellerConfirm: form.get("sellerConfirm") === "on" ? "on" : "" },
+    },
+  };
 }
 
 function flagData(checks: Record<string, boolean>) {
@@ -136,11 +163,14 @@ export async function createProperty(_prev: FormState, form: FormData): Promise<
     return { fieldErrors: { [floorCheck.field]: say(...floorCheck.message) }, data: { ...data, ...flagData(checks), isPublic: result.isPublic ? "on" : "", sellerConfirm: form.get("sellerConfirm") === "on" ? "on" : "" } };
   }
 
+  const map = await readMapPin(form, say);
+  if (!map.ok) return map.state;
+
   const supabase = await createClient();
   // business_id comes from the server-side session, never from the form.
   const { data, error } = await supabase
     .from("properties")
-    .insert({ ...toRow(result.value, result.seller), is_public: result.isPublic, business_id: biz.businessId, created_by: user.id })
+    .insert({ ...toRow(result.value, result.seller), map_query: map.pin, is_public: result.isPublic, business_id: biz.businessId, created_by: user.id })
     .select("id")
     .single();
   if (error) return { error: say("Couldn't save the property. Please try again.", "Hindi na-save ang property. Paki-try ulit."), data: readForm(form).data };
@@ -184,10 +214,12 @@ export async function updateProperty(id: string, _prev: FormState, form: FormDat
   if (!current) return { error: say("You can't edit this property.", "Hindi mo pwedeng i-edit ang property na ito.") };
   const result = validate(form, say, { capacity: current.seller_capacity as string | null, license: current.seller_license as string | null });
   if (!result.ok) return result.state;
+  const map = await readMapPin(form, say);
+  if (!map.ok) return map.state;
 
   const { data, error } = await supabase
     .from("properties")
-    .update({ ...toRow(result.value, result.seller), is_public: result.isPublic, updated_at: new Date().toISOString() })
+    .update({ ...toRow(result.value, result.seller), map_query: map.pin, is_public: result.isPublic, updated_at: new Date().toISOString() })
     .eq("id", id)
     .eq("business_id", biz.businessId)
     .select("id");

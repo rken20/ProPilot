@@ -6,7 +6,9 @@ import { requireBusiness } from "@/lib/auth";
 import { followUpsDue } from "@/lib/follow-up";
 import { appSay } from "@/lib/lang-server";
 import { OPEN_STAGES, STAGE_INFO, type Stage } from "@/lib/pipeline";
-import { aiEnabled } from "@/lib/plan";
+import { Icon3d } from "@/components/icon-3d";
+import { aiEnabled, businessPlan } from "@/lib/plan";
+import { followUpsIncluded } from "@/lib/plan-rules";
 import { createClient } from "@/lib/supabase/server";
 import { markFollowedUp, writeFollowUp } from "./actions";
 import { FollowUpList, type FollowUpItem } from "./follow-up-list";
@@ -21,6 +23,45 @@ export default async function FollowUpsPage() {
   if (!can(biz.role, "lead.viewAll") && !can(biz.role, "lead.viewAssigned"))
     redirect("/app");
   const say = await appSay();
+  // Part of Pro and Agency (owner's decision, 27 Nov 2026).
+  if (!followUpsIncluded((await businessPlan(biz.businessId)).code)) {
+    return (
+      <>
+        <PageHeader
+          icon3d="bell"
+          tone="lemon"
+          title="Follow-up Assistant"
+          description={say(
+            "It lists the leads who have gone quiet and writes each one a message for you to send.",
+            "Inililista nito ang mga lead na tumahimik at sinusulatan ang bawat isa ng message na ikaw ang magse-send.",
+          )}
+        />
+        <section className="flex flex-wrap items-center gap-5 rounded-[1.5rem] bg-tile-lavender p-6 sm:p-8">
+          <Icon3d name="bell" size={72} />
+          <div className="min-w-0 flex-1 basis-64">
+            <h2 className="text-xl font-extrabold tracking-tight">
+              Part of the Pro and Agency plans
+            </h2>
+            <p className="mt-1 max-w-xl text-sm text-ink/80">
+              {say(
+                "On Pro and Agency, every lead with no message or update for a few days shows up here, or when its next step is due. The AI writes a follow-up from the lead's record and chat; you edit it, then copy, text or call. Your leads and their history stay on the Leads page on every plan.",
+                "Sa Pro at Agency, lalabas dito ang bawat lead na ilang araw nang walang message o update, o kapag due na ang next step nito. Susulat ang AI ng follow-up mula sa record at chat ng lead; ie-edit mo, tapos i-copy, i-text o tawagan. Nasa Leads page pa rin ang mga lead mo at history nila sa bawat plan.",
+              )}
+            </p>
+          </div>
+          {can(biz.role, "billing.view") ? (
+            <Link href="/app/billing" className={buttonClass("primary")}>
+              See the Plans
+            </Link>
+          ) : (
+            <Link href="/app/pipeline" className={buttonClass("secondary")}>
+              Open Leads
+            </Link>
+          )}
+        </section>
+      </>
+    );
+  }
   const supabase = await createClient();
 
   const [{ data: cfg }, { data: leads }, aiOn] = await Promise.all([

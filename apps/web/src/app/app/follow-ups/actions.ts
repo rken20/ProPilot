@@ -10,7 +10,8 @@ import { appSay, businessLang } from "@/lib/lang-server";
 import { DEFAULT_MODEL } from "@/lib/listing-assistant";
 import { formatPeso } from "@/lib/money";
 import { STAGE_INFO, daysSince, type Stage } from "@/lib/pipeline";
-import { aiEnabled } from "@/lib/plan";
+import { aiEnabled, businessPlan } from "@/lib/plan";
+import { followUpsIncluded } from "@/lib/plan-rules";
 import { TYPE_LABEL } from "@/lib/property-labels";
 import { transcript, type HelperTurn } from "@/lib/reply-helper";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -24,6 +25,8 @@ export type DraftResult = { text: string; byAi: boolean } | { error: string };
 async function ownLead(id: string) {
   const biz = await requireBusiness();
   if (!can(biz.role, "lead.update") || !UUID.test(id)) return null;
+  // Pro and Agency only, checked here too so the page isn't the only gate.
+  if (!followUpsIncluded((await businessPlan(biz.businessId)).code)) return null;
   const supabase = await createClient();
   const { data } = await supabase
     .from("prospects")

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMonths, cleanGcashReference, daysLeft, effectivePlanCode, paidUntil, validMonths } from "./plan-rules";
+import { addMonths, cleanGcashReference, daysLeft, effectivePlanCode, followUpsIncluded, paidUntil, validMonths } from "./plan-rules";
 
 const NOW = new Date("2026-11-19T12:00:00+08:00");
 
@@ -48,5 +48,11 @@ describe("choosing how many months to pay for", () => {
 
   it("starts again from today when the old period has already ended", () => {
     expect(paidUntil(NOW, { code: "pro", periodEnd: "2026-11-01T00:00:00Z" }, "pro", 1)).toEqual({ until: addMonths(NOW, 1), addsOn: false });
+  });
+});
+
+describe("followUpsIncluded", () => {
+  it("is Pro and Agency only", () => {
+    expect(["free", "basic", "pro", "agency", "", "enterprise"].map(followUpsIncluded)).toEqual([false, false, true, true, false, false]);
   });
 });

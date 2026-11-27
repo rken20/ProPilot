@@ -15,7 +15,7 @@ export const CAPACITY_LABEL: Record<SellerCapacity, string> = {
   developer: "We're the developer",
 };
 
-/** The licence number that goes with each way of listing. An owner needs none. */
+/** The licence number that goes with each way of listing. Optional; an owner is never asked. */
 export const LICENSE_LABEL: Record<Exclude<SellerCapacity, "owner">, string> = {
   broker: "PRC broker licence number",
   agent: "PRC accreditation number, or your broker's PRC licence number",
@@ -34,36 +34,46 @@ export type SellerInfo = {
 };
 
 /** A public page's line for the seller's declaration: what they said, not what was checked. */
-export function declarationLine(
-  seller: Pick<SellerInfo, "capacity" | "license">,
-  say: Say,
-): string | null {
-  const no = seller.license ? ` ${seller.license}` : "";
-  switch (seller.capacity) {
-    case "owner":
-      return say(
-        "The seller says they own this property.",
-        "Sabi ng seller, sila ang may-ari ng property na ito.",
-      );
-    case "broker":
-      return say(
-        `The seller says they are a licensed real estate broker, PRC licence no.${no}.`,
-        `Sabi ng seller, licensed real estate broker sila, PRC licence no.${no}.`,
-      );
-    case "agent":
-      return say(
-        `The seller says they are a real estate agent, PRC no.${no}.`,
-        `Sabi ng seller, real estate agent sila, PRC no.${no}.`,
-      );
-    case "developer":
-      return say(
-        `The seller says they are the developer, DHSUD Licence to Sell no.${no}.`,
-        `Sabi ng seller, sila ang developer, DHSUD Licence to Sell no.${no}.`,
-      );
-    default:
-      return null;
+export function declarationLine(seller: SellerInfo, say: Say): string | null {
+  if (seller.capacity === null) return null;
+  if (seller.capacity === "owner")
+    return say(
+      "The seller says they own this property.",
+      "Sabi ng seller, sila ang may-ari ng property na ito.",
+    );
+  const who = {
+    broker: say(
+      "The seller says they are a licensed real estate broker",
+      "Sabi ng seller, licensed real estate broker sila",
+    ),
+    agent: say(
+      "The seller says they are a real estate agent",
+      "Sabi ng seller, real estate agent sila",
+    ),
+    developer: say(
+      "The seller says they are the developer",
+      "Sabi ng seller, sila ang developer",
+    ),
+  }[seller.capacity];
+  if (seller.license) {
+    const label = {
+      broker: "PRC licence no.",
+      agent: "PRC no.",
+      developer: "DHSUD Licence to Sell no.",
+    }[seller.capacity];
+    return `${who}, ${label} ${seller.license}.`;
   }
+  // No number: said plainly, until MyHomeSeller has verified the seller another way.
+  return seller.verified
+    ? `${who}.`
+    : `${who}. ${say("No licence number given.", "Walang ibinigay na licence number.")}`;
 }
+
+/** A broker, an agent or a developer who gave no licence number: the app admin reviews these until the seller is verified. */
+export const listsWithoutLicense = (
+  capacity: string | null,
+  license: string | null,
+) => capacity !== null && capacity !== "owner" && !license?.trim();
 
 /** Why a visitor is reporting a listing, in the order the form shows them. */
 export const REPORT_REASONS = [
@@ -107,4 +117,5 @@ export const ANY_REASON_LABEL: Record<string, string> = {
   auto_price: "Price far below similar listings",
   auto_wording: "Wording asks for payment first",
   auto_photos: "Same photos as another seller",
+  auto_license: "No licence number given",
 };

@@ -18,6 +18,7 @@ const house: PublicListing = {
   business_name: "Santos Realty",
   business_id: "00000000-0000-0000-0000-000000000001",
   seller: { capacity: "owner", license: null, verified: false },
+  map: "Barangay Lanag, Pototan, Iloilo",
   photos: [{ id: "p1", path: "b/l/one.jpg", thumb: "b/l/one-t.jpg" }],
   created_at: "2026-11-20T02:00:00Z",
   updated_at: "2026-11-23T05:00:00Z",

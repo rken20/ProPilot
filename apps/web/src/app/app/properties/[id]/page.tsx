@@ -132,6 +132,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
     pagIbig: financing.pagIbig ? "on" : "",
     inHouse: financing.inHouse ? "on" : "",
     isPublic: p.is_public ? "on" : "",
+    mapPin: (p.map_query as string | null) ?? "",
     sellerCapacity: (p.seller_capacity as string | null) ?? "",
     sellerLicense: (p.seller_license as string | null) ?? "",
     // Set once a declaration is made: the form then asks for the box again only if it changes.
@@ -267,7 +268,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
       </div>
       <Card>
         {/* The key resets the form when the status is changed with the buttons further down. */}
-        <PropertyForm key={`${p.status}:${initial.declaredOn}:${initial.sellerCapacity}:${initial.sellerLicense}`} action={updateProperty.bind(null, p.id)} initial={initial} submitLabel="Save changes" readOnly={!canEdit} aiWrite={aiOn} publicOff={takenDown} />
+        <PropertyForm key={`${p.status}:${initial.declaredOn}:${initial.sellerCapacity}:${initial.sellerLicense}:${initial.mapPin}`} action={updateProperty.bind(null, p.id)} initial={initial} submitLabel="Save changes" readOnly={!canEdit} aiWrite={aiOn} publicOff={takenDown} />
       </Card>
 
       {finder ? (
