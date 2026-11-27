@@ -120,4 +120,9 @@ describe("sellerDeclarationSchema", () => {
     expect(sellerDeclarationSchema.safeParse({ capacity: "broker", license: "<script>" }).success).toBe(false);
     expect(sellerDeclarationSchema.safeParse({ capacity: "friend" }).success).toBe(false);
   });
+
+  it("lets only the owner spend the business's ad money", () => {
+    expect(can("owner", "ads.spend")).toBe(true);
+    for (const role of ["admin", "agent", "marketing"] as const) expect(can(role, "ads.spend")).toBe(false);
+  });
 });

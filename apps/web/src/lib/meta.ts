@@ -518,3 +518,9 @@ export function parseWebhook(body: unknown): MessengerEvent[] {
   }
   return out;
 }
+
+// ------------------------------------------------------------------ for the Marketing API (lib/meta-ads.ts)
+
+export const graphGet = get;
+export const graphGetFast = getFast;
+export const graphPost = post;

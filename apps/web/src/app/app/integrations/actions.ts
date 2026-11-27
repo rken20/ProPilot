@@ -89,6 +89,9 @@ export async function disconnectFacebookPage(rowId: string) {
   const admin = createAdminClient();
   if (admin && /^[0-9a-f-]{36}$/i.test(rowId)) {
     await admin.from("facebook_pages").delete().eq("business_id", biz.businessId).eq("id", rowId);
+    // With no Page left, the sign-in kept for boosting goes too.
+    const { count } = await admin.from("facebook_pages").select("id", { count: "exact", head: true }).eq("business_id", biz.businessId);
+    if (!count) await admin.from("meta_ad_connections").delete().eq("business_id", biz.businessId);
   }
   done("facebook-disconnected");
 }

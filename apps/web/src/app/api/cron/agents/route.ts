@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendUsageEmails } from "@/lib/usage";
 import { sendMatchEmails } from "@/lib/match-alerts";
 import { clearOldVideoUploads } from "@/lib/video-ad/uploads";
+import { refreshAllBoosts } from "@/lib/boosts";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -31,6 +32,8 @@ export async function GET(request: NextRequest) {
   const { data: grantsUsed } = await admin.rpc("claim_plan_grants");
   // Video ads uploaded to be posted on Facebook are only kept for a day.
   const videoUploadsCleared = await clearOldVideoUploads(admin).catch(() => 0);
+  // Boosts: the latest spend and chats from Meta, and ended ones marked finished.
+  const boostsRefreshed = await refreshAllBoosts(admin).catch(() => 0);
   const result = await runScheduledAgents(admin);
-  return NextResponse.json({ ...result, usageEmails, matchEmails: matches.emails, planGrants: typeof grantsUsed === "number" ? grantsUsed : 0, videoUploadsCleared });
+  return NextResponse.json({ ...result, usageEmails, matchEmails: matches.emails, planGrants: typeof grantsUsed === "number" ? grantsUsed : 0, videoUploadsCleared, boostsRefreshed });
 }

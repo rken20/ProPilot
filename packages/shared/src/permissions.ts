@@ -38,6 +38,8 @@ export const ACTIONS = [
   "content.create",
   "content.publish",
   "analytics.view",
+  // Spending the business's own ad money on Meta (owner only: the owner decides every boost).
+  "ads.spend",
   // Compliance
   "auditLog.view",
   "data.export",
@@ -47,7 +49,7 @@ export type Action = (typeof ACTIONS)[number];
 const OWNER: readonly Action[] = ACTIONS;
 
 const ADMIN: readonly Action[] = ACTIONS.filter(
-  (a) => a !== "business.delete" && a !== "billing.manage",
+  (a) => a !== "business.delete" && a !== "billing.manage" && a !== "ads.spend",
 );
 
 const AGENT: readonly Action[] = [

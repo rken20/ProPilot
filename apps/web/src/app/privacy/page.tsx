@@ -55,7 +55,10 @@ export default function PrivacyPage() {
               </li>
               <li>
                 If you connect Facebook: the Pages you choose (their ID and name), an encrypted access token for each
-                Page, and your app-specific Facebook user ID. We don&apos;t keep your personal Facebook login token.
+                Page, and your app-specific Facebook user ID. We keep your personal Facebook login token only if you also
+                allow ad permissions, so the business owner can boost a video from MyHomeSeller: it is encrypted, lasts
+                about 60 days, and is used only to create, stop and read the results of boosts the owner approves, on the
+                ad account they choose. Facebook charges that ad account directly; we never see or handle the payment.
               </li>
               <li>
                 Messenger conversations with a business&apos;s Facebook Page, if that business switched on AI replies: the
@@ -86,8 +89,9 @@ export default function PrivacyPage() {
                 deletes your preferences straight away. Otherwise we delete them after 12 months.
               </li>
               <li>
-                On Facebook, only when you ask: to read your Page&apos;s posts so you can turn one into a listing, and to
-                publish a listing to your Page when someone on your team presses Post.
+                On Facebook, only when you ask: to read your Page&apos;s posts so you can turn one into a listing, to
+                publish a listing to your Page when someone on your team presses Post, and to run a boost the business
+                owner approved, within the amount they approved.
               </li>
               <li>
                 On Messenger: to answer questions about the business&apos;s listings with an automated assistant, which says
@@ -138,7 +142,7 @@ export default function PrivacyPage() {
               You can disconnect a Page any time under Integrations, which deletes its token. You can also remove MyHomeSeller
               AI in Facebook under Settings and privacy, then Settings, then Business integrations (or Apps and websites).
               When you do and ask for your data to be deleted, Facebook tells us and we delete every Page token you
-              connected. You&apos;ll get a confirmation code you can check on our deletion status page.
+              connected and the login token kept for boosts. You&apos;ll get a confirmation code you can check on our deletion status page.
             </p>
           </Section>
 

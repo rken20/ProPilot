@@ -7,6 +7,7 @@ import { encryptSecret } from "@/lib/crypto";
 import { exchangeCode, longLivedUserToken, managedPages, meId, metaConfig } from "@/lib/meta";
 import { META_STATE_COOKIE, metaRedirectUri } from "@/lib/meta-oauth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { saveAdSignIn } from "@/lib/boosts";
 
 function sameString(a: string, b: string) {
   const x = Buffer.from(a);
@@ -16,7 +17,8 @@ function sameString(a: string, b: string) {
 
 /**
  * Facebook sends the person back here. Check the state, then store an
- * encrypted token for each Page they chose. The user token itself is not kept.
+ * encrypted token for each Page they chose. The user token itself is kept
+ * (encrypted) only when the person granted the ad permissions, for boosting.
  */
 export async function GET(request: NextRequest) {
   const user = await requireUser();
@@ -72,6 +74,9 @@ export async function GET(request: NextRequest) {
       .eq("business_id", businessId)
       .eq("fb_user_id", fbUserId)
       .not("page_id", "in", `(${pages.map((p) => p.id).join(",")})`);
+
+    // For boosting: kept only if every ad permission was granted. Failing here never fails the connection.
+    await saveAdSignIn(admin, cfg, businessId, user.id, fbUserId, userToken).catch(() => false);
 
     back.searchParams.set("notice", "facebook-connected");
     return NextResponse.redirect(back);

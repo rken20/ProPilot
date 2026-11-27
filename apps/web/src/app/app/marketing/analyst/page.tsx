@@ -5,6 +5,7 @@ import { appSay } from "@/lib/lang-server";
 import { businessPlan } from "@/lib/plan";
 import { recommendations, totals, verdicts } from "@/lib/post-analyst";
 import { loadAnalyst } from "@/lib/post-analyst-data";
+import { boostsIncluded } from "@/lib/boost-rules";
 import { AnalystView } from "./analyst-view";
 
 export const metadata = { title: "Analyst" };
@@ -37,6 +38,7 @@ export default async function AnalystPage() {
       })}
       canSeeReports={reports}
       canConnect={can(biz.role, "business.update")}
+      canBoost={boostsIncluded(plan.code)}
       now={now.toISOString()}
     />
   );

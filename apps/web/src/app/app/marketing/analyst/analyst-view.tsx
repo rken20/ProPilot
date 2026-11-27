@@ -84,11 +84,14 @@ function PostCard({
   verdict,
   now,
   say,
+  canBoost,
 }: {
   p: PostRow;
   verdict?: Verdict;
   now: Date;
   say: Say;
+  /** Pro and Agency can boost a video posted from MyHomeSeller. */
+  canBoost: boolean;
 }) {
   const v = verdict ? VERDICT[verdict] : null;
   const a = p.after;
@@ -128,16 +131,29 @@ function PostCard({
             {day.format(new Date(p.postedAt))} · {p.pageName}
           </p>
         </div>
-        {p.permalink ? (
-          <a
-            href={p.permalink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-grape-700 underline underline-offset-2"
-          >
-            Open on Facebook <ExternalLink className="size-3.5" aria-hidden />
-          </a>
-        ) : null}
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
+          {p.permalink ? (
+            <a
+              href={p.permalink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-grape-700 underline underline-offset-2"
+            >
+              Open on Facebook <ExternalLink className="size-3.5" aria-hidden />
+            </a>
+          ) : null}
+          {canBoost && p.kind === "video" ? (
+            <Link
+              href={`/app/marketing/boost/${p.id}`}
+              className={buttonClass("secondary")}
+            >
+              <Rocket className="size-4" aria-hidden />{" "}
+              {boosted(p)
+                ? say("Boosts", "Boosts")
+                : say("Boost this video", "I-boost ang video")}
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       {p.fb ? (
@@ -261,6 +277,7 @@ export function AnalystView({
   recs,
   canSeeReports,
   canConnect,
+  canBoost = false,
   now: nowIso,
   say,
 }: {
@@ -270,6 +287,7 @@ export function AnalystView({
   recs: Recommendation[];
   canSeeReports: boolean;
   canConnect: boolean;
+  canBoost?: boolean;
   now: string;
   say: Say;
 }) {
@@ -487,6 +505,7 @@ export function AnalystView({
                 verdict={verdicts[p.id]}
                 now={now}
                 say={say}
+                canBoost={canBoost}
               />
             ))}
           </ul>

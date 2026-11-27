@@ -21,6 +21,8 @@ export async function POST(request: NextRequest) {
   if (!data) return NextResponse.json({ error: "invalid signed_request" }, { status: 400 });
 
   const { data: deleted } = await admin.from("facebook_pages").delete().eq("fb_user_id", data.user_id).select("id");
+  // Their sign-in kept for boosting goes too. Boost records stay: they are the business's own spending history.
+  await admin.from("meta_ad_connections").delete().eq("fb_user_id", data.user_id);
   const code = randomBytes(9).toString("base64url");
   await admin.from("meta_deletion_requests").insert({
     confirmation_code: code,
